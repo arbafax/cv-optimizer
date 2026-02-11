@@ -1,18 +1,11 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
-import logging
 from app.core.config import settings
 from app.core.database import engine, Base
 
-# Import routers
-from app.api import cv, optimize
-
-# Configure logging
-logging.basicConfig(
-    level=logging.INFO if not settings.DEBUG else logging.DEBUG,
-    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
-)
+# Import routers (will create these later)
+# from app.api import cv_router, optimize_router
 
 # Create database tables
 Base.metadata.create_all(bind=engine)
@@ -21,8 +14,7 @@ Base.metadata.create_all(bind=engine)
 app = FastAPI(
     title=settings.APP_NAME,
     version=settings.APP_VERSION,
-    debug=settings.DEBUG,
-    description="AI-powered CV optimization service with semantic search"
+    debug=settings.DEBUG
 )
 
 # Configure CORS
@@ -40,8 +32,7 @@ async def root():
     return {
         "message": f"Welcome to {settings.APP_NAME}",
         "version": settings.APP_VERSION,
-        "status": "running",
-        "docs": "/docs"
+        "status": "running"
     }
 
 
@@ -51,10 +42,10 @@ async def health_check():
 
 
 # Include API routers
-app.include_router(cv.router, prefix="/api/v1")
-app.include_router(optimize.router, prefix="/api/v1")
+# app.include_router(cv_router, prefix="/api/v1")
+# app.include_router(optimize_router, prefix="/api/v1")
 
-# Mount static files (frontend) - optional
+# Mount static files (frontend)
 # app.mount("/static", StaticFiles(directory="../frontend"), name="static")
 
 if __name__ == "__main__":

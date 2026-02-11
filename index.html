@@ -3,49 +3,112 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>CV Optimizer</title>
+    <title>CV Optimizer - AI-driven CV-anpassning</title>
     <link rel="stylesheet" href="css/style.css">
 </head>
 <body>
     <div class="container">
-        <header>
-            <h1>CV Optimizer</h1>
-            <p>Optimera ditt CV för varje jobbannons</p>
+        <!-- Hero Section -->
+        <header class="hero">
+            <div class="hero-content">
+                <h1>🎯 CV Optimizer</h1>
+                <p class="hero-subtitle">AI-driven CV-anpassning för varje jobbannons</p>
+                <div class="hero-description">
+                    <p>Ladda upp ditt CV som PDF – vår AI analyserar och strukturerar innehållet automatiskt.</p>
+                    <p>Klistra sedan in en jobbannons och få ett perfekt anpassat CV på sekunder.</p>
+                </div>
+            </div>
         </header>
 
         <main>
+            <!-- Upload Section -->
             <section id="upload-section" class="card">
-                <h2>1. Ladda upp ditt CV</h2>
+                <div class="card-header">
+                    <h2>📄 Steg 1: Ladda upp ditt CV</h2>
+                    <p class="card-description">Dra och släpp din CV-fil här, eller klicka för att välja</p>
+                </div>
+                
                 <div class="upload-area" id="upload-area">
                     <input type="file" id="cv-upload" accept=".pdf" hidden>
-                    <label for="cv-upload" class="upload-label">
-                        <span>📄</span>
-                        <p>Klicka för att välja PDF eller dra och släpp</p>
+                    <label for="cv-upload" class="upload-label" id="upload-label">
+                        <div class="upload-icon">📄</div>
+                        <p class="upload-text">Dra och släpp din PDF här</p>
+                        <p class="upload-subtext">eller klicka för att välja fil</p>
+                        <span class="upload-file-types">Endast PDF-filer, max 10 MB</span>
                     </label>
                 </div>
+                
                 <div id="upload-status"></div>
+                <div id="cv-preview" class="cv-preview hidden"></div>
             </section>
 
+            <!-- CV List Section -->
             <section id="cv-list-section" class="card">
-                <h2>2. Dina sparade CV:n</h2>
-                <div id="cv-list"></div>
+                <div class="card-header">
+                    <h2>💼 Steg 2: Dina uppladdade CV:n</h2>
+                    <p class="card-description">Välj ett CV att optimera för en jobbannons</p>
+                </div>
+                <div id="cv-list" class="cv-list-grid">
+                    <div class="empty-state">
+                        <p>Inga CV:n uppladdade ännu</p>
+                        <p class="empty-state-hint">Ladda upp ditt första CV för att komma igång!</p>
+                    </div>
+                </div>
             </section>
 
+            <!-- Optimize Section -->
             <section id="optimize-section" class="card">
-                <h2>3. Optimera för jobbannons</h2>
-                <div class="form-group">
-                    <label for="job-title">Jobbtitel</label>
-                    <input type="text" id="job-title" placeholder="t.ex. Senior Backend Developer">
+                <div class="card-header">
+                    <h2>✨ Steg 3: Optimera för jobbannons</h2>
+                    <p class="card-description">Klistra in jobbannonsen - AI:n anpassar ditt CV automatiskt</p>
                 </div>
-                <div class="form-group">
-                    <label for="job-description">Jobbannons (klistra in hela annonsen)</label>
-                    <textarea id="job-description" rows="10" 
-                              placeholder="Klistra in jobbannonsen här..."></textarea>
+                
+                <div class="optimize-form">
+                    <div class="form-group">
+                        <label for="job-title">
+                            Jobbtitel
+                            <span class="required">*</span>
+                        </label>
+                        <input 
+                            type="text" 
+                            id="job-title" 
+                            placeholder="t.ex. Senior Backend Developer"
+                            required>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="job-description">
+                            Jobbeskrivning
+                            <span class="required">*</span>
+                        </label>
+                        <textarea 
+                            id="job-description" 
+                            rows="12" 
+                            placeholder="Klistra in hela jobbannonsen här...
+
+Exempel:
+Vi söker en erfaren Backend Developer med minst 5 års erfarenhet av Python och FastAPI. Du kommer arbeta med skalbar microservice-arkitektur och CI/CD pipelines..."
+                            required></textarea>
+                        <div class="char-count" id="char-count">0 tecken</div>
+                    </div>
+                    
+                    <button id="optimize-btn" class="btn btn-primary" disabled>
+                        <span class="btn-text">Optimera CV med AI</span>
+                        <span class="btn-loading hidden">
+                            <span class="spinner-small"></span>
+                            Optimerar...
+                        </span>
+                    </button>
                 </div>
-                <button id="optimize-btn" class="btn btn-primary">Optimera CV</button>
-                <div id="optimize-result"></div>
+                
+                <div id="optimize-result" class="optimize-result hidden"></div>
             </section>
         </main>
+
+        <!-- Footer -->
+        <footer class="footer">
+            <p>Byggd med FastAPI, PostgreSQL & OpenAI GPT-4</p>
+        </footer>
     </div>
 
     <script src="js/app.js"></script>

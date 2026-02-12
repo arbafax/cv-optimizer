@@ -5,6 +5,7 @@ from datetime import datetime, date
 
 class PersonalInfo(BaseModel):
     """Personal information section"""
+
     full_name: str
     email: Optional[EmailStr] = None
     phone: Optional[str] = None
@@ -16,8 +17,9 @@ class PersonalInfo(BaseModel):
 
 class WorkExperience(BaseModel):
     """Single work experience entry"""
-    company: str
-    position: str
+
+    company: Optional[str] = None
+    position: Optional[str] = None
     start_date: Optional[str] = None  # We'll parse dates flexibly
     end_date: Optional[str] = None
     current: bool = False
@@ -29,7 +31,8 @@ class WorkExperience(BaseModel):
 
 class Education(BaseModel):
     """Education entry"""
-    institution: str
+
+    institution: Optional[str] = None
     degree: Optional[str] = None
     field_of_study: Optional[str] = None
     start_date: Optional[str] = None
@@ -40,7 +43,8 @@ class Education(BaseModel):
 
 class Certification(BaseModel):
     """Certification or license"""
-    name: str
+
+    name: Optional[str] = None
     issuing_organization: Optional[str] = None
     issue_date: Optional[str] = None
     expiry_date: Optional[str] = None
@@ -49,7 +53,8 @@ class Certification(BaseModel):
 
 class Project(BaseModel):
     """Project entry"""
-    name: str
+
+    name: Optional[str] = None
     description: Optional[str] = None
     role: Optional[str] = None
     technologies: List[str] = Field(default_factory=list)
@@ -60,12 +65,14 @@ class Project(BaseModel):
 
 class Language(BaseModel):
     """Language proficiency"""
-    language: str
+
+    language: Optional[str] = None
     proficiency: Optional[str] = None  # e.g., "Native", "Fluent", "Professional"
 
 
 class CVStructure(BaseModel):
     """Complete structured CV data"""
+
     personal_info: PersonalInfo
     summary: Optional[str] = None
     work_experience: List[WorkExperience] = Field(default_factory=list)
@@ -74,7 +81,7 @@ class CVStructure(BaseModel):
     certifications: List[Certification] = Field(default_factory=list)
     projects: List[Project] = Field(default_factory=list)
     languages: List[Language] = Field(default_factory=list)
-    
+
     class Config:
         json_schema_extra = {
             "example": {
@@ -82,7 +89,7 @@ class CVStructure(BaseModel):
                     "full_name": "Anna Andersson",
                     "email": "anna@example.com",
                     "phone": "+46701234567",
-                    "location": "Stockholm, Sweden"
+                    "location": "Stockholm, Sweden",
                 },
                 "summary": "Erfaren backend-utvecklare med fokus på Python och API-design",
                 "work_experience": [
@@ -91,27 +98,29 @@ class CVStructure(BaseModel):
                         "position": "Senior Backend Developer",
                         "start_date": "2020-01",
                         "current": True,
-                        "achievements": ["Byggde skalbar microservice-arkitektur"]
+                        "achievements": ["Byggde skalbar microservice-arkitektur"],
                     }
                 ],
-                "skills": ["Python", "FastAPI", "PostgreSQL", "Docker"]
+                "skills": ["Python", "FastAPI", "PostgreSQL", "Docker"],
             }
         }
 
 
 class CVResponse(BaseModel):
     """Response model for CV"""
+
     id: int
     filename: str
     upload_date: datetime
     structured_data: CVStructure
-    
+
     class Config:
         from_attributes = True
 
 
 class JobPosting(BaseModel):
     """Job posting for CV optimization"""
+
     title: str
     description: str
     company: Optional[str] = None
@@ -121,12 +130,13 @@ class JobPosting(BaseModel):
 
 class OptimizedCVResponse(BaseModel):
     """Response model for optimized CV"""
+
     id: int
     original_cv_id: int
     job_title: str
     optimized_data: CVStructure
     match_score: Optional[int] = None
     created_at: datetime
-    
+
     class Config:
         from_attributes = True

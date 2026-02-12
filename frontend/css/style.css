@@ -529,6 +529,302 @@ body {
     font-size: 0.95rem;
 }
 
+/* Modal */
+.modal {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    z-index: 1000;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    animation: fadeIn 0.3s ease;
+}
+
+.modal.hidden {
+    display: none;
+}
+
+.modal-overlay {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.7);
+    backdrop-filter: blur(4px);
+}
+
+.modal-content {
+    position: relative;
+    background: white;
+    border-radius: 16px;
+    width: 90%;
+    max-width: 900px;
+    max-height: 90vh;
+    overflow: hidden;
+    box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
+    display: flex;
+    flex-direction: column;
+    animation: slideUp 0.3s ease;
+}
+
+@keyframes fadeIn {
+    from { opacity: 0; }
+    to { opacity: 1; }
+}
+
+@keyframes slideUp {
+    from { 
+        opacity: 0;
+        transform: translateY(30px);
+    }
+    to { 
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.modal-header {
+    padding: 30px 40px;
+    border-bottom: 2px solid var(--border);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    background: linear-gradient(135deg, #f8f9ff 0%, #fff 100%);
+}
+
+.modal-header h2 {
+    margin: 0;
+    color: var(--text-primary);
+    font-size: 1.8rem;
+}
+
+.modal-close {
+    background: none;
+    border: none;
+    font-size: 2.5rem;
+    color: var(--text-secondary);
+    cursor: pointer;
+    width: 40px;
+    height: 40px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 50%;
+    transition: all 0.2s ease;
+    line-height: 1;
+}
+
+.modal-close:hover {
+    background: var(--bg-light);
+    color: var(--text-primary);
+}
+
+.modal-body {
+    padding: 40px;
+    overflow-y: auto;
+    flex: 1;
+}
+
+/* CV Sections in Modal */
+.cv-section {
+    margin-bottom: 35px;
+}
+
+.cv-section:last-child {
+    margin-bottom: 0;
+}
+
+.cv-section-title {
+    font-size: 1.3rem;
+    color: var(--primary);
+    margin-bottom: 15px;
+    padding-bottom: 10px;
+    border-bottom: 2px solid var(--primary-light);
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.cv-section-icon {
+    font-size: 1.5rem;
+}
+
+.cv-personal-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+    gap: 15px;
+    margin-top: 15px;
+}
+
+.cv-personal-item {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    color: var(--text-secondary);
+    font-size: 1rem;
+}
+
+.cv-personal-item strong {
+    color: var(--text-primary);
+}
+
+.cv-summary {
+    background: var(--bg-light);
+    padding: 20px;
+    border-radius: 8px;
+    line-height: 1.8;
+    color: var(--text-primary);
+    border-left: 4px solid var(--primary);
+}
+
+.cv-experience-item,
+.cv-education-item {
+    padding: 20px;
+    border-left: 3px solid var(--primary-light);
+    margin-bottom: 20px;
+    background: var(--bg-light);
+    border-radius: 0 8px 8px 0;
+}
+
+.cv-experience-item:last-child,
+.cv-education-item:last-child {
+    margin-bottom: 0;
+}
+
+.cv-experience-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: start;
+    margin-bottom: 10px;
+}
+
+.cv-experience-title h3 {
+    color: var(--text-primary);
+    font-size: 1.2rem;
+    margin-bottom: 5px;
+}
+
+.cv-experience-company {
+    color: var(--text-secondary);
+    font-size: 1rem;
+    font-weight: 500;
+}
+
+.cv-experience-date {
+    color: var(--text-secondary);
+    font-size: 0.9rem;
+    white-space: nowrap;
+}
+
+.cv-experience-description {
+    color: var(--text-primary);
+    margin: 10px 0;
+    line-height: 1.6;
+}
+
+.cv-achievements {
+    margin-top: 10px;
+}
+
+.cv-achievements h4 {
+    font-size: 0.9rem;
+    color: var(--text-secondary);
+    margin-bottom: 8px;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+}
+
+.cv-achievements ul {
+    list-style: none;
+    padding-left: 0;
+}
+
+.cv-achievements li {
+    padding: 5px 0;
+    padding-left: 20px;
+    position: relative;
+    color: var(--text-primary);
+}
+
+.cv-achievements li:before {
+    content: "✓";
+    position: absolute;
+    left: 0;
+    color: var(--success);
+    font-weight: bold;
+}
+
+.cv-tags {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin-top: 10px;
+}
+
+.cv-tag {
+    background: white;
+    color: var(--primary);
+    padding: 6px 14px;
+    border-radius: 20px;
+    font-size: 0.85rem;
+    font-weight: 500;
+    border: 1px solid var(--primary-light);
+}
+
+.cv-skills-grid {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+}
+
+.cv-skill-tag {
+    background: linear-gradient(135deg, var(--primary) 0%, var(--primary-dark) 100%);
+    color: white;
+    padding: 10px 18px;
+    border-radius: 25px;
+    font-size: 0.95rem;
+    font-weight: 500;
+    box-shadow: 0 2px 8px rgba(99, 102, 241, 0.2);
+}
+
+.cv-languages-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+    gap: 15px;
+}
+
+.cv-language-item {
+    background: var(--bg-light);
+    padding: 15px;
+    border-radius: 8px;
+    border-left: 3px solid var(--success);
+}
+
+.cv-language-name {
+    font-weight: 600;
+    color: var(--text-primary);
+    font-size: 1rem;
+}
+
+.cv-language-proficiency {
+    color: var(--text-secondary);
+    font-size: 0.9rem;
+    margin-top: 5px;
+}
+
+.cv-empty {
+    color: var(--text-secondary);
+    font-style: italic;
+    padding: 20px;
+    text-align: center;
+    background: var(--bg-light);
+    border-radius: 8px;
+}
+
 /* Responsive */
 @media (max-width: 768px) {
     .hero-content h1 {
@@ -549,5 +845,23 @@ body {
     
     .cv-list-grid {
         grid-template-columns: 1fr;
+    }
+    
+    .modal-content {
+        width: 95%;
+        max-height: 95vh;
+    }
+    
+    .modal-header {
+        padding: 20px;
+    }
+    
+    .modal-body {
+        padding: 20px;
+    }
+    
+    .cv-experience-header {
+        flex-direction: column;
+        gap: 5px;
     }
 }

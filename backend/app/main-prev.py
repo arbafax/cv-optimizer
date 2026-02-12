@@ -1,16 +1,12 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.staticfiles import StaticFiles
 import logging
 from app.core.config import settings
 from app.core.database import engine, Base
 
 # Import routers
 from app.api import cv, optimize
-from app.api.competence import router as competence_router
-
-# Import all models so Base.metadata knows about them
-from app.models import cv as cv_models                    # noqa: F401
-from app.models import competence as competence_models    # noqa: F401
 
 # Configure logging
 logging.basicConfig(
@@ -38,7 +34,7 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-
+# Health check endpoint
 @app.get("/")
 async def root():
     return {
@@ -57,7 +53,9 @@ async def health_check():
 # Include API routers
 app.include_router(cv.router, prefix="/api/v1")
 app.include_router(optimize.router, prefix="/api/v1")
-app.include_router(competence_router, prefix="/api/v1")
+
+# Mount static files (frontend) - optional
+# app.mount("/static", StaticFiles(directory="../frontend"), name="static")
 
 if __name__ == "__main__":
     import uvicorn

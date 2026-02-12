@@ -22,6 +22,13 @@ let allCVs = [];
 document.addEventListener('DOMContentLoaded', () => {
     setupEventListeners();
     loadCVs();
+    
+    // Close modal on Escape key
+    document.addEventListener('keydown', (e) => {
+        if (e.key === 'Escape') {
+            closeCVModal();
+        }
+    });
 });
 
 // Event Listeners
@@ -222,7 +229,7 @@ function displayCVs(cvs) {
                 </div>
                 <div class="cv-item-actions">
                     <button class="btn btn-small btn-secondary" onclick="viewCV(${cv.id}, event)">
-                        👁️ Visa detaljer
+                        👁️ Visa detaljer !!
                     </button>
                     <button class="btn btn-small btn-secondary" onclick="deleteCV(${cv.id}, event)">
                         🗑️ Ta bort
@@ -253,9 +260,269 @@ function viewCV(id, event) {
     event.stopPropagation();
     const cv = allCVs.find(cv => cv.id === id);
     
-    // Create a nice modal or detailed view
-    alert(`CV Detaljer: ${cv.structured_data.personal_info.full_name}\n\nFler detaljer kan visas i en modal här. För nu, öppna konsolen (F12) för full data.`);
-    console.log('Full CV Data:', cv);
+    if (!cv) return;
+    
+    // Show modal
+    const modal = document.getElementById('cv-modal');
+    const modalTitle = document.getElementById('modal-title');
+    const modalBody = document.getElementById('modal-body');
+    
+    // Set title
+    modalTitle.textContent = cv.structured_data.personal_info.full_name || 'CV-detaljer';
+    
+    // Build modal content
+    modalBody.innerHTML = buildCVDetailsHTML(cv.structured_data);
+    
+    // Show modal
+    modal.classList.remove('hidden');
+    document.body.style.overflow = 'hidden'; // Prevent background scrolling
+}
+
+// Close modal
+function closeCVModal() {
+    const modal = document.getElementById('cv-modal');
+    modal.classList.add('hidden');
+    document.body.style.overflow = ''; // Re-enable scrolling
+}
+
+// Build CV details HTML
+function buildCVDetailsHTML(cvData) {
+    let html = '';
+    
+    // Personal Information
+    html += `
+        <div class="cv-section">
+            <h3 class="cv-section-title">
+                <span class="cv-section-icon">👤</span>
+                Personlig Information
+            </h3>
+            <div class="cv-personal-grid">
+                ${cvData.personal_info.email ? `
+                    <div class="cv-personal-item">
+                        📧 <strong>Email:</strong> ${cvData.personal_info.email}
+                    </div>
+                ` : ''}
+                ${cvData.personal_info.phone ? `
+                    <div class="cv-personal-item">
+                        📱 <strong>Telefon:</strong> ${cvData.personal_info.phone}
+                    </div>
+                ` : ''}
+                ${cvData.personal_info.location ? `
+                    <div class="cv-personal-item">
+                        📍 <strong>Plats:</strong> ${cvData.personal_info.location}
+                    </div>
+                ` : ''}
+                ${cvData.personal_info.linkedin ? `
+                    <div class="cv-personal-item">
+                        💼 <strong>LinkedIn:</strong> <a href="${cvData.personal_info.linkedin}" target="_blank">Profil</a>
+                    </div>
+                ` : ''}
+                ${cvData.personal_info.github ? `
+                    <div class="cv-personal-item">
+                        💻 <strong>GitHub:</strong> <a href="${cvData.personal_info.github}" target="_blank">Profil</a>
+                    </div>
+                ` : ''}
+                ${cvData.personal_info.website ? `
+                    <div class="cv-personal-item">
+                        🌐 <strong>Webbplats:</strong> <a href="${cvData.personal_info.website}" target="_blank">Besök</a>
+                    </div>
+                ` : ''}
+            </div>
+        </div>
+    `;
+    
+    // Summary
+    if (cvData.summary) {
+        html += `
+            <div class="cv-section">
+                <h3 class="cv-section-title">
+                    <span class="cv-section-icon">📝</span>
+                    Sammanfattning
+                </h3>
+                <div class="cv-summary">${cvData.summary}</div>
+            </div>
+        `;
+    }
+    
+    // Work Experience
+    if (cvData.work_experience && cvData.work_experience.length > 0) {
+        html += `
+            <div class="cv-section">
+                <h3 class="cv-section-title">
+                    <span class="cv-section-icon">💼</span>
+                    Arbetslivserfarenhet
+                </h3>
+        `;
+        
+        cvData.work_experience.forEach(exp => {
+            const startDate = exp.start_date || '';
+            const endDate = exp.current ? 'Nuvarande' : (exp.end_date || '');
+            const dateStr = startDate && endDate ? `${startDate} - ${endDate}` : (startDate || endDate);
+            
+            html += `
+                <div class="cv-experience-item">
+                    <div class="cv-experience-header">
+                        <div class="cv-experience-title">
+                            <h3>${exp.position || 'Position'}</h3>
+                            <div class="cv-experience-company">${exp.company || 'Företag'}${exp.location ? ` • ${exp.location}` : ''}</div>
+                        </div>
+                        ${dateStr ? `<div class="cv-experience-date">${dateStr}</div>` : ''}
+                    </div>
+                    
+                    ${exp.description ? `<div class="cv-experience-description">${exp.description}</div>` : ''}
+                    
+                    ${exp.achievements && exp.achievements.length > 0 ? `
+                        <div class="cv-achievements">
+                            <h4>Huvudsakliga prestationer</h4>
+                            <ul>
+                                ${exp.achievements.map(ach => `<li>${ach}</li>`).join('')}
+                            </ul>
+                        </div>
+                    ` : ''}
+                    
+                    ${exp.technologies && exp.technologies.length > 0 ? `
+                        <div class="cv-tags">
+                            ${exp.technologies.map(tech => `<span class="cv-tag">${tech}</span>`).join('')}
+                        </div>
+                    ` : ''}
+                </div>
+            `;
+        });
+        
+        html += `</div>`;
+    }
+    
+    // Education
+    if (cvData.education && cvData.education.length > 0) {
+        html += `
+            <div class="cv-section">
+                <h3 class="cv-section-title">
+                    <span class="cv-section-icon">🎓</span>
+                    Utbildning
+                </h3>
+        `;
+        
+        cvData.education.forEach(edu => {
+            const startDate = edu.start_date || '';
+            const endDate = edu.end_date || '';
+            const dateStr = startDate && endDate ? `${startDate} - ${endDate}` : (startDate || endDate);
+            
+            html += `
+                <div class="cv-education-item">
+                    <div class="cv-experience-header">
+                        <div class="cv-experience-title">
+                            <h3>${edu.degree || 'Examen'}${edu.field_of_study ? ` - ${edu.field_of_study}` : ''}</h3>
+                            <div class="cv-experience-company">${edu.institution || 'Institution'}</div>
+                        </div>
+                        ${dateStr ? `<div class="cv-experience-date">${dateStr}</div>` : ''}
+                    </div>
+                    
+                    ${edu.gpa ? `<div class="cv-personal-item">📊 GPA: ${edu.gpa}</div>` : ''}
+                    
+                    ${edu.achievements && edu.achievements.length > 0 ? `
+                        <div class="cv-achievements">
+                            <ul>
+                                ${edu.achievements.map(ach => `<li>${ach}</li>`).join('')}
+                            </ul>
+                        </div>
+                    ` : ''}
+                </div>
+            `;
+        });
+        
+        html += `</div>`;
+    }
+    
+    // Skills
+    if (cvData.skills && cvData.skills.length > 0) {
+        html += `
+            <div class="cv-section">
+                <h3 class="cv-section-title">
+                    <span class="cv-section-icon">🎯</span>
+                    Kompetenser
+                </h3>
+                <div class="cv-skills-grid">
+                    ${cvData.skills.map(skill => `<span class="cv-skill-tag">${skill}</span>`).join('')}
+                </div>
+            </div>
+        `;
+    }
+    
+    // Certifications
+    if (cvData.certifications && cvData.certifications.length > 0) {
+        html += `
+            <div class="cv-section">
+                <h3 class="cv-section-title">
+                    <span class="cv-section-icon">🏆</span>
+                    Certifieringar
+                </h3>
+        `;
+        
+        cvData.certifications.forEach(cert => {
+            html += `
+                <div class="cv-education-item">
+                    <h3>${cert.name || 'Certifiering'}</h3>
+                    ${cert.issuing_organization ? `<div class="cv-experience-company">${cert.issuing_organization}</div>` : ''}
+                    ${cert.issue_date ? `<div class="cv-personal-item">📅 Utfärdad: ${cert.issue_date}</div>` : ''}
+                    ${cert.credential_id ? `<div class="cv-personal-item">🆔 ID: ${cert.credential_id}</div>` : ''}
+                </div>
+            `;
+        });
+        
+        html += `</div>`;
+    }
+    
+    // Projects
+    if (cvData.projects && cvData.projects.length > 0) {
+        html += `
+            <div class="cv-section">
+                <h3 class="cv-section-title">
+                    <span class="cv-section-icon">🚀</span>
+                    Projekt
+                </h3>
+        `;
+        
+        cvData.projects.forEach(proj => {
+            html += `
+                <div class="cv-experience-item">
+                    <h3>${proj.name || 'Projekt'}</h3>
+                    ${proj.role ? `<div class="cv-experience-company">Roll: ${proj.role}</div>` : ''}
+                    ${proj.description ? `<div class="cv-experience-description">${proj.description}</div>` : ''}
+                    ${proj.url ? `<div class="cv-personal-item">🔗 <a href="${proj.url}" target="_blank">Projektlänk</a></div>` : ''}
+                    
+                    ${proj.technologies && proj.technologies.length > 0 ? `
+                        <div class="cv-tags">
+                            ${proj.technologies.map(tech => `<span class="cv-tag">${tech}</span>`).join('')}
+                        </div>
+                    ` : ''}
+                </div>
+            `;
+        });
+        
+        html += `</div>`;
+    }
+    
+    // Languages
+    if (cvData.languages && cvData.languages.length > 0) {
+        html += `
+            <div class="cv-section">
+                <h3 class="cv-section-title">
+                    <span class="cv-section-icon">🌍</span>
+                    Språk
+                </h3>
+                <div class="cv-languages-grid">
+                    ${cvData.languages.map(lang => `
+                        <div class="cv-language-item">
+                            <div class="cv-language-name">${lang.language || 'Språk'}</div>
+                            ${lang.proficiency ? `<div class="cv-language-proficiency">${lang.proficiency}</div>` : ''}
+                        </div>
+                    `).join('')}
+                </div>
+            </div>
+        `;
+    }
+    
+    return html;
 }
 
 // Delete CV

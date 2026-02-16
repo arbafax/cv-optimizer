@@ -1,165 +1,302 @@
-"""
-Competence Bank API Router
-File: backend/app/api/competence.py
-"""
-from fastapi import APIRouter, HTTPException, Depends
+from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
-from typing import Optional
+from sqlalchemy import func
 import logging
 
 from app.core.database import get_db
 from app.models.cv import CV
-from app.services.competence_service import CompetenceService
+from app.models.competence import SkillEntry, ExperienceEntry
 
 logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/competence", tags=["Competence Bank"])
 
 
-# ──────────────────────────────────────────────
-# MERGE
-# ──────────────────────────────────────────────
+# ──────────────────────────────────────────
+# Skill categorisation (rule-based, no AI)
+# ──────────────────────────────────────────
+
+CATEGORY_RULES = {
+    "Programming Languages": [
+        "python", "javascript", "typescript", "java", "c#", "c++", "c",
+        "go", "rust", "swift", "kotlin", "ruby", "php", "scala", "r",
+        "matlab", "bash", "powershell", "perl", "haskell", "elixir",
+    ],
+    "Frameworks & APIs": [
+        "fastapi", "django", "flask", "spring", "express", "nestjs",
+        "rails", "laravel", "asp.net", ".net", "react", "angular",
+        "vue", "next.js", "nuxt", "svelte", "fastify", "graphql",
+        "rest", "grpc", "openapi", "swagger",
+    ],
+    "Databases": [
+        "postgresql", "postgres", "mysql", "sqlite", "mongodb", "redis",
+        "elasticsearch", "cassandra", "dynamodb", "firestore", "oracle",
+        "sql server", "mssql", "mariadb", "neo4j", "pgvector",
+    ],
+    "Cloud & DevOps": [
+        "aws", "azure", "gcp", "google cloud", "docker", "kubernetes",
+        "terraform", "ansible", "jenkins", "github actions", "ci/cd",
+        "helm", "nginx", "linux", "unix", "heroku", "vercel", "netlify",
+        "s3", "ec2", "lambda", "ecs",
+    ],
+    "AI & Machine Learning": [
+        "machine learning", "deep learning", "tensorflow", "pytorch",
+        "scikit-learn", "keras", "openai", "langchain", "llm",
+        "nlp", "computer vision", "opencv", "huggingface", "transformers",
+        "pandas", "numpy", "scipy", "jupyter",
+    ],
+    "Frontend": [
+        "html", "css", "sass", "less", "tailwind", "bootstrap",
+        "webpack", "vite", "babel", "figma", "ux", "ui design",
+        "responsive design", "accessibility", "wcag",
+    ],
+    "Tools": [
+        "git", "github", "gitlab", "bitbucket", "jira", "confluence",
+        "notion", "slack", "postman", "vs code", "intellij", "vim",
+    ],
+    "Soft Skills": [
+        "ledarskap", "kommunikation", "teamwork", "problemlösning",
+        "agil", "scrum", "kanban", "projektledning", "mentorskap",
+        "leadership", "communication", "project management", "agile",
+    ],
+    "Languages": [
+        "svenska", "english", "engelska", "tyska", "franska",
+        "spanska", "kinesiska", "japanese", "arabic", "norwegian",
+        "danska", "finska",
+    ],
+}
+
+
+def categorise_skill(skill_name: str) -> tuple[str, str]:
+    """Returns (category, skill_type)."""
+    lower = skill_name.lower()
+    for category, keywords in CATEGORY_RULES.items():
+        if any(kw in lower for kw in keywords):
+            skill_type = (
+                "soft"     if category == "Soft Skills" else
+                "language" if category == "Languages"   else
+                "technical"
+            )
+            return category, skill_type
+    return "Övrigt", "technical"
+
+
+# ──────────────────────────────────────────
+# Core merge logic
+# ──────────────────────────────────────────
+
+def _merge_cv_into_bank(cv: CV, db: Session) -> dict:
+    data           = cv.structured_data or {}
+    skills_added   = 0
+    exp_added      = 0
+    duplicates     = 0
+
+    # Collect all skills (top-level + tech tags from experiences/projects)
+    raw_skills: list[str] = list(data.get("skills", []))
+    for exp  in data.get("work_experience", []): raw_skills.extend(exp.get("technologies", []))
+    for proj in data.get("projects", []):        raw_skills.extend(proj.get("technologies", []))
+
+    # Deduplicate within this CV
+    seen, unique_skills = set(), []
+    for s in raw_skills:
+        norm = s.strip()
+        if norm and norm.lower() not in seen:
+            seen.add(norm.lower())
+            unique_skills.append(norm)
+
+    for skill_name in unique_skills:
+        existing = db.query(SkillEntry).filter(
+            func.lower(SkillEntry.skill_name) == skill_name.lower()
+        ).first()
+
+        if existing:
+            sources = list(existing.source_cv_ids or [])
+            if cv.id not in sources:
+                sources.append(cv.id)
+                existing.source_cv_ids = sources
+            duplicates += 1
+        else:
+            category, skill_type = categorise_skill(skill_name)
+            db.add(SkillEntry(
+                skill_name=skill_name,
+                category=category,
+                skill_type=skill_type,
+                source_cv_ids=[cv.id],
+            ))
+            skills_added += 1
+
+    # Only add experiences if this CV hasn't been merged before
+    already_merged = db.query(ExperienceEntry).filter(
+        ExperienceEntry.source_cv_id == cv.id
+    ).count() > 0
+
+    if not already_merged:
+        for exp in data.get("work_experience", []):
+            db.add(ExperienceEntry(
+                title           = exp.get("position") or "Okänd position",
+                organization    = exp.get("company"),
+                experience_type = "work",
+                start_date      = exp.get("start_date"),
+                end_date        = exp.get("end_date"),
+                is_current      = bool(exp.get("current", False)),
+                description     = exp.get("description"),
+                source_cv_id    = cv.id,
+            ))
+            exp_added += 1
+
+        for edu in data.get("education", []):
+            title = " - ".join(filter(None, [edu.get("degree"), edu.get("field_of_study")])) or "Utbildning"
+            db.add(ExperienceEntry(
+                title           = title,
+                organization    = edu.get("institution"),
+                experience_type = "education",
+                start_date      = edu.get("start_date"),
+                end_date        = edu.get("end_date"),
+                is_current      = False,
+                source_cv_id    = cv.id,
+            ))
+            exp_added += 1
+
+        for cert in data.get("certifications", []):
+            db.add(ExperienceEntry(
+                title           = cert.get("name") or "Certifiering",
+                organization    = cert.get("issuing_organization"),
+                experience_type = "certification",
+                start_date      = cert.get("issue_date"),
+                end_date        = cert.get("expiry_date"),
+                is_current      = False,
+                source_cv_id    = cv.id,
+            ))
+            exp_added += 1
+
+        for proj in data.get("projects", []):
+            db.add(ExperienceEntry(
+                title           = proj.get("name") or "Projekt",
+                organization    = proj.get("role"),
+                experience_type = "project",
+                start_date      = proj.get("start_date"),
+                end_date        = proj.get("end_date"),
+                is_current      = False,
+                description     = proj.get("description"),
+                source_cv_id    = cv.id,
+            ))
+            exp_added += 1
+    else:
+        duplicates += db.query(ExperienceEntry).filter(
+            ExperienceEntry.source_cv_id == cv.id
+        ).count()
+
+    db.commit()
+
+    cv_name = (data.get("personal_info") or {}).get("full_name") or cv.filename
+    return {
+        "cv_name"           : cv_name,
+        "skills_added"      : skills_added,
+        "experiences_added" : exp_added,
+        "duplicates_skipped": duplicates,
+    }
+
+
+# ──────────────────────────────────────────
+# Endpoints
+# ──────────────────────────────────────────
 
 @router.post("/merge/{cv_id}")
-def merge_cv_into_bank(cv_id: int, db: Session = Depends(get_db)):
-    """
-    Merge a CV (by id) into the competence bank.
-    Skills and experiences are aggregated and deduplicated.
-    """
-    service = CompetenceService(db)
-    result = service.merge_cv(cv_id)
-
-    if not result.success:
-        raise HTTPException(status_code=400, detail=result.error or "Merge failed")
-
-    return {
-        "success": True,
-        "cv_id": result.cv_id,
-        "cv_name": result.cv_name,
-        "skills_added": result.skills_added,
-        "skills_updated": result.skills_updated,
-        "experiences_added": result.experiences_added,
-        "experiences_updated": result.experiences_updated,
-        "links_created": result.links_created,
-        "duplicates_skipped": result.duplicates_skipped,
-        "processing_time_seconds": result.processing_time_seconds,
-        "warnings": result.warnings,
-    }
+async def merge_cv(cv_id: int, db: Session = Depends(get_db)):
+    cv = db.query(CV).filter(CV.id == cv_id).first()
+    if not cv:
+        raise HTTPException(status_code=404, detail="CV not found")
+    return _merge_cv_into_bank(cv, db)
 
 
 @router.post("/merge-all")
-def merge_all_cvs(db: Session = Depends(get_db)):
-    """
-    Merge ALL uploaded CVs into the competence bank.
-    Safe to run multiple times — duplicates are handled.
-    """
+async def merge_all_cvs(db: Session = Depends(get_db)):
     cvs = db.query(CV).all()
     if not cvs:
-        raise HTTPException(status_code=404, detail="No CVs found to merge")
+        raise HTTPException(status_code=404, detail="No CVs found")
 
-    service = CompetenceService(db)
-    results = []
-    total_skills = 0
-    total_experiences = 0
-
+    total_skills, total_experiences, results = 0, 0, []
     for cv in cvs:
-        result = service.merge_cv(cv.id)
-        results.append({
-            "cv_id": cv.id,
-            "cv_name": cv.filename,
-            "success": result.success,
-            "skills_added": result.skills_added,
-            "experiences_added": result.experiences_added,
-            "duplicates_skipped": result.duplicates_skipped,
-            "error": result.error,
-        })
-        total_skills += result.skills_added
-        total_experiences += result.experiences_added
+        r = _merge_cv_into_bank(cv, db)
+        total_skills      += r["skills_added"]
+        total_experiences += r["experiences_added"]
+        results.append(r)
 
     return {
-        "total_cvs_processed": len(cvs),
-        "total_skills_added": total_skills,
+        "total_cvs_processed"    : len(cvs),
+        "total_skills_added"     : total_skills,
         "total_experiences_added": total_experiences,
-        "results": results,
+        "details"                : results,
     }
 
-
-# ──────────────────────────────────────────────
-# STATS & OVERVIEW
-# ──────────────────────────────────────────────
 
 @router.get("/stats")
-def get_bank_stats(db: Session = Depends(get_db)):
-    """
-    Return overall statistics for the competence bank.
-    """
-    service = CompetenceService(db)
-    return service.get_bank_stats()
+async def get_bank_stats(db: Session = Depends(get_db)):
+    total_skills = db.query(SkillEntry).count()
+    total_exp    = db.query(ExperienceEntry).count()
 
+    all_sources: set = set()
+    for row in db.query(SkillEntry.source_cv_ids).all():
+        if row[0]:
+            all_sources.update(row[0])
 
-# ──────────────────────────────────────────────
-# SKILLS
-# ──────────────────────────────────────────────
+    skills_by_category: dict = {}
+    for row in db.query(SkillEntry.category, func.count(SkillEntry.id)).group_by(SkillEntry.category).all():
+        skills_by_category[row[0]] = row[1]
+
+    return {
+        "total_skills"          : total_skills,
+        "total_experiences"     : total_exp,
+        "total_source_documents": len(all_sources),
+        "skills_by_category"    : skills_by_category,
+    }
+
 
 @router.get("/skills")
-def get_skills(
-    skill_type: Optional[str] = None,
-    db: Session = Depends(get_db)
-):
-    """
-    Return all skills in the competence bank.
-    Optional filter: ?skill_type=technical|soft|language|tool|domain
-    """
-    service = CompetenceService(db)
-    skills = service.get_all_skills(skill_type=skill_type)
-
+async def get_bank_skills(db: Session = Depends(get_db)):
+    skills = db.query(SkillEntry).order_by(SkillEntry.category, SkillEntry.skill_name).all()
     return {
-        "total": len(skills),
         "skills": [
             {
-                "id": s.id,
-                "skill_name": s.skill_name,
-                "skill_type": s.skill_type,
-                "category": s.category,
-                "proficiency_level": s.proficiency_level,
-                "years_experience": float(s.years_experience) if s.years_experience else None,
+                "id"          : s.id,
+                "skill_name"  : s.skill_name,
+                "category"    : s.category,
+                "skill_type"  : s.skill_type,
+                "source_count": len(s.source_cv_ids or []),
             }
             for s in skills
-        ],
+        ]
     }
 
-
-# ──────────────────────────────────────────────
-# EXPERIENCES
-# ──────────────────────────────────────────────
 
 @router.get("/experiences")
-def get_experiences(
-    experience_type: Optional[str] = None,
-    db: Session = Depends(get_db)
-):
-    """
-    Return all experiences in the competence bank.
-    Optional filter: ?experience_type=work|education|project|certification
-    """
-    service = CompetenceService(db)
-    experiences = service.get_all_experiences(exp_type=experience_type)
-
+async def get_bank_experiences(db: Session = Depends(get_db)):
+    experiences = db.query(ExperienceEntry).order_by(
+        ExperienceEntry.experience_type,
+        ExperienceEntry.start_date.desc()
+    ).all()
     return {
-        "total": len(experiences),
         "experiences": [
             {
-                "id": e.id,
+                "id"             : e.id,
+                "title"          : e.title,
+                "organization"   : e.organization,
                 "experience_type": e.experience_type,
-                "title": e.title,
-                "organization": e.organization,
-                "start_date": e.start_date,
-                "end_date": e.end_date,
-                "is_current": e.is_current,
-                "achievements": e.achievements or [],
-                "technologies": e.technologies or [],
-                "source_document": e.source_document_name,
+                "start_date"     : e.start_date,
+                "end_date"       : e.end_date,
+                "is_current"     : e.is_current,
+                "description"    : e.description,
+                "source_cv_id"   : e.source_cv_id,
             }
             for e in experiences
-        ],
+        ]
     }
+
+
+@router.delete("/reset")
+async def reset_bank(db: Session = Depends(get_db)):
+    """Rensa hela kompetensbanken (för omprocessning)."""
+    db.query(ExperienceEntry).delete()
+    db.query(SkillEntry).delete()
+    db.commit()
+    return {"message": "Kompetensbanken rensad"}

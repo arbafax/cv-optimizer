@@ -56,6 +56,56 @@
                 </div>
             </section>
 
+            <!-- Competence Bank Section -->
+            <section id="bank-section" class="card">
+                <div class="card-header">
+                    <h2>🧠 Kompetensbank</h2>
+                    <p class="card-description">Aggregerade skills och erfarenheter från alla dina CV:n</p>
+                </div>
+
+                <!-- Stats row -->
+                <div class="bank-stats" id="bank-stats">
+                    <div class="bank-stat">
+                        <div class="bank-stat-number" id="stat-skills">—</div>
+                        <div class="bank-stat-label">Unika skills</div>
+                    </div>
+                    <div class="bank-stat">
+                        <div class="bank-stat-number" id="stat-experiences">—</div>
+                        <div class="bank-stat-label">Erfarenheter</div>
+                    </div>
+                    <div class="bank-stat">
+                        <div class="bank-stat-number" id="stat-sources">—</div>
+                        <div class="bank-stat-label">CV:n processade</div>
+                    </div>
+                    <div class="bank-stat">
+                        <div class="bank-stat-number" id="stat-categories">—</div>
+                        <div class="bank-stat-label">Kategorier</div>
+                    </div>
+                </div>
+
+                <!-- Merge actions -->
+                <div class="bank-actions">
+                    <button class="btn btn-primary" onclick="mergeSelectedCV()" id="merge-selected-btn" disabled>
+                        ⚡ Merge valt CV
+                    </button>
+                    <button class="btn btn-secondary" onclick="mergeAllCVs()" id="merge-all-btn">
+                        🔄 Merge alla CV:n
+                    </button>
+                    <button class="btn btn-ghost" onclick="loadBankData()">
+                        ↻ Uppdatera
+                    </button>
+                </div>
+                <div id="merge-status"></div>
+
+                <!-- Skills by category -->
+                <div class="bank-content" id="bank-content">
+                    <div class="bank-empty">
+                        <p>🧠 Kompetensbanken är tom</p>
+                        <p class="empty-state-hint">Ladda upp ett CV och klicka "Merge alla CV:n" för att fylla banken</p>
+                    </div>
+                </div>
+            </section>
+
             <!-- Optimize Section -->
             <section id="optimize-section" class="card">
                 <div class="card-header">

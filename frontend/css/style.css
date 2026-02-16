@@ -825,8 +825,230 @@ body {
     border-radius: 8px;
 }
 
+/* =============================================
+   COMPETENCE BANK
+   ============================================= */
+
+.bank-stats {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 15px;
+    margin-bottom: 25px;
+}
+
+.bank-stat {
+    background: var(--bg-light);
+    border-radius: 12px;
+    padding: 20px;
+    text-align: center;
+    border: 1px solid var(--border);
+    transition: transform 0.2s;
+}
+
+.bank-stat:hover {
+    transform: translateY(-2px);
+}
+
+.bank-stat-number {
+    font-size: 2.2rem;
+    font-weight: 700;
+    color: var(--primary);
+    line-height: 1;
+    margin-bottom: 6px;
+}
+
+.bank-stat-label {
+    font-size: 0.85rem;
+    color: var(--text-secondary);
+    font-weight: 500;
+}
+
+.bank-actions {
+    display: flex;
+    gap: 10px;
+    margin-bottom: 15px;
+    flex-wrap: wrap;
+}
+
+.btn-ghost {
+    background: transparent;
+    border: 1px solid var(--border);
+    color: var(--text-secondary);
+    padding: 10px 18px;
+    border-radius: 8px;
+    cursor: pointer;
+    font-size: 0.95rem;
+    transition: all 0.2s;
+}
+
+.btn-ghost:hover {
+    background: var(--bg-light);
+    color: var(--text-primary);
+}
+
+#merge-status {
+    margin-bottom: 15px;
+}
+
+.bank-empty {
+    text-align: center;
+    padding: 40px 20px;
+    color: var(--text-secondary);
+}
+
+.bank-empty p:first-child {
+    font-size: 1.1rem;
+    margin-bottom: 8px;
+}
+
+/* Category blocks */
+.bank-category-block {
+    margin-bottom: 25px;
+}
+
+.bank-category-title {
+    font-size: 0.8rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    color: var(--text-secondary);
+    margin-bottom: 10px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.bank-category-count {
+    background: var(--border);
+    color: var(--text-secondary);
+    font-size: 0.75rem;
+    padding: 1px 7px;
+    border-radius: 10px;
+}
+
+.bank-skills-wrap {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+}
+
+.bank-skill-chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    padding: 6px 14px;
+    border-radius: 20px;
+    font-size: 0.88rem;
+    font-weight: 500;
+    border: 1px solid transparent;
+    cursor: default;
+    transition: transform 0.15s;
+}
+
+.bank-skill-chip:hover {
+    transform: translateY(-1px);
+}
+
+/* Skill type colours */
+.chip-technical   { background: #eef2ff; color: #4338ca; border-color: #c7d2fe; }
+.chip-soft        { background: #f0fdf4; color: #15803d; border-color: #bbf7d0; }
+.chip-language    { background: #fff7ed; color: #c2410c; border-color: #fed7aa; }
+.chip-tool        { background: #fdf4ff; color: #7e22ce; border-color: #e9d5ff; }
+.chip-domain      { background: #eff6ff; color: #1d4ed8; border-color: #bfdbfe; }
+.chip-default     { background: var(--bg-light); color: var(--text-secondary); border-color: var(--border); }
+
+/* Experiences in bank */
+.bank-experience-list {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    margin-top: 8px;
+}
+
+.bank-exp-item {
+    background: var(--bg-light);
+    border-radius: 10px;
+    padding: 16px 18px;
+    border-left: 3px solid var(--primary-light);
+    display: flex;
+    justify-content: space-between;
+    align-items: start;
+    gap: 15px;
+}
+
+.bank-exp-main h4 {
+    font-size: 1rem;
+    color: var(--text-primary);
+    margin-bottom: 3px;
+}
+
+.bank-exp-org {
+    font-size: 0.9rem;
+    color: var(--text-secondary);
+}
+
+.bank-exp-date {
+    font-size: 0.82rem;
+    color: var(--text-secondary);
+    white-space: nowrap;
+    flex-shrink: 0;
+}
+
+.bank-exp-badge {
+    display: inline-block;
+    font-size: 0.75rem;
+    background: #d1fae5;
+    color: #065f46;
+    border-radius: 4px;
+    padding: 1px 8px;
+    margin-left: 6px;
+    font-weight: 600;
+}
+
+/* Tab navigation inside bank */
+.bank-tabs {
+    display: flex;
+    gap: 4px;
+    border-bottom: 2px solid var(--border);
+    margin-bottom: 20px;
+}
+
+.bank-tab {
+    background: none;
+    border: none;
+    padding: 10px 18px;
+    font-size: 0.95rem;
+    color: var(--text-secondary);
+    cursor: pointer;
+    border-bottom: 2px solid transparent;
+    margin-bottom: -2px;
+    border-radius: 4px 4px 0 0;
+    transition: all 0.2s;
+    font-weight: 500;
+}
+
+.bank-tab:hover { color: var(--primary); }
+.bank-tab.active {
+    color: var(--primary);
+    border-bottom-color: var(--primary);
+    background: #f5f3ff;
+}
+
 /* Responsive */
 @media (max-width: 768px) {
+    .bank-stats {
+        grid-template-columns: repeat(2, 1fr);
+    }
+    
+    .bank-actions {
+        flex-direction: column;
+    }
+    
+    .bank-exp-item {
+        flex-direction: column;
+        gap: 5px;
+    }
+
     .hero-content h1 {
         font-size: 2.5rem;
     }

@@ -22,6 +22,7 @@ let allCVs = [];
 document.addEventListener('DOMContentLoaded', () => {
     setupEventListeners();
     loadCVs();
+    loadBankData();
     
     // Close modal on Escape key
     document.addEventListener('keydown', (e) => {
@@ -245,6 +246,10 @@ function selectCV(id) {
     selectedCV = allCVs.find(cv => cv.id === id);
     displayCVs(allCVs);
     updateOptimizeButton();
+    
+    // Enable merge button
+    const mergeBtn = document.getElementById('merge-selected-btn');
+    if (mergeBtn) mergeBtn.disabled = false;
     
     // Scroll to optimize section
     setTimeout(() => {
@@ -736,5 +741,288 @@ function showStatus(message, type) {
         setTimeout(() => {
             uploadStatus.innerHTML = '';
         }, 5000);
+    }
+}
+
+// =============================================
+// COMPETENCE BANK
+// =============================================
+
+let bankSkills = [];
+let bankExperiences = [];
+let activeBankTab = 'skills';
+
+// Load bank stats + skills + experiences
+async function loadBankData() {
+    try {
+        const [statsRes, skillsRes, expRes] = await Promise.all([
+            fetch(`${API_BASE_URL}/competence/stats`),
+            fetch(`${API_BASE_URL}/competence/skills`),
+            fetch(`${API_BASE_URL}/competence/experiences`),
+        ]);
+
+        if (!statsRes.ok || !skillsRes.ok || !expRes.ok) return;
+
+        const stats    = await statsRes.json();
+        const skillsData = await skillsRes.json();
+        const expData  = await expRes.json();
+
+        bankSkills      = skillsData.skills || [];
+        bankExperiences = expData.experiences || [];
+
+        renderBankStats(stats);
+        renderBankContent();
+
+    } catch (err) {
+        console.warn('Kunde inte ladda kompetensbank:', err.message);
+    }
+}
+
+// Render the four stat boxes
+function renderBankStats(stats) {
+    document.getElementById('stat-skills').textContent      = stats.total_skills ?? 0;
+    document.getElementById('stat-experiences').textContent = stats.total_experiences ?? 0;
+    document.getElementById('stat-sources').textContent     = stats.total_source_documents ?? 0;
+
+    const catCount = stats.skills_by_category
+        ? Object.keys(stats.skills_by_category).length
+        : 0;
+    document.getElementById('stat-categories').textContent = catCount;
+}
+
+// Render tabs + content
+function renderBankContent() {
+    const container = document.getElementById('bank-content');
+
+    if (bankSkills.length === 0 && bankExperiences.length === 0) {
+        container.innerHTML = `
+            <div class="bank-empty">
+                <p>🧠 Kompetensbanken är tom</p>
+                <p class="empty-state-hint">Ladda upp ett CV och klicka "Merge alla CV:n" för att fylla banken</p>
+            </div>`;
+        return;
+    }
+
+    container.innerHTML = `
+        <div class="bank-tabs">
+            <button class="bank-tab ${activeBankTab === 'skills' ? 'active' : ''}"
+                    onclick="switchBankTab('skills')">
+                🎯 Skills (${bankSkills.length})
+            </button>
+            <button class="bank-tab ${activeBankTab === 'experiences' ? 'active' : ''}"
+                    onclick="switchBankTab('experiences')">
+                💼 Erfarenheter (${bankExperiences.length})
+            </button>
+        </div>
+        <div id="bank-tab-body"></div>
+    `;
+
+    renderActiveBankTab();
+}
+
+function switchBankTab(tab) {
+    activeBankTab = tab;
+    document.querySelectorAll('.bank-tab').forEach(btn => btn.classList.remove('active'));
+    event.currentTarget.classList.add('active');
+    renderActiveBankTab();
+}
+
+function renderActiveBankTab() {
+    const body = document.getElementById('bank-tab-body');
+    if (!body) return;
+
+    if (activeBankTab === 'skills') {
+        body.innerHTML = renderSkillsTab();
+    } else {
+        body.innerHTML = renderExperiencesTab();
+    }
+}
+
+// Group skills by category and render chips
+function renderSkillsTab() {
+    if (bankSkills.length === 0) {
+        return '<div class="bank-empty"><p>Inga skills ännu</p></div>';
+    }
+
+    // Group by category
+    const groups = {};
+    bankSkills.forEach(s => {
+        const cat = s.category || 'Övrigt';
+        if (!groups[cat]) groups[cat] = [];
+        groups[cat].push(s);
+    });
+
+    const categoryOrder = [
+        'Programming Languages', 'Frameworks & APIs', 'Databases',
+        'Cloud & DevOps', 'AI & Machine Learning', 'Frontend',
+        'Technical Skills', 'Tools', 'Soft Skills', 'Languages',
+        'Domain Knowledge', 'Övrigt'
+    ];
+
+    const sortedCats = [
+        ...categoryOrder.filter(c => groups[c]),
+        ...Object.keys(groups).filter(c => !categoryOrder.includes(c)).sort()
+    ];
+
+    return sortedCats.map(cat => `
+        <div class="bank-category-block">
+            <div class="bank-category-title">
+                ${categoryIcon(cat)} ${cat}
+                <span class="bank-category-count">${groups[cat].length}</span>
+            </div>
+            <div class="bank-skills-wrap">
+                ${groups[cat].map(s => `
+                    <span class="bank-skill-chip chip-${s.skill_type || 'default'}">
+                        ${s.skill_name}
+                    </span>
+                `).join('')}
+            </div>
+        </div>
+    `).join('');
+}
+
+// Render experience timeline
+function renderExperiencesTab() {
+    if (bankExperiences.length === 0) {
+        return '<div class="bank-empty"><p>Inga erfarenheter ännu</p></div>';
+    }
+
+    const typeOrder = ['work', 'education', 'certification', 'project'];
+    const typeLabels = {
+        work: '💼 Arbetslivserfarenhet',
+        education: '🎓 Utbildning',
+        certification: '🏆 Certifieringar',
+        project: '🚀 Projekt',
+    };
+
+    const groups = {};
+    bankExperiences.forEach(e => {
+        const t = e.experience_type || 'other';
+        if (!groups[t]) groups[t] = [];
+        groups[t].push(e);
+    });
+
+    const sortedTypes = [
+        ...typeOrder.filter(t => groups[t]),
+        ...Object.keys(groups).filter(t => !typeOrder.includes(t)),
+    ];
+
+    return sortedTypes.map(type => `
+        <div class="bank-category-block">
+            <div class="bank-category-title">
+                ${typeLabels[type] || type}
+                <span class="bank-category-count">${groups[type].length}</span>
+            </div>
+            <div class="bank-experience-list">
+                ${groups[type].map(e => {
+                    const dateStr = e.start_date
+                        ? `${e.start_date} — ${e.is_current ? 'Nuvarande' : (e.end_date || '')}`
+                        : '';
+                    return `
+                        <div class="bank-exp-item">
+                            <div class="bank-exp-main">
+                                <h4>
+                                    ${e.title}
+                                    ${e.is_current ? '<span class="bank-exp-badge">Nuvarande</span>' : ''}
+                                </h4>
+                                ${e.organization ? `<div class="bank-exp-org">${e.organization}</div>` : ''}
+                            </div>
+                            ${dateStr ? `<div class="bank-exp-date">${dateStr}</div>` : ''}
+                        </div>
+                    `;
+                }).join('')}
+            </div>
+        </div>
+    `).join('');
+}
+
+function categoryIcon(cat) {
+    const icons = {
+        'Programming Languages': '💻',
+        'Frameworks & APIs': '⚙️',
+        'Databases': '🗄️',
+        'Cloud & DevOps': '☁️',
+        'AI & Machine Learning': '🤖',
+        'Frontend': '🎨',
+        'Technical Skills': '🔧',
+        'Tools': '🛠️',
+        'Soft Skills': '🤝',
+        'Languages': '🌍',
+        'Domain Knowledge': '📚',
+    };
+    return icons[cat] || '📌';
+}
+
+// Show merge status inside bank section
+function showMergeStatus(message, type) {
+    const el = document.getElementById('merge-status');
+    if (!el) return;
+    const icon = type === 'loading' ? '<div class="spinner"></div>' : '';
+    el.innerHTML = `<div class="status-message status-${type}">${icon}<span>${message}</span></div>`;
+    if (type === 'success' || type === 'error') {
+        setTimeout(() => { el.innerHTML = ''; }, 5000);
+    }
+}
+
+// Merge the currently selected CV
+async function mergeSelectedCV() {
+    if (!selectedCV) {
+        alert('Välj ett CV i listan ovan först');
+        return;
+    }
+
+    showMergeStatus('⏳ Mergar CV...', 'loading');
+    document.getElementById('merge-selected-btn').disabled = true;
+
+    try {
+        const res = await fetch(`${API_BASE_URL}/competence/merge/${selectedCV.id}`, {
+            method: 'POST'
+        });
+
+        if (!res.ok) {
+            const err = await res.json();
+            throw new Error(err.detail || 'Merge misslyckades');
+        }
+
+        const data = await res.json();
+        showMergeStatus(
+            `✅ ${data.cv_name}: +${data.skills_added} skills, +${data.experiences_added} erfarenheter, ${data.duplicates_skipped} duplicat(er) hoppade över`,
+            'success'
+        );
+        await loadBankData();
+
+    } catch (err) {
+        showMergeStatus(`❌ ${err.message}`, 'error');
+    } finally {
+        document.getElementById('merge-selected-btn').disabled = false;
+    }
+}
+
+// Merge ALL CVs
+async function mergeAllCVs() {
+    showMergeStatus('⏳ Mergar alla CV:n...', 'loading');
+    document.getElementById('merge-all-btn').disabled = true;
+
+    try {
+        const res = await fetch(`${API_BASE_URL}/competence/merge-all`, {
+            method: 'POST'
+        });
+
+        if (!res.ok) {
+            const err = await res.json();
+            throw new Error(err.detail || 'Merge misslyckades');
+        }
+
+        const data = await res.json();
+        showMergeStatus(
+            `✅ ${data.total_cvs_processed} CV:n processade — +${data.total_skills_added} nya skills, +${data.total_experiences_added} nya erfarenheter`,
+            'success'
+        );
+        await loadBankData();
+
+    } catch (err) {
+        showMergeStatus(`❌ ${err.message}`, 'error');
+    } finally {
+        document.getElementById('merge-all-btn').disabled = false;
     }
 }

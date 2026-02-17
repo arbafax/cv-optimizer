@@ -960,10 +960,10 @@ function renderExperiencesTab() {
 
     const typeOrder = ['work', 'education', 'certification', 'project'];
     const typeLabels = {
-        work: '💼 Arbetslivserfarenhet',
-        education: '🎓 Utbildning',
+        work:          '💼 Arbetslivserfarenhet',
+        education:     '🎓 Utbildning',
         certification: '🏆 Certifieringar',
-        project: '🚀 Projekt',
+        project:       '🚀 Projekt',
     };
 
     const groups = {};
@@ -989,16 +989,28 @@ function renderExperiencesTab() {
                     const dateStr = e.start_date
                         ? `${e.start_date} — ${e.is_current ? 'Nuvarande' : (e.end_date || '')}`
                         : '';
+                    const skills = (e.related_skills || []);
+                    const sourceCount = (e.source_cv_ids || []).length;
+
                     return `
                         <div class="bank-exp-item">
                             <div class="bank-exp-main">
-                                <h4>
-                                    ${e.title}
-                                    ${e.is_current ? '<span class="bank-exp-badge">Nuvarande</span>' : ''}
-                                </h4>
+                                <div class="bank-exp-header">
+                                    <h4>
+                                        ${e.title}
+                                        ${e.is_current ? '<span class="bank-exp-badge">Nuvarande</span>' : ''}
+                                        ${sourceCount > 1 ? `<span class="bank-exp-source-badge">${sourceCount} CV:n</span>` : ''}
+                                    </h4>
+                                    ${dateStr ? `<div class="bank-exp-date">${dateStr}</div>` : ''}
+                                </div>
                                 ${e.organization ? `<div class="bank-exp-org">${e.organization}</div>` : ''}
+                                ${e.description  ? `<div class="bank-exp-desc">${e.description}</div>` : ''}
+                                ${skills.length > 0 ? `
+                                    <div class="bank-exp-skills">
+                                        ${skills.map(s => `<span class="bank-skill-chip chip-technical">${s}</span>`).join('')}
+                                    </div>
+                                ` : ''}
                             </div>
-                            ${dateStr ? `<div class="bank-exp-date">${dateStr}</div>` : ''}
                         </div>
                     `;
                 }).join('')}

@@ -6,7 +6,7 @@ import logging
 from app.core.database import get_db
 from app.models.cv import CV
 from app.models.competence import SkillEntry, ExperienceEntry
-from app.services.competence_service import merge_cv_into_bank, clear_bank, rebuild_bank
+from app.services.competence_service import merge_cv_into_bank, merge_experiences, clear_bank, rebuild_bank
 
 logger = logging.getLogger(__name__)
 
@@ -115,6 +115,24 @@ async def get_bank_experiences(db: Session = Depends(get_db)):
             for e in experiences
         ]
     }
+
+
+@router.post("/experiences/merge")
+async def merge_experience_entries(
+    body: dict,
+    db: Session = Depends(get_db),
+):
+    """Slå ihop flera erfarenhetsposter till en."""
+    experience_ids = body.get("experience_ids", [])
+    if len(experience_ids) < 2:
+        raise HTTPException(status_code=400, detail="Minst 2 erfarenhets-ID krävs")
+
+    try:
+        result = merge_experiences(experience_ids, db)
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+
+    return result
 
 
 @router.delete("/reset")

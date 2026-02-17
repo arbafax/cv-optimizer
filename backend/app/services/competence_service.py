@@ -325,6 +325,73 @@ def merge_cv_into_bank(cv, db: Session) -> dict:
     }
 
 
+def merge_experiences(experience_ids: list[int], db: Session) -> dict:
+    """
+    Slå ihop flera erfarenhetsposter till en.
+    Behåller den första som bas och sammanfogar resten.
+    """
+    if len(experience_ids) < 2:
+        raise ValueError("Minst 2 erfarenheter krävs för sammanslagning")
+
+    experiences = db.query(ExperienceEntry).filter(
+        ExperienceEntry.id.in_(experience_ids)
+    ).all()
+
+    if len(experiences) < 2:
+        raise ValueError("Kunde inte hitta tillräckligt med erfarenheter")
+
+    # Sort so we process in the order the caller gave us
+    id_order = {eid: i for i, eid in enumerate(experience_ids)}
+    experiences.sort(key=lambda e: id_order.get(e.id, 999))
+
+    base = experiences[0]
+
+    for other in experiences[1:]:
+        base.description = _merge_descriptions(base.description, other.description)
+
+        base.related_skills = _merge_skill_list(
+            base.related_skills or [], other.related_skills or []
+        )
+        flag_modified(base, "related_skills")
+
+        sources = set(base.source_cv_ids or [])
+        sources.update(other.source_cv_ids or [])
+        base.source_cv_ids = list(sources)
+        flag_modified(base, "source_cv_ids")
+
+        if other.title and len(other.title) > len(base.title or ""):
+            base.title = other.title
+
+        if other.organization and len(other.organization) > len(base.organization or ""):
+            base.organization = other.organization
+
+        if other.start_date and (not base.start_date or other.start_date < base.start_date):
+            base.start_date = other.start_date
+        if other.end_date and (not base.end_date or other.end_date > base.end_date):
+            base.end_date = other.end_date
+
+        if other.is_current:
+            base.is_current = True
+
+        db.delete(other)
+
+    db.commit()
+
+    return {
+        "id": base.id,
+        "title": base.title,
+        "organization": base.organization,
+        "experience_type": base.experience_type,
+        "start_date": base.start_date,
+        "end_date": base.end_date,
+        "is_current": base.is_current,
+        "description": base.description,
+        "related_skills": base.related_skills or [],
+        "source_cv_ids": base.source_cv_ids or [],
+        "merged_count": len(experiences),
+    }
+
+
 def clear_bank(db: Session) -> None:
     """Rensa hela kompetensbanken."""
     db.query(ExperienceEntry).delete()

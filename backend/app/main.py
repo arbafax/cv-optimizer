@@ -32,9 +32,6 @@ with engine.connect() as conn:
     )
     conn.commit()
 
-# Migrering: lägg till saknade kolumner om de inte finns
-from sqlalchemy import text
-
 with engine.connect() as conn:
     conn.execute(
         text(

@@ -183,8 +183,8 @@ function renderDashboardCVs(cvs) {
     }
 
     el.innerHTML = cvs.slice(0, 5).map(cv => {
-        const name = cv.structured_data.personal_info.full_name;
-        const date = new Date(cv.upload_date).toLocaleDateString('sv-SE', { year: 'numeric', month: 'short', day: 'numeric' });
+        const displayName = cv.title || cv.structured_data.personal_info.full_name;
+        const date  = new Date(cv.upload_date).toLocaleDateString('sv-SE', { year: 'numeric', month: 'short', day: 'numeric' });
         const skills = cv.structured_data.skills.length;
         return `
             <div class="dash-cv-row">
@@ -192,7 +192,7 @@ function renderDashboardCVs(cvs) {
                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
                 </div>
                 <div>
-                    <div class="dash-cv-name">${name}</div>
+                    <div class="dash-cv-name">${displayName}</div>
                     <div class="dash-cv-meta">${date} &nbsp;·&nbsp; ${skills} skills</div>
                 </div>
                 <div class="dash-cv-actions">
@@ -214,12 +214,12 @@ function renderCVSelectList(cvs) {
     }
 
     el.innerHTML = cvs.map(cv => {
-        const name = cv.structured_data.personal_info.full_name;
-        const isSelected = selectedCV?.id === cv.id;
+        const displayName = cv.title || cv.structured_data.personal_info.full_name;
+        const isSelected  = selectedCV?.id === cv.id;
         return `
             <div class="cv-select-item ${isSelected ? 'selected' : ''}" onclick="selectCV(${cv.id})">
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
-                ${name}
+                ${displayName}
             </div>
         `;
     }).join('');
@@ -233,17 +233,17 @@ function displayCVs(cvs) {
     }
 
     cvList.innerHTML = cvs.map(cv => {
-        const name     = cv.structured_data.personal_info.full_name;
-        const date     = new Date(cv.upload_date).toLocaleDateString('sv-SE', { year: 'numeric', month: 'long', day: 'numeric' });
-        const skills   = cv.structured_data.skills.length;
-        const exps     = cv.structured_data.work_experience.length;
+        const displayName = cv.title || cv.structured_data.personal_info.full_name;
+        const date   = new Date(cv.upload_date).toLocaleDateString('sv-SE', { year: 'numeric', month: 'long', day: 'numeric' });
+        const skills = cv.structured_data.skills.length;
+        const exps   = cv.structured_data.work_experience.length;
         const selected = selectedCV?.id === cv.id;
 
         return `
             <div class="cv-item ${selected ? 'selected' : ''}" onclick="selectCV(${cv.id})">
                 <div class="cv-item-header">
                     <div class="cv-item-info">
-                        <h3>${name}</h3>
+                        <h3>${displayName}</h3>
                         <p>${cv.filename}</p>
                     </div>
                     ${selected ? '<span class="cv-item-badge">Vald</span>' : ''}
@@ -254,12 +254,52 @@ function displayCVs(cvs) {
                     <div class="cv-item-detail">🎯 ${skills} kompetenser</div>
                 </div>
                 <div class="cv-item-actions">
+                    <button class="btn btn-small btn-secondary" onclick="editTitle(${cv.id}, event)">✏️ Titel</button>
                     <button class="btn btn-small btn-secondary" onclick="viewCV(${cv.id}, event)">👁️ Visa</button>
-                    <button class="btn btn-small btn-danger" onclick="deleteCV(${cv.id}, event)">🗑️ Ta bort</button>
+                    <button class="btn btn-small btn-danger"    onclick="deleteCV(${cv.id}, event)">🗑️ Ta bort</button>
                 </div>
             </div>
         `;
     }).join('');
+}
+
+// Edit title inline
+async function editTitle(id, event) {
+    event.stopPropagation();
+    const cv = allCVs.find(c => c.id === id);
+    if (!cv) return;
+
+    const current = cv.title || '';
+    const newTitle = prompt('Ange titel för detta CV:', current);
+
+    // null = cancel, empty string = clear
+    if (newTitle === null) return;
+
+    try {
+        const res = await fetch(`${API_BASE_URL}/cv/${id}/title`, {
+            method: 'PATCH',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ title: newTitle.trim() || cv.structured_data.personal_info.full_name })
+        });
+
+        if (!res.ok) {
+            const err = await res.json();
+            throw new Error(err.detail || 'Kunde inte spara titel');
+        }
+
+        const updated = await res.json();
+        // Update local state
+        const idx = allCVs.findIndex(c => c.id === id);
+        if (idx !== -1) allCVs[idx] = { ...allCVs[idx], title: updated.title };
+        if (selectedCV?.id === id) selectedCV = allCVs[idx];
+
+        displayCVs(allCVs);
+        renderDashboardCVs(allCVs);
+        renderCVSelectList(allCVs);
+
+    } catch (err) {
+        showStatus(`❌ ${err.message}`, 'error');
+    }
 }
 
 // Select CV

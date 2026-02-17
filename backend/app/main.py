@@ -3,6 +3,7 @@ from fastapi.middleware.cors import CORSMiddleware
 import logging
 from app.core.config import settings
 from app.core.database import engine, Base
+from sqlalchemy import text
 
 # Import routers
 from app.api import cv, optimize
@@ -20,6 +21,16 @@ logging.basicConfig(
 
 # Create database tables
 Base.metadata.create_all(bind=engine)
+
+with engine.connect() as conn:
+    conn.execute(
+        text(
+            """
+        ALTER TABLE cvs ADD COLUMN IF NOT EXISTS title VARCHAR
+    """
+        )
+    )
+    conn.commit()
 
 # Migrering: lägg till saknade kolumner om de inte finns
 from sqlalchemy import text

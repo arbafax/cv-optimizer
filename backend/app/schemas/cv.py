@@ -1,11 +1,9 @@
 from pydantic import BaseModel, EmailStr, Field
 from typing import List, Optional
-from datetime import datetime, date
+from datetime import datetime
 
 
 class PersonalInfo(BaseModel):
-    """Personal information section"""
-
     full_name: str
     email: Optional[EmailStr] = None
     phone: Optional[str] = None
@@ -16,11 +14,9 @@ class PersonalInfo(BaseModel):
 
 
 class WorkExperience(BaseModel):
-    """Single work experience entry"""
-
     company: Optional[str] = None
     position: Optional[str] = None
-    start_date: Optional[str] = None  # We'll parse dates flexibly
+    start_date: Optional[str] = None
     end_date: Optional[str] = None
     current: bool = False
     location: Optional[str] = None
@@ -30,8 +26,6 @@ class WorkExperience(BaseModel):
 
 
 class Education(BaseModel):
-    """Education entry"""
-
     institution: Optional[str] = None
     degree: Optional[str] = None
     field_of_study: Optional[str] = None
@@ -42,8 +36,6 @@ class Education(BaseModel):
 
 
 class Certification(BaseModel):
-    """Certification or license"""
-
     name: Optional[str] = None
     issuing_organization: Optional[str] = None
     issue_date: Optional[str] = None
@@ -52,8 +44,6 @@ class Certification(BaseModel):
 
 
 class Project(BaseModel):
-    """Project entry"""
-
     name: Optional[str] = None
     description: Optional[str] = None
     role: Optional[str] = None
@@ -64,15 +54,11 @@ class Project(BaseModel):
 
 
 class Language(BaseModel):
-    """Language proficiency"""
-
     language: Optional[str] = None
-    proficiency: Optional[str] = None  # e.g., "Native", "Fluent", "Professional"
+    proficiency: Optional[str] = None
 
 
 class CVStructure(BaseModel):
-    """Complete structured CV data"""
-
     personal_info: PersonalInfo
     summary: Optional[str] = None
     work_experience: List[WorkExperience] = Field(default_factory=list)
@@ -82,35 +68,11 @@ class CVStructure(BaseModel):
     projects: List[Project] = Field(default_factory=list)
     languages: List[Language] = Field(default_factory=list)
 
-    class Config:
-        json_schema_extra = {
-            "example": {
-                "personal_info": {
-                    "full_name": "Anna Andersson",
-                    "email": "anna@example.com",
-                    "phone": "+46701234567",
-                    "location": "Stockholm, Sweden",
-                },
-                "summary": "Erfaren backend-utvecklare med fokus på Python och API-design",
-                "work_experience": [
-                    {
-                        "company": "Tech AB",
-                        "position": "Senior Backend Developer",
-                        "start_date": "2020-01",
-                        "current": True,
-                        "achievements": ["Byggde skalbar microservice-arkitektur"],
-                    }
-                ],
-                "skills": ["Python", "FastAPI", "PostgreSQL", "Docker"],
-            }
-        }
-
 
 class CVResponse(BaseModel):
-    """Response model for CV"""
-
     id: int
     filename: str
+    title: Optional[str] = None          # ← NY: användarsatt titel
     upload_date: datetime
     structured_data: CVStructure
 
@@ -118,9 +80,12 @@ class CVResponse(BaseModel):
         from_attributes = True
 
 
-class JobPosting(BaseModel):
-    """Job posting for CV optimization"""
+class CVUpdateTitle(BaseModel):
+    """Request body för att uppdatera titel."""
+    title: str = Field(..., min_length=1, max_length=200)
 
+
+class JobPosting(BaseModel):
     title: str
     description: str
     company: Optional[str] = None
@@ -129,8 +94,6 @@ class JobPosting(BaseModel):
 
 
 class OptimizedCVResponse(BaseModel):
-    """Response model for optimized CV"""
-
     id: int
     original_cv_id: int
     job_title: str

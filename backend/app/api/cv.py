@@ -9,7 +9,7 @@ import logging
 from app.core.database import get_db
 from app.core.config import settings
 from app.models.cv import CV
-from app.schemas.cv import CVResponse, CVStructure
+from app.schemas.cv import CVResponse, CVStructure, CVUpdateTitle
 from app.services.pdf_parser import PDFParser
 from app.services.ai_service import AIService
 from app.services.competence_service import rebuild_bank
@@ -103,6 +103,7 @@ async def upload_cv(
         return CVResponse(
             id              = db_cv.id,
             filename        = db_cv.filename,
+            title           = db_cv.title,
             upload_date     = db_cv.upload_date,
             structured_data = CVStructure(**db_cv.structured_data),
         )
@@ -130,6 +131,7 @@ async def list_cvs(
         CVResponse(
             id              = cv.id,
             filename        = cv.filename,
+            title           = cv.title,
             upload_date     = cv.upload_date,
             structured_data = CVStructure(**cv.structured_data),
         )
@@ -146,6 +148,33 @@ async def get_cv(cv_id: int, db: Session = Depends(get_db)):
     return CVResponse(
         id              = cv.id,
         filename        = cv.filename,
+        title           = cv.title,
+        upload_date     = cv.upload_date,
+        structured_data = CVStructure(**cv.structured_data),
+    )
+
+
+@router.patch("/{cv_id}/title", response_model=CVResponse)
+async def update_cv_title(
+    cv_id: int,
+    body: CVUpdateTitle,
+    db: Session = Depends(get_db)
+):
+    """Uppdatera titeln på ett CV."""
+    cv = db.query(CV).filter(CV.id == cv_id).first()
+    if not cv:
+        raise HTTPException(status_code=404, detail="CV hittades inte")
+
+    cv.title = body.title.strip()
+    db.commit()
+    db.refresh(cv)
+
+    logger.info(f"Uppdaterade titel för CV {cv_id}: '{cv.title}'")
+
+    return CVResponse(
+        id              = cv.id,
+        filename        = cv.filename,
+        title           = cv.title,
         upload_date     = cv.upload_date,
         structured_data = CVStructure(**cv.structured_data),
     )

@@ -533,30 +533,43 @@ function buildCVDetailsHTML(cvData) {
 // Delete CV
 async function deleteCV(id, event) {
     event.stopPropagation();
-    
-    if (!confirm('Är du säker på att du vill ta bort detta CV?')) {
+
+    if (!confirm('Radera detta CV?\n\nKompetensbanken byggs om automatiskt från kvarvarande CV:n.')) {
         return;
     }
-    
+
+    showStatus('⏳ Raderar CV och bygger om kompetensbanken...', 'loading');
+
     try {
         const response = await fetch(`${API_BASE_URL}/cv/${id}`, {
             method: 'DELETE'
         });
-        
+
         if (!response.ok) {
-            throw new Error('Kunde inte ta bort CV');
+            const err = await response.json();
+            throw new Error(err.detail || 'Kunde inte ta bort CV');
         }
-        
-        // If this was the selected CV, deselect it
+
+        const data = await response.json();
+
+        // Om det raderade CV:t var valt, nollställ valet
         if (selectedCV?.id === id) {
             selectedCV = null;
             updateOptimizeButton();
+            const mergeBtn = document.getElementById('merge-selected-btn');
+            if (mergeBtn) mergeBtn.disabled = true;
         }
-        
-        loadCVs(); // Refresh list
-        
+
+        await loadCVs();
+        await loadBankData();
+
+        showStatus(
+            `✅ ${data.message} — ${data.total_skills} skills från ${data.remaining_cvs} CV:n`,
+            'success'
+        );
+
     } catch (error) {
-        alert(`Fel: ${error.message}`);
+        showStatus(`❌ ${error.message}`, 'error');
     }
 }
 

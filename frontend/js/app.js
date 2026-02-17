@@ -2,53 +2,53 @@
 const API_BASE_URL = 'http://localhost:8000/api/v1';
 
 // DOM Elements
-const uploadArea = document.getElementById('upload-area');
-const uploadLabel = document.getElementById('upload-label');
-const cvUpload = document.getElementById('cv-upload');
-const uploadStatus = document.getElementById('upload-status');
-const cvPreview = document.getElementById('cv-preview');
-const cvList = document.getElementById('cv-list');
-const optimizeBtn = document.getElementById('optimize-btn');
-const jobTitle = document.getElementById('job-title');
+const uploadArea    = document.getElementById('upload-area');
+const uploadLabel   = document.getElementById('upload-label');
+const cvUpload      = document.getElementById('cv-upload');
+const uploadStatus  = document.getElementById('upload-status');
+const cvPreview     = document.getElementById('cv-preview');
+const cvList        = document.getElementById('cv-list');
+const optimizeBtn   = document.getElementById('optimize-btn');
+const jobTitle      = document.getElementById('job-title');
 const jobDescription = document.getElementById('job-description');
-const charCount = document.getElementById('char-count');
+const charCount     = document.getElementById('char-count');
 const optimizeResult = document.getElementById('optimize-result');
 
 // State
 let selectedCV = null;
-let allCVs = [];
+let allCVs     = [];
+
+// ── Navigation ────────────────────────────────────────────
+function showView(viewId, navEl) {
+    // Hide all views
+    document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
+    document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+
+    // Show target view
+    const view = document.getElementById('view-' + viewId);
+    if (view) view.classList.add('active');
+    if (navEl) navEl.classList.add('active');
+}
 
 // Initialize
 document.addEventListener('DOMContentLoaded', () => {
     setupEventListeners();
     loadCVs();
     loadBankData();
-    
-    // Close modal on Escape key
+
     document.addEventListener('keydown', (e) => {
-        if (e.key === 'Escape') {
-            closeCVModal();
-        }
+        if (e.key === 'Escape') closeCVModal();
     });
 });
 
 // Event Listeners
 function setupEventListeners() {
-    // File upload
     cvUpload.addEventListener('change', handleFileSelect);
-    
-    // Drag and drop
     uploadArea.addEventListener('dragover', handleDragOver);
     uploadArea.addEventListener('dragleave', handleDragLeave);
     uploadArea.addEventListener('drop', handleDrop);
-    
-    // Optimize button
     optimizeBtn.addEventListener('click', handleOptimize);
-    
-    // Character count for job description
     jobDescription.addEventListener('input', updateCharCount);
-    
-    // Enable optimize button when CV is selected and form is filled
     jobTitle.addEventListener('input', updateOptimizeButton);
     jobDescription.addEventListener('input', updateOptimizeButton);
 }
@@ -114,15 +114,7 @@ async function handleFileUpload(file) {
         uploadArea.classList.remove('uploading');
         showStatus('✅ CV uppladdat och strukturerat!', 'success');
         displayCVPreview(data.structured_data);
-        loadCVs(); // Refresh list
-        
-        // Auto-scroll to CV list
-        setTimeout(() => {
-            document.getElementById('cv-list-section').scrollIntoView({ 
-                behavior: 'smooth', 
-                block: 'start' 
-            });
-        }, 500);
+        await loadCVs();
         
     } catch (error) {
         uploadArea.classList.remove('uploading');
@@ -166,75 +158,104 @@ function displayCVPreview(cvData) {
 async function loadCVs() {
     try {
         const response = await fetch(`${API_BASE_URL}/cv/`);
-        
-        if (!response.ok) {
-            throw new Error('Kunde inte ladda CV:n');
-        }
-        
+        if (!response.ok) throw new Error('Kunde inte ladda CV:n');
+
         allCVs = await response.json();
         displayCVs(allCVs);
-        
+        renderDashboardCVs(allCVs);
+        renderCVSelectList(allCVs);
+        document.getElementById('dash-cv-count').textContent = allCVs.length;
+
     } catch (error) {
         console.error('Error loading CVs:', error);
-        cvList.innerHTML = `
-            <div class="empty-state">
-                <p>❌ Kunde inte ladda CV:n</p>
-                <p class="empty-state-hint">Kontrollera att backend körs på http://localhost:8000</p>
-            </div>
-        `;
+        cvList.innerHTML = `<div class="empty-hint">❌ Kunde inte ladda CV:n<br><small>Kontrollera att backend körs på http://localhost:8000</small></div>`;
     }
 }
 
-// Display CVs
-function displayCVs(cvs) {
+// Dashboard mini-list
+function renderDashboardCVs(cvs) {
+    const el = document.getElementById('dash-cv-list');
+    if (!el) return;
+
     if (cvs.length === 0) {
-        cvList.innerHTML = `
-            <div class="empty-state">
-                <p>Inga CV:n uppladdade ännu</p>
-                <p class="empty-state-hint">Ladda upp ditt första CV för att komma igång!</p>
-            </div>
-        `;
+        el.innerHTML = '<div class="empty-hint">Inga CV:n uppladdade än</div>';
         return;
     }
-    
-    cvList.innerHTML = cvs.map(cv => {
+
+    el.innerHTML = cvs.slice(0, 5).map(cv => {
         const name = cv.structured_data.personal_info.full_name;
-        const uploadDate = new Date(cv.upload_date).toLocaleDateString('sv-SE', {
-            year: 'numeric',
-            month: 'long',
-            day: 'numeric'
-        });
+        const date = new Date(cv.upload_date).toLocaleDateString('sv-SE', { year: 'numeric', month: 'short', day: 'numeric' });
         const skills = cv.structured_data.skills.length;
-        const experiences = cv.structured_data.work_experience.length;
-        
         return `
-            <div class="cv-item ${selectedCV?.id === cv.id ? 'selected' : ''}" 
-                 onclick="selectCV(${cv.id})">
+            <div class="dash-cv-row">
+                <div class="dash-cv-icon">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+                </div>
+                <div>
+                    <div class="dash-cv-name">${name}</div>
+                    <div class="dash-cv-meta">${date} &nbsp;·&nbsp; ${skills} skills</div>
+                </div>
+                <div class="dash-cv-actions">
+                    <button class="btn btn-small btn-secondary" onclick="viewCV(${cv.id}, event)">Visa</button>
+                </div>
+            </div>
+        `;
+    }).join('');
+}
+
+// CV select list in optimize view
+function renderCVSelectList(cvs) {
+    const el = document.getElementById('cv-select-list');
+    if (!el) return;
+
+    if (cvs.length === 0) {
+        el.innerHTML = '<p class="empty-hint">Ladda upp ett CV först</p>';
+        return;
+    }
+
+    el.innerHTML = cvs.map(cv => {
+        const name = cv.structured_data.personal_info.full_name;
+        const isSelected = selectedCV?.id === cv.id;
+        return `
+            <div class="cv-select-item ${isSelected ? 'selected' : ''}" onclick="selectCV(${cv.id})">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+                ${name}
+            </div>
+        `;
+    }).join('');
+}
+
+// Display CVs (Mina CV:n view)
+function displayCVs(cvs) {
+    if (cvs.length === 0) {
+        cvList.innerHTML = '<div class="empty-hint">Inga CV:n uppladdade ännu</div>';
+        return;
+    }
+
+    cvList.innerHTML = cvs.map(cv => {
+        const name     = cv.structured_data.personal_info.full_name;
+        const date     = new Date(cv.upload_date).toLocaleDateString('sv-SE', { year: 'numeric', month: 'long', day: 'numeric' });
+        const skills   = cv.structured_data.skills.length;
+        const exps     = cv.structured_data.work_experience.length;
+        const selected = selectedCV?.id === cv.id;
+
+        return `
+            <div class="cv-item ${selected ? 'selected' : ''}" onclick="selectCV(${cv.id})">
                 <div class="cv-item-header">
                     <div class="cv-item-info">
                         <h3>${name}</h3>
                         <p>${cv.filename}</p>
                     </div>
-                    ${selectedCV?.id === cv.id ? '<span class="cv-item-badge">Vald</span>' : ''}
+                    ${selected ? '<span class="cv-item-badge">Vald</span>' : ''}
                 </div>
                 <div class="cv-item-details">
-                    <div class="cv-item-detail">
-                        📅 Uppladdat: ${uploadDate}
-                    </div>
-                    <div class="cv-item-detail">
-                        💼 ${experiences} arbetslivserfarenheter
-                    </div>
-                    <div class="cv-item-detail">
-                        🎯 ${skills} kompetenser
-                    </div>
+                    <div class="cv-item-detail">📅 ${date}</div>
+                    <div class="cv-item-detail">💼 ${exps} arbetslivserfarenheter</div>
+                    <div class="cv-item-detail">🎯 ${skills} kompetenser</div>
                 </div>
                 <div class="cv-item-actions">
-                    <button class="btn btn-small btn-secondary" onclick="viewCV(${cv.id}, event)">
-                        👁️ Visa detaljer !!
-                    </button>
-                    <button class="btn btn-small btn-secondary" onclick="deleteCV(${cv.id}, event)">
-                        🗑️ Ta bort
-                    </button>
+                    <button class="btn btn-small btn-secondary" onclick="viewCV(${cv.id}, event)">👁️ Visa</button>
+                    <button class="btn btn-small btn-danger" onclick="deleteCV(${cv.id}, event)">🗑️ Ta bort</button>
                 </div>
             </div>
         `;
@@ -242,22 +263,15 @@ function displayCVs(cvs) {
 }
 
 // Select CV
+// Select CV
 function selectCV(id) {
     selectedCV = allCVs.find(cv => cv.id === id);
     displayCVs(allCVs);
+    renderCVSelectList(allCVs);
     updateOptimizeButton();
-    
-    // Enable merge button
+
     const mergeBtn = document.getElementById('merge-selected-btn');
     if (mergeBtn) mergeBtn.disabled = false;
-    
-    // Scroll to optimize section
-    setTimeout(() => {
-        document.getElementById('optimize-section').scrollIntoView({ 
-            behavior: 'smooth', 
-            block: 'start' 
-        });
-    }, 100);
 }
 
 // View CV details
@@ -791,16 +805,20 @@ async function loadBankData() {
     }
 }
 
-// Render the four stat boxes
 function renderBankStats(stats) {
     document.getElementById('stat-skills').textContent      = stats.total_skills ?? 0;
     document.getElementById('stat-experiences').textContent = stats.total_experiences ?? 0;
     document.getElementById('stat-sources').textContent     = stats.total_source_documents ?? 0;
 
     const catCount = stats.skills_by_category
-        ? Object.keys(stats.skills_by_category).length
-        : 0;
+        ? Object.keys(stats.skills_by_category).length : 0;
     document.getElementById('stat-categories').textContent = catCount;
+
+    // Update dashboard counters too
+    const dashSkills = document.getElementById('dash-skills-count');
+    const dashExp    = document.getElementById('dash-exp-count');
+    if (dashSkills) dashSkills.textContent = stats.total_skills ?? 0;
+    if (dashExp)    dashExp.textContent    = stats.total_experiences ?? 0;
 }
 
 // Render tabs + content

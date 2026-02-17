@@ -62,6 +62,33 @@ with engine.connect() as conn:
             "ALTER TABLE experiences_pool ADD COLUMN IF NOT EXISTS source_cv_ids JSONB DEFAULT '[]'"
         )
     )
+    # Droppa gammal vy som beror på achievements-kolumnen (används ej av appen)
+    conn.execute(text("DROP VIEW IF EXISTS experience_timeline"))
+    conn.execute(
+        text(
+            "ALTER TABLE experiences_pool ADD COLUMN IF NOT EXISTS achievements JSONB DEFAULT '[]'"
+        )
+    )
+    # Konvertera om kolumnen inte redan är JSONB (kan vara text[] i äldre DB)
+    col_type = conn.execute(
+        text(
+            "SELECT data_type FROM information_schema.columns "
+            "WHERE table_name = 'experiences_pool' AND column_name = 'achievements'"
+        )
+    ).fetchone()
+    if col_type and col_type[0] != 'jsonb':
+        conn.execute(
+            text(
+                "ALTER TABLE experiences_pool ALTER COLUMN achievements TYPE JSONB "
+                "USING CASE WHEN achievements IS NULL THEN '[]'::jsonb "
+                "ELSE array_to_json(achievements)::jsonb END"
+            )
+        )
+    conn.execute(
+        text(
+            "ALTER TABLE experiences_pool ALTER COLUMN achievements SET DEFAULT '[]'"
+        )
+    )
     conn.commit()
 
 # Initialize FastAPI app

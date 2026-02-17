@@ -1,4 +1,5 @@
 from sqlalchemy import Column, Integer, String, Boolean, DateTime, Text, JSON, func
+from sqlalchemy.dialects.postgresql import JSONB
 from app.core.database import Base
 
 
@@ -24,7 +25,8 @@ class ExperienceEntry(Base):
     end_date        = Column(String(50))
     is_current      = Column(Boolean, default=False)
     description     = Column(Text)
-    related_skills  = Column(JSON, default=list)   # ← NY: ["Python", "FastAPI", ...]
+    achievements    = Column(JSONB, default=list)   # ["Ökade försäljningen med 20%", ...]
+    related_skills  = Column(JSON, default=list)   # ["Python", "FastAPI", ...]
     source_cv_ids   = Column(JSON, default=list)   # ← NY: [1, 2, 3] – alla CV:n som bidragit
     # Behåll bakåtkompatibelt fält – används ej längre men kan finnas i DB
     source_cv_id    = Column(Integer, nullable=True)

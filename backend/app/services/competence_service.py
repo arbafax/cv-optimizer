@@ -199,6 +199,7 @@ def merge_cv_into_bank(cv, db: Session) -> dict:
         is_current: bool,
         description: str | None,
         related_skills: list[str],
+        achievements: list[str] | None = None,
     ):
         nonlocal exp_added, exp_merged
 
@@ -229,6 +230,13 @@ def merge_cv_into_bank(cv, db: Session) -> dict:
                 flag_modified(existing, "related_skills")
                 changed = True
 
+            if achievements:
+                merged_ach = _merge_skill_list(existing.achievements or [], achievements)
+                if merged_ach != existing.achievements:
+                    existing.achievements = merged_ach
+                    flag_modified(existing, "achievements")
+                    changed = True
+
             sources = list(existing.source_cv_ids or [])
             if cv.id not in sources:
                 sources.append(cv.id)
@@ -252,6 +260,7 @@ def merge_cv_into_bank(cv, db: Session) -> dict:
                 end_date        = end_date,
                 is_current      = is_current,
                 description     = description,
+                achievements    = achievements or [],
                 related_skills  = related_skills,
                 source_cv_ids   = [cv.id],
                 source_cv_id    = cv.id,   # bakåtkompatibilitet
@@ -270,6 +279,7 @@ def merge_cv_into_bank(cv, db: Session) -> dict:
             is_current      = bool(exp.get("current", False)),
             description     = exp.get("description"),
             related_skills  = skills,
+            achievements    = list(exp.get("achievements", [])),
         )
 
     # Utbildning
@@ -284,6 +294,7 @@ def merge_cv_into_bank(cv, db: Session) -> dict:
             is_current      = False,
             description     = None,
             related_skills  = [],
+            achievements    = list(edu.get("achievements", [])),
         )
 
     # Certifieringar
@@ -354,6 +365,11 @@ def merge_experiences(experience_ids: list[int], db: Session) -> dict:
         )
         flag_modified(base, "related_skills")
 
+        base.achievements = _merge_skill_list(
+            base.achievements or [], other.achievements or []
+        )
+        flag_modified(base, "achievements")
+
         sources = set(base.source_cv_ids or [])
         sources.update(other.source_cv_ids or [])
         base.source_cv_ids = list(sources)
@@ -386,6 +402,7 @@ def merge_experiences(experience_ids: list[int], db: Session) -> dict:
         "end_date": base.end_date,
         "is_current": base.is_current,
         "description": base.description,
+        "achievements": base.achievements or [],
         "related_skills": base.related_skills or [],
         "source_cv_ids": base.source_cv_ids or [],
         "merged_count": len(experiences),

@@ -626,6 +626,31 @@ body {
     border: 1px solid var(--border);
 }
 
+.bank-exp-achievements {
+    margin: 6px 0;
+    font-size: 12.5px;
+    color: var(--text-secondary);
+}
+
+.bank-exp-achievements-label {
+    font-size: 11px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: .4px;
+    color: var(--text-tertiary);
+    margin-bottom: 4px;
+}
+
+.bank-exp-achievements ul {
+    padding-left: 16px;
+    margin: 0;
+}
+
+.bank-exp-achievements li {
+    line-height: 1.5;
+    margin-bottom: 2px;
+}
+
 .bank-exp-skills {
     display: flex;
     flex-wrap: wrap;

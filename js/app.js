@@ -818,6 +818,7 @@ function showStatus(message, type) {
 let bankSkills = [];
 let bankExperiences = [];
 let activeBankTab = 'skills';
+let selectedExperienceIds = new Set();
 
 // Load bank stats + skills + experiences
 async function loadBankData() {
@@ -978,7 +979,19 @@ function renderExperiencesTab() {
         ...Object.keys(groups).filter(t => !typeOrder.includes(t)),
     ];
 
-    return sortedTypes.map(type => `
+    // Merge toolbar (visible when ≥2 selected)
+    const mergeBar = `
+        <div class="bank-merge-bar ${selectedExperienceIds.size >= 2 ? 'visible' : ''}" id="exp-merge-bar">
+            <span>${selectedExperienceIds.size} valda</span>
+            <button class="btn btn-primary btn-small" onclick="mergeSelectedExperiences()"
+                    ${selectedExperienceIds.size < 2 ? 'disabled' : ''}>
+                Slå ihop valda
+            </button>
+            <button class="btn btn-ghost btn-small" onclick="clearExperienceSelection()">Avmarkera</button>
+        </div>
+    `;
+
+    const content = sortedTypes.map(type => `
         <div class="bank-category-block">
             <div class="bank-category-title">
                 ${typeLabels[type] || type}
@@ -991,9 +1004,15 @@ function renderExperiencesTab() {
                         : '';
                     const skills = (e.related_skills || []);
                     const sourceCount = (e.source_cv_ids || []).length;
+                    const checked = selectedExperienceIds.has(e.id);
 
                     return `
-                        <div class="bank-exp-item">
+                        <div class="bank-exp-item ${checked ? 'bank-exp-selected' : ''}">
+                            <label class="bank-exp-checkbox">
+                                <input type="checkbox" ${checked ? 'checked' : ''}
+                                       onchange="toggleExperienceSelection(${e.id})">
+                                <span class="bank-exp-checkmark"></span>
+                            </label>
                             <div class="bank-exp-main">
                                 <div class="bank-exp-header">
                                     <h4>
@@ -1017,6 +1036,55 @@ function renderExperiencesTab() {
             </div>
         </div>
     `).join('');
+
+    return mergeBar + content;
+}
+
+function toggleExperienceSelection(id) {
+    if (selectedExperienceIds.has(id)) {
+        selectedExperienceIds.delete(id);
+    } else {
+        selectedExperienceIds.add(id);
+    }
+    renderActiveBankTab();
+}
+
+function clearExperienceSelection() {
+    selectedExperienceIds.clear();
+    renderActiveBankTab();
+}
+
+async function mergeSelectedExperiences() {
+    if (selectedExperienceIds.size < 2) return;
+
+    const ids = Array.from(selectedExperienceIds);
+    if (!confirm(`Slå ihop ${ids.length} erfarenheter till en post?`)) return;
+
+    showMergeStatus('⏳ Slår ihop erfarenheter...', 'loading');
+
+    try {
+        const res = await fetch(`${API_BASE_URL}/competence/experiences/merge`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ experience_ids: ids }),
+        });
+
+        if (!res.ok) {
+            const err = await res.json();
+            throw new Error(err.detail || 'Sammanslagning misslyckades');
+        }
+
+        const data = await res.json();
+        selectedExperienceIds.clear();
+        showMergeStatus(
+            `✅ ${data.merged_count} poster sammanslagna till "${data.title}"`,
+            'success'
+        );
+        await loadBankData();
+
+    } catch (err) {
+        showMergeStatus(`❌ ${err.message}`, 'error');
+    }
 }
 
 function categoryIcon(cat) {

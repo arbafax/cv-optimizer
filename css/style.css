@@ -581,12 +581,15 @@ body {
 .bank-experience-list { display: flex; flex-direction: column; gap: 8px; }
 
 .bank-exp-item {
+    display: flex;
+    align-items: flex-start;
+    gap: 10px;
     padding: 14px 16px;
     background: var(--bg);
     border-radius: var(--r-sm);
     margin-bottom: 10px;
     border-left: 3px solid var(--border);
-    transition: border-color var(--t);
+    transition: border-color var(--t), background var(--t);
 }
 
 .bank-exp-item:hover { border-left-color: var(--blue); }
@@ -646,6 +649,79 @@ body {
     color: var(--blue);
     padding: 1px 7px;
     border-radius: 20px;
+}
+
+/* Experience selection & merge */
+
+.bank-exp-selected {
+    border-left-color: var(--blue);
+    background: var(--blue-light);
+}
+
+.bank-exp-checkbox {
+    position: relative;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    margin-top: 2px;
+    cursor: pointer;
+}
+
+.bank-exp-checkbox input {
+    position: absolute;
+    opacity: 0;
+    width: 0;
+    height: 0;
+}
+
+.bank-exp-checkmark {
+    width: 18px;
+    height: 18px;
+    border: 1.5px solid var(--border);
+    border-radius: 4px;
+    background: white;
+    transition: background var(--t), border-color var(--t);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.bank-exp-checkbox input:checked + .bank-exp-checkmark {
+    background: var(--blue);
+    border-color: var(--blue);
+}
+
+.bank-exp-checkbox input:checked + .bank-exp-checkmark::after {
+    content: '';
+    width: 5px;
+    height: 9px;
+    border: solid white;
+    border-width: 0 2px 2px 0;
+    transform: rotate(45deg);
+    margin-bottom: 2px;
+}
+
+.bank-exp-checkbox:hover .bank-exp-checkmark {
+    border-color: var(--blue);
+}
+
+.bank-merge-bar {
+    display: none;
+    align-items: center;
+    gap: 12px;
+    padding: 10px 16px;
+    margin-bottom: 16px;
+    background: var(--blue-light);
+    border: 1px solid var(--blue-mid);
+    border-radius: var(--r-sm);
+    font-size: 13px;
+    font-weight: 500;
+    color: var(--text-primary);
+}
+
+.bank-merge-bar.visible {
+    display: flex;
 }
 
 .bank-empty {

@@ -1003,6 +1003,7 @@ function renderExperiencesTab() {
                         ? `${e.start_date} — ${e.is_current ? 'Nuvarande' : (e.end_date || '')}`
                         : '';
                     const skills = (e.related_skills || []);
+                    const achievements = (e.achievements || []);
                     const sourceCount = (e.source_cv_ids || []).length;
                     const checked = selectedExperienceIds.has(e.id);
 
@@ -1024,6 +1025,14 @@ function renderExperiencesTab() {
                                 </div>
                                 ${e.organization ? `<div class="bank-exp-org">${e.organization}</div>` : ''}
                                 ${e.description  ? `<div class="bank-exp-desc">${e.description}</div>` : ''}
+                                ${achievements.length > 0 ? `
+                                    <div class="bank-exp-achievements">
+                                        <div class="bank-exp-achievements-label">Huvudsakliga prestationer</div>
+                                        <ul>
+                                            ${achievements.map(a => `<li>${a}</li>`).join('')}
+                                        </ul>
+                                    </div>
+                                ` : ''}
                                 ${skills.length > 0 ? `
                                     <div class="bank-exp-skills">
                                         ${skills.map(s => `<span class="bank-skill-chip chip-technical">${s}</span>`).join('')}

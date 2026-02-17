@@ -3,178 +3,264 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>CV Optimizer - AI-driven CV-anpassning</title>
+    <title>CVMatch – AI-driven CV-matchning</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,600;1,9..40,400&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="css/style.css">
 </head>
 <body>
-    <div class="container">
-        <!-- Hero Section -->
-        <header class="hero">
-            <div class="hero-content">
-                <h1>🎯 CV Optimizer</h1>
-                <p class="hero-subtitle">AI-driven CV-anpassning för varje jobbannons</p>
-                <div class="hero-description">
-                    <p>Ladda upp ditt CV som PDF – vår AI analyserar och strukturerar innehållet automatiskt.</p>
-                    <p>Klistra sedan in en jobbannons och få ett perfekt anpassat CV på sekunder.</p>
-                </div>
-            </div>
-        </header>
 
-        <main>
-            <!-- Upload Section -->
-            <section id="upload-section" class="card">
-                <div class="card-header">
-                    <h2>📄 Steg 1: Ladda upp ditt CV</h2>
-                    <p class="card-description">Dra och släpp din CV-fil här, eller klicka för att välja</p>
-                </div>
-                
-                <div class="upload-area" id="upload-area">
-                    <input type="file" id="cv-upload" accept=".pdf" hidden>
-                    <label for="cv-upload" class="upload-label" id="upload-label">
-                        <div class="upload-icon">📄</div>
-                        <p class="upload-text">Dra och släpp din PDF här</p>
-                        <p class="upload-subtext">eller klicka för att välja fil</p>
-                        <span class="upload-file-types">Endast PDF-filer, max 10 MB</span>
-                    </label>
-                </div>
-                
-                <div id="upload-status"></div>
-                <div id="cv-preview" class="cv-preview hidden"></div>
-            </section>
-
-            <!-- CV List Section -->
-            <section id="cv-list-section" class="card">
-                <div class="card-header">
-                    <h2>💼 Steg 2: Dina uppladdade CV:n</h2>
-                    <p class="card-description">Välj ett CV att optimera för en jobbannons</p>
-                </div>
-                <div id="cv-list" class="cv-list-grid">
-                    <div class="empty-state">
-                        <p>Inga CV:n uppladdade ännu</p>
-                        <p class="empty-state-hint">Ladda upp ditt första CV för att komma igång!</p>
-                    </div>
-                </div>
-            </section>
-
-            <!-- Competence Bank Section -->
-            <section id="bank-section" class="card">
-                <div class="card-header">
-                    <h2>🧠 Kompetensbank</h2>
-                    <p class="card-description">Aggregerade skills och erfarenheter från alla dina CV:n</p>
-                </div>
-
-                <!-- Stats row -->
-                <div class="bank-stats" id="bank-stats">
-                    <div class="bank-stat">
-                        <div class="bank-stat-number" id="stat-skills">—</div>
-                        <div class="bank-stat-label">Unika skills</div>
-                    </div>
-                    <div class="bank-stat">
-                        <div class="bank-stat-number" id="stat-experiences">—</div>
-                        <div class="bank-stat-label">Erfarenheter</div>
-                    </div>
-                    <div class="bank-stat">
-                        <div class="bank-stat-number" id="stat-sources">—</div>
-                        <div class="bank-stat-label">CV:n processade</div>
-                    </div>
-                    <div class="bank-stat">
-                        <div class="bank-stat-number" id="stat-categories">—</div>
-                        <div class="bank-stat-label">Kategorier</div>
-                    </div>
-                </div>
-
-                <!-- Merge actions -->
-                <div class="bank-actions">
-                    <button class="btn btn-primary" onclick="mergeSelectedCV()" id="merge-selected-btn" disabled>
-                        ⚡ Merge valt CV
-                    </button>
-                    <button class="btn btn-secondary" onclick="mergeAllCVs()" id="merge-all-btn">
-                        🔄 Merge alla CV:n
-                    </button>
-                    <button class="btn btn-ghost" onclick="loadBankData()">
-                        ↻ Uppdatera
-                    </button>
-                </div>
-                <div id="merge-status"></div>
-
-                <!-- Skills by category -->
-                <div class="bank-content" id="bank-content">
-                    <div class="bank-empty">
-                        <p>🧠 Kompetensbanken är tom</p>
-                        <p class="empty-state-hint">Ladda upp ett CV och klicka "Merge alla CV:n" för att fylla banken</p>
-                    </div>
-                </div>
-            </section>
-
-            <!-- Optimize Section -->
-            <section id="optimize-section" class="card">
-                <div class="card-header">
-                    <h2>✨ Steg 3: Optimera för jobbannons</h2>
-                    <p class="card-description">Klistra in jobbannonsen - AI:n anpassar ditt CV automatiskt</p>
-                </div>
-                
-                <div class="optimize-form">
-                    <div class="form-group">
-                        <label for="job-title">
-                            Jobbtitel
-                            <span class="required">*</span>
-                        </label>
-                        <input 
-                            type="text" 
-                            id="job-title" 
-                            placeholder="t.ex. Senior Backend Developer"
-                            required>
-                    </div>
-                    
-                    <div class="form-group">
-                        <label for="job-description">
-                            Jobbeskrivning
-                            <span class="required">*</span>
-                        </label>
-                        <textarea 
-                            id="job-description" 
-                            rows="12" 
-                            placeholder="Klistra in hela jobbannonsen här...
-
-Exempel:
-Vi söker en erfaren Backend Developer med minst 5 års erfarenhet av Python och FastAPI. Du kommer arbeta med skalbar microservice-arkitektur och CI/CD pipelines..."
-                            required></textarea>
-                        <div class="char-count" id="char-count">0 tecken</div>
-                    </div>
-                    
-                    <button id="optimize-btn" class="btn btn-primary" disabled>
-                        <span class="btn-text">Optimera CV med AI</span>
-                        <span class="btn-loading hidden">
-                            <span class="spinner-small"></span>
-                            Optimerar...
-                        </span>
-                    </button>
-                </div>
-                
-                <div id="optimize-result" class="optimize-result hidden"></div>
-            </section>
-        </main>
-
-        <!-- Footer -->
-        <footer class="footer">
-            <p>Byggd med FastAPI, PostgreSQL & OpenAI GPT-4</p>
-        </footer>
+<!-- ════════════════════════════════ SIDEBAR ════════════════════════════════ -->
+<aside class="sidebar">
+    <div class="sidebar-brand">
+        <span class="brand-cv">CV</span><span class="brand-match">Match</span>
+        <p class="brand-sub">AI-driven karriärverktyg</p>
     </div>
 
-    <!-- CV Details Modal -->
-    <div id="cv-modal" class="modal hidden">
-        <div class="modal-overlay" onclick="closeCVModal()"></div>
-        <div class="modal-content">
-            <div class="modal-header">
-                <h2 id="modal-title">CV-detaljer</h2>
-                <button class="modal-close" onclick="closeCVModal()">&times;</button>
+    <nav class="sidebar-nav">
+        <a href="#" class="nav-item active" onclick="showView('dashboard', this)">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="3" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="3" width="7" height="7" rx="1.5"/><rect x="3" y="14" width="7" height="7" rx="1.5"/><rect x="14" y="14" width="7" height="7" rx="1.5"/></svg>
+            Dashboard
+        </a>
+        <a href="#" class="nav-item" onclick="showView('upload', this)">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+            Ladda upp CV
+        </a>
+        <a href="#" class="nav-item" onclick="showView('mycvs', this)">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>
+            Mina CV:n
+        </a>
+        <a href="#" class="nav-item" onclick="showView('bank', this)">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><ellipse cx="12" cy="5" rx="9" ry="3"/><path d="M21 12c0 1.66-4 3-9 3s-9-1.34-9-3"/><path d="M3 5v14c0 1.66 4 3 9 3s9-1.34 9-3V5"/></svg>
+            Kompetensbank
+        </a>
+        <a href="#" class="nav-item" onclick="showView('optimize', this)">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+            Matcha jobb
+        </a>
+    </nav>
+
+    <div class="sidebar-footer">
+        <div class="sidebar-status" id="sidebar-status">
+            <span class="status-dot"></span>
+            <span>Backend ansluten</span>
+        </div>
+    </div>
+</aside>
+
+<!-- ════════════════════════════════ MAIN ════════════════════════════════ -->
+<main class="main">
+
+    <!-- ── DASHBOARD VIEW ── -->
+    <div id="view-dashboard" class="view active">
+        <div class="view-header">
+            <div>
+                <h1>Välkommen tillbaka 👋</h1>
+                <p class="view-subtitle">Här är en översikt av dina CV:n och matchningar.</p>
             </div>
-            <div class="modal-body" id="modal-body">
-                <!-- CV content will be inserted here -->
+        </div>
+
+        <!-- Stats row -->
+        <div class="stats-row">
+            <div class="stat-card">
+                <div class="stat-icon stat-icon--blue">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+                </div>
+                <div>
+                    <div class="stat-number" id="dash-cv-count">0</div>
+                    <div class="stat-label">Uppladdade CV:n</div>
+                </div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-icon stat-icon--green">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+                </div>
+                <div>
+                    <div class="stat-number" id="dash-skills-count">0</div>
+                    <div class="stat-label">Skills i banken</div>
+                </div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-icon stat-icon--amber">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
+                </div>
+                <div>
+                    <div class="stat-number" id="dash-exp-count">0</div>
+                    <div class="stat-label">Erfarenheter</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Action cards -->
+        <div class="action-cards">
+            <div class="action-card action-card--primary" onclick="showView('upload', document.querySelector('[onclick*=upload]'))">
+                <div class="action-card-icon">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+                </div>
+                <div>
+                    <h3>Ladda upp nytt CV</h3>
+                    <p>PDF-fil, AI strukturerar automatiskt</p>
+                </div>
+                <svg class="action-card-arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg>
+            </div>
+            <div class="action-card action-card--secondary" onclick="showView('optimize', document.querySelector('[onclick*=optimize]'))">
+                <div class="action-card-icon action-card-icon--green">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+                </div>
+                <div>
+                    <h3>Matcha mot jobbannons</h3>
+                    <p>AI anpassar ditt CV för jobbet</p>
+                </div>
+                <svg class="action-card-arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg>
+            </div>
+        </div>
+
+        <!-- CV list preview -->
+        <div class="dashboard-section">
+            <div class="section-header">
+                <h2>Dina CV:n</h2>
+                <a href="#" class="section-link" onclick="showView('mycvs', document.querySelector('[onclick*=mycvs]'))">Visa alla →</a>
+            </div>
+            <div id="dash-cv-list" class="dash-cv-list">
+                <div class="empty-hint">Inga CV:n uppladdade än</div>
             </div>
         </div>
     </div>
 
-    <script src="js/app.js"></script>
+    <!-- ── UPLOAD VIEW ── -->
+    <div id="view-upload" class="view">
+        <div class="view-header">
+            <div>
+                <h1>Ladda upp CV</h1>
+                <p class="view-subtitle">AI analyserar och strukturerar ditt CV automatiskt.</p>
+            </div>
+        </div>
+
+        <div class="card">
+            <div class="upload-zone" id="upload-area">
+                <input type="file" id="cv-upload" accept=".pdf" hidden>
+                <label for="cv-upload" id="upload-label">
+                    <div class="upload-icon-wrap">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+                    </div>
+                    <p class="upload-main">Dra och släpp din PDF här</p>
+                    <p class="upload-sub">eller klicka för att välja fil &nbsp;·&nbsp; Max 10 MB</p>
+                </label>
+            </div>
+            <div id="upload-status"></div>
+            <div id="cv-preview" class="cv-preview hidden"></div>
+        </div>
+    </div>
+
+    <!-- ── MY CVS VIEW ── -->
+    <div id="view-mycvs" class="view">
+        <div class="view-header">
+            <div>
+                <h1>Mina CV:n</h1>
+                <p class="view-subtitle">Välj ett CV för att optimera eller merga till kompetensbanken.</p>
+            </div>
+        </div>
+        <div id="cv-list" class="cv-grid">
+            <div class="empty-hint">Inga CV:n uppladdade än</div>
+        </div>
+    </div>
+
+    <!-- ── BANK VIEW ── -->
+    <div id="view-bank" class="view">
+        <div class="view-header">
+            <div>
+                <h1>Kompetensbank</h1>
+                <p class="view-subtitle">Aggregerade skills och erfarenheter från alla dina CV:n.</p>
+            </div>
+            <div class="view-header-actions">
+                <button class="btn btn-ghost" onclick="loadBankData()">↻ Uppdatera</button>
+                <button class="btn btn-secondary" onclick="mergeAllCVs()" id="merge-all-btn">⚡ Merge alla CV:n</button>
+                <button class="btn btn-primary" onclick="mergeSelectedCV()" id="merge-selected-btn" disabled>Merge valt CV</button>
+            </div>
+        </div>
+
+        <div class="bank-stats" id="bank-stats">
+            <div class="bank-stat">
+                <div class="bank-stat-number" id="stat-skills">—</div>
+                <div class="bank-stat-label">Unika skills</div>
+            </div>
+            <div class="bank-stat">
+                <div class="bank-stat-number" id="stat-experiences">—</div>
+                <div class="bank-stat-label">Erfarenheter</div>
+            </div>
+            <div class="bank-stat">
+                <div class="bank-stat-number" id="stat-sources">—</div>
+                <div class="bank-stat-label">CV:n processade</div>
+            </div>
+            <div class="bank-stat">
+                <div class="bank-stat-number" id="stat-categories">—</div>
+                <div class="bank-stat-label">Kategorier</div>
+            </div>
+        </div>
+
+        <div id="merge-status"></div>
+
+        <div class="bank-content" id="bank-content">
+            <div class="empty-hint">Klicka "Merge alla CV:n" för att fylla banken</div>
+        </div>
+    </div>
+
+    <!-- ── OPTIMIZE VIEW ── -->
+    <div id="view-optimize" class="view">
+        <div class="view-header">
+            <div>
+                <h1>Matcha jobb</h1>
+                <p class="view-subtitle">Klistra in en jobbannons – AI anpassar ditt CV automatiskt.</p>
+            </div>
+        </div>
+
+        <div class="optimize-layout">
+            <div class="card">
+                <h2 class="card-title">Välj CV &amp; jobbannons</h2>
+
+                <div class="form-group">
+                    <label>Välj CV att optimera</label>
+                    <div id="cv-select-list" class="cv-select-list">
+                        <p class="empty-hint">Ladda upp ett CV först</p>
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label for="job-title">Jobbtitel <span class="required">*</span></label>
+                    <input type="text" id="job-title" placeholder="t.ex. Senior Backend Developer">
+                </div>
+
+                <div class="form-group">
+                    <label for="job-description">Jobbeskrivning <span class="required">*</span></label>
+                    <textarea id="job-description" rows="10" placeholder="Klistra in hela jobbannonsen här..."></textarea>
+                    <div class="char-count" id="char-count">0 tecken</div>
+                </div>
+
+                <button id="optimize-btn" class="btn btn-primary btn-full" disabled>
+                    <span class="btn-text">Optimera CV med AI</span>
+                    <span class="btn-loading hidden"><span class="spinner-small"></span> Optimerar...</span>
+                </button>
+            </div>
+
+            <div id="optimize-result" class="optimize-result hidden"></div>
+        </div>
+    </div>
+
+</main>
+
+<!-- ════════════════════════════════ MODAL ════════════════════════════════ -->
+<div id="cv-modal" class="modal hidden">
+    <div class="modal-overlay" onclick="closeCVModal()"></div>
+    <div class="modal-content">
+        <div class="modal-header">
+            <h2 id="modal-title">CV-detaljer</h2>
+            <button class="modal-close" onclick="closeCVModal()">&times;</button>
+        </div>
+        <div class="modal-body" id="modal-body"></div>
+    </div>
+</div>
+
+<script src="js/app.js"></script>
 </body>
 </html>

@@ -54,6 +54,19 @@ with engine.connect() as conn:
     )
     conn.commit()
 
+with engine.connect() as conn:
+    conn.execute(
+        text(
+            "ALTER TABLE experiences_pool ADD COLUMN IF NOT EXISTS related_skills JSONB DEFAULT '[]'"
+        )
+    )
+    conn.execute(
+        text(
+            "ALTER TABLE experiences_pool ADD COLUMN IF NOT EXISTS source_cv_ids JSONB DEFAULT '[]'"
+        )
+    )
+    conn.commit()
+
 # Initialize FastAPI app
 app = FastAPI(
     title=settings.APP_NAME,

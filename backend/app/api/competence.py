@@ -109,7 +109,8 @@ async def get_bank_experiences(db: Session = Depends(get_db)):
                 "end_date"       : e.end_date,
                 "is_current"     : e.is_current,
                 "description"    : e.description,
-                "source_cv_id"   : e.source_cv_id,
+                "related_skills" : e.related_skills or [],
+                "source_cv_ids"  : e.source_cv_ids or [],
             }
             for e in experiences
         ]

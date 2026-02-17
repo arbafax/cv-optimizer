@@ -24,5 +24,8 @@ class ExperienceEntry(Base):
     end_date        = Column(String(50))
     is_current      = Column(Boolean, default=False)
     description     = Column(Text)
-    source_cv_id    = Column(Integer, nullable=False)
+    related_skills  = Column(JSON, default=list)   # ← NY: ["Python", "FastAPI", ...]
+    source_cv_ids   = Column(JSON, default=list)   # ← NY: [1, 2, 3] – alla CV:n som bidragit
+    # Behåll bakåtkompatibelt fält – används ej längre men kan finnas i DB
+    source_cv_id    = Column(Integer, nullable=True)
     created_at      = Column(DateTime(timezone=True), server_default=func.now())

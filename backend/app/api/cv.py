@@ -82,8 +82,12 @@ async def upload_cv(
         skills_text       = ", ".join(cv_structure.skills)
         skills_embedding  = ai_service.generate_embeddings(skills_text) if skills_text else None
 
+        # Använd filnamnet utan ändelse som titel
+        title = os.path.splitext(file.filename)[0]
+
         db_cv = CV(
             filename               = file.filename,
+            title                  = title,
             original_text          = cv_text,
             structured_data        = cv_structure.model_dump(),
             full_content_embedding = full_embedding,

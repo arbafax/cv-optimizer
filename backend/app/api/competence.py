@@ -11,6 +11,7 @@ from app.services.competence_service import (
     merge_cv_into_bank, merge_experiences, clear_bank, rebuild_bank,
     add_skill, delete_skill, delete_experience,
     add_achievement, update_achievement, delete_achievement,
+    add_experience_skill, remove_experience_skill, create_experience,
 )
 
 
@@ -22,6 +23,22 @@ class AddSkillRequest(BaseModel):
 
 class AchievementRequest(BaseModel):
     text: str
+
+
+class ExperienceSkillRequest(BaseModel):
+    skill_name: str
+
+
+class CreateExperienceRequest(BaseModel):
+    title: str
+    organization: str | None = None
+    experience_type: str = "work"
+    start_date: str | None = None
+    end_date: str | None = None
+    is_current: bool = False
+    description: str | None = None
+    related_skills: list[str] = []
+    achievements: list[str] = []
 
 logger = logging.getLogger(__name__)
 
@@ -215,6 +232,53 @@ async def remove_achievement(
     except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e))
     return {"achievements": achievements}
+
+
+@router.post("/experiences/{experience_id}/skills")
+async def create_experience_skill(
+    experience_id: int, body: ExperienceSkillRequest, db: Session = Depends(get_db),
+):
+    """Lägg till en skill på en erfarenhetspost."""
+    try:
+        skills = add_experience_skill(experience_id, body.skill_name, db)
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+    return {"related_skills": skills}
+
+
+@router.delete("/experiences/{experience_id}/skills/{index}")
+async def remove_exp_skill(
+    experience_id: int, index: int, db: Session = Depends(get_db),
+):
+    """Ta bort en skill från en erfarenhetspost."""
+    try:
+        skills = remove_experience_skill(experience_id, index, db)
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+    return {"related_skills": skills}
+
+
+@router.post("/experiences")
+async def create_new_experience(
+    body: CreateExperienceRequest, db: Session = Depends(get_db),
+):
+    """Skapa en ny erfarenhetspost manuellt."""
+    try:
+        result = create_experience(
+            title=body.title,
+            organization=body.organization,
+            experience_type=body.experience_type,
+            start_date=body.start_date,
+            end_date=body.end_date,
+            is_current=body.is_current,
+            description=body.description,
+            related_skills=body.related_skills,
+            achievements=body.achievements,
+            db=db,
+        )
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+    return result
 
 
 @router.delete("/reset")

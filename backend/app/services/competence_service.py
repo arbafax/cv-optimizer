@@ -436,38 +436,44 @@ def rebuild_bank(cvs: list, db: Session) -> dict:
 # ──────────────────────────────────────────────────────────────────────────────
 
 def add_skill(skill_name: str, category: str | None, skill_type: str | None, db: Session) -> dict:
-    """Lägg till en enskild skill i kompetensbanken."""
-    skill_name = skill_name.strip()
-    if not skill_name:
+    """Lägg till en eller flera skills (kommaseparerade) i kompetensbanken."""
+    names = [n.strip() for n in skill_name.split(",") if n.strip()]
+    if not names:
         raise ValueError("Skill-namn får inte vara tomt")
 
-    existing = db.query(SkillEntry).filter(
-        func.lower(SkillEntry.skill_name) == skill_name.lower()
-    ).first()
-    if existing:
-        raise ValueError(f"Skill '{skill_name}' finns redan")
+    added = []
+    skipped = []
+    for name in names:
+        existing = db.query(SkillEntry).filter(
+            func.lower(SkillEntry.skill_name) == name.lower()
+        ).first()
+        if existing:
+            skipped.append(name)
+            continue
 
-    if not category:
-        category, skill_type = categorise_skill(skill_name)
-    else:
-        skill_type = skill_type or "technical"
+        if not category:
+            cat, stype = categorise_skill(name)
+        else:
+            cat, stype = category, skill_type or "technical"
 
-    entry = SkillEntry(
-        skill_name=skill_name,
-        category=category,
-        skill_type=skill_type,
-        source_cv_ids=[],
-    )
-    db.add(entry)
+        entry = SkillEntry(
+            skill_name=name,
+            category=cat,
+            skill_type=stype,
+            source_cv_ids=[],
+        )
+        db.add(entry)
+        added.append(name)
+
+    if not added and skipped:
+        raise ValueError(f"Skill(s) finns redan: {', '.join(skipped)}")
+
     db.commit()
-    db.refresh(entry)
 
     return {
-        "id": entry.id,
-        "skill_name": entry.skill_name,
-        "category": entry.category,
-        "skill_type": entry.skill_type,
-        "source_count": 0,
+        "added": added,
+        "skipped": skipped,
+        "count": len(added),
     }
 
 
@@ -530,3 +536,103 @@ def delete_achievement(experience_id: int, index: int, db: Session) -> list:
     flag_modified(exp, "achievements")
     db.commit()
     return exp.achievements
+
+
+def add_experience_skill(experience_id: int, skill_name: str, db: Session) -> list:
+    """Lägg till en eller flera skills (kommaseparerade) på en erfarenhetspost och i kompetensbanken."""
+    exp = db.query(ExperienceEntry).filter(ExperienceEntry.id == experience_id).first()
+    if not exp:
+        raise ValueError("Erfarenhet hittades inte")
+
+    names = [n.strip() for n in skill_name.split(",") if n.strip()]
+    if not names:
+        raise ValueError("Skill-namn får inte vara tomt")
+
+    skills = list(exp.related_skills or [])
+    existing_lower = {s.lower() for s in skills}
+
+    for name in names:
+        if name.lower() in existing_lower:
+            continue
+        skills.append(name)
+        existing_lower.add(name.lower())
+
+        # Skapa även en SkillEntry i kompetensbanken om den inte redan finns
+        existing_skill = db.query(SkillEntry).filter(
+            func.lower(SkillEntry.skill_name) == name.lower()
+        ).first()
+        if not existing_skill:
+            category, skill_type = categorise_skill(name)
+            db.add(SkillEntry(
+                skill_name=name,
+                category=category,
+                skill_type=skill_type,
+                source_cv_ids=[],
+            ))
+
+    exp.related_skills = skills
+    flag_modified(exp, "related_skills")
+    db.commit()
+    return exp.related_skills
+
+
+def remove_experience_skill(experience_id: int, index: int, db: Session) -> list:
+    """Ta bort en skill från en erfarenhetspost (via arrayindex)."""
+    exp = db.query(ExperienceEntry).filter(ExperienceEntry.id == experience_id).first()
+    if not exp:
+        raise ValueError("Erfarenhet hittades inte")
+    skills = list(exp.related_skills or [])
+    if index < 0 or index >= len(skills):
+        raise ValueError("Ogiltigt index")
+    skills.pop(index)
+    exp.related_skills = skills
+    flag_modified(exp, "related_skills")
+    db.commit()
+    return exp.related_skills
+
+
+def create_experience(
+    title: str,
+    organization: str | None,
+    experience_type: str,
+    start_date: str | None,
+    end_date: str | None,
+    is_current: bool,
+    description: str | None,
+    related_skills: list[str] | None,
+    achievements: list[str] | None,
+    db: Session,
+) -> dict:
+    """Skapa en ny erfarenhetspost manuellt."""
+    if not title or not title.strip():
+        raise ValueError("Titel krävs")
+
+    entry = ExperienceEntry(
+        title=title.strip(),
+        organization=(organization or "").strip() or None,
+        experience_type=experience_type or "work",
+        start_date=(start_date or "").strip() or None,
+        end_date=(end_date or "").strip() or None,
+        is_current=bool(is_current),
+        description=(description or "").strip() or None,
+        related_skills=related_skills or [],
+        achievements=achievements or [],
+        source_cv_ids=[],
+    )
+    db.add(entry)
+    db.commit()
+    db.refresh(entry)
+
+    return {
+        "id": entry.id,
+        "title": entry.title,
+        "organization": entry.organization,
+        "experience_type": entry.experience_type,
+        "start_date": entry.start_date,
+        "end_date": entry.end_date,
+        "is_current": entry.is_current,
+        "description": entry.description,
+        "achievements": entry.achievements or [],
+        "related_skills": entry.related_skills or [],
+        "source_cv_ids": entry.source_cv_ids or [],
+    }

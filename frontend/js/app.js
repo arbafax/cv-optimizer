@@ -999,6 +999,13 @@ function renderExperiencesTab() {
         </div>
     `;
 
+    const addExpRow = `
+        <div class="bank-action-row">
+            <button class="btn btn-primary btn-small" onclick="showAddExperienceForm()">+ Lägg till erfarenhet</button>
+        </div>
+        <div id="add-experience-form-container"></div>
+    `;
+
     const content = sortedTypes.map(type => `
         <div class="bank-category-block">
             <div class="bank-category-title">
@@ -1058,11 +1065,23 @@ function renderExperiencesTab() {
                                         </ul>
                                     ` : ''}
                                 </div>
-                                ${skills.length > 0 ? `
-                                    <div class="bank-exp-skills">
-                                        ${skills.map(s => `<span class="bank-skill-chip chip-technical">${s}</span>`).join('')}
+                                <div class="bank-exp-skills">
+                                    <div class="bank-exp-skills-label">
+                                        Relaterade skills
+                                        <button class="btn-icon btn-icon-small" onclick="showAddExpSkillForm(${e.id})" title="Lägg till skill">+</button>
                                     </div>
-                                ` : ''}
+                                    <div id="add-exp-skill-form-${e.id}"></div>
+                                    ${skills.length > 0 ? `
+                                        <div class="bank-exp-skills-wrap">
+                                            ${skills.map((s, idx) => `
+                                                <span class="bank-skill-chip chip-technical">
+                                                    ${s}
+                                                    <button class="chip-delete" onclick="event.stopPropagation(); removeExpSkill(${e.id}, ${idx}, '${s.replace(/'/g, "\\'")}')" title="Ta bort">&times;</button>
+                                                </span>
+                                            `).join('')}
+                                        </div>
+                                    ` : ''}
+                                </div>
                             </div>
                         </div>
                     `;
@@ -1071,7 +1090,7 @@ function renderExperiencesTab() {
         </div>
     `).join('');
 
-    return mergeBar + content;
+    return mergeBar + addExpRow + content;
 }
 
 function toggleExperienceSelection(id) {
@@ -1189,7 +1208,7 @@ function showAddSkillForm() {
     const container = document.getElementById('add-skill-form-container');
     container.innerHTML = `
         <div class="bank-inline-form">
-            <input type="text" id="new-skill-name" placeholder="Skill-namn" class="form-input" />
+            <input type="text" id="new-skill-name" placeholder="Skill-namn (separera med komma)" class="form-input" />
             <select id="new-skill-category" class="form-input">
                 <option value="">Auto-kategorisera</option>
                 <option value="Programming Languages">Programming Languages</option>
@@ -1325,6 +1344,143 @@ async function deleteAchievement(expId, index) {
     try {
         const res = await fetch(`${API_BASE_URL}/competence/experiences/${expId}/achievements/${index}`, { method: 'DELETE' });
         if (!res.ok) throw new Error('Kunde inte ta bort prestation');
+        await loadBankData();
+    } catch (err) {
+        alert(err.message);
+    }
+}
+
+// ── Experience skill CRUD ───────────────────────────────────────────────────
+
+function showAddExpSkillForm(expId) {
+    const container = document.getElementById(`add-exp-skill-form-${expId}`);
+    container.innerHTML = `
+        <div class="bank-inline-form">
+            <input type="text" id="new-exp-skill-${expId}" placeholder="Skills (separera med komma)" class="form-input"
+                   onkeydown="if(event.key==='Enter') submitNewExpSkill(${expId}); if(event.key==='Escape') document.getElementById('add-exp-skill-form-${expId}').innerHTML='';" />
+            <button class="btn btn-primary btn-small" onclick="submitNewExpSkill(${expId})">Spara</button>
+            <button class="btn btn-ghost btn-small" onclick="document.getElementById('add-exp-skill-form-${expId}').innerHTML=''">Avbryt</button>
+        </div>
+    `;
+    document.getElementById(`new-exp-skill-${expId}`).focus();
+}
+
+async function submitNewExpSkill(expId) {
+    const input = document.getElementById(`new-exp-skill-${expId}`);
+    const name = input.value.trim();
+    if (!name) return;
+    try {
+        const res = await fetch(`${API_BASE_URL}/competence/experiences/${expId}/skills`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ skill_name: name }),
+        });
+        if (!res.ok) {
+            const err = await res.json();
+            throw new Error(err.detail || 'Kunde inte lägga till skill');
+        }
+        await loadBankData();
+    } catch (err) {
+        alert(err.message);
+    }
+}
+
+async function removeExpSkill(expId, index, skillName) {
+    if (!confirm(`Ta bort "${skillName}" från denna erfarenhet?`)) return;
+    try {
+        const res = await fetch(`${API_BASE_URL}/competence/experiences/${expId}/skills/${index}`, { method: 'DELETE' });
+        if (!res.ok) throw new Error('Kunde inte ta bort skill');
+        await loadBankData();
+    } catch (err) {
+        alert(err.message);
+    }
+}
+
+// ── Create new experience ───────────────────────────────────────────────────
+
+function showAddExperienceForm() {
+    const container = document.getElementById('add-experience-form-container');
+    container.innerHTML = `
+        <div class="bank-add-exp-form">
+            <div class="bank-form-row">
+                <div class="bank-form-field">
+                    <label>Titel *</label>
+                    <input type="text" id="new-exp-title" placeholder="T.ex. Systemutvecklare" class="form-input" />
+                </div>
+                <div class="bank-form-field">
+                    <label>Organisation</label>
+                    <input type="text" id="new-exp-org" placeholder="T.ex. Företaget AB" class="form-input" />
+                </div>
+            </div>
+            <div class="bank-form-row">
+                <div class="bank-form-field">
+                    <label>Typ</label>
+                    <select id="new-exp-type" class="form-input">
+                        <option value="work">Arbetslivserfarenhet</option>
+                        <option value="education">Utbildning</option>
+                        <option value="certification">Certifiering</option>
+                        <option value="project">Projekt</option>
+                    </select>
+                </div>
+                <div class="bank-form-field">
+                    <label>Startdatum</label>
+                    <input type="text" id="new-exp-start" placeholder="T.ex. 2020-01" class="form-input" />
+                </div>
+                <div class="bank-form-field">
+                    <label>Slutdatum</label>
+                    <input type="text" id="new-exp-end" placeholder="T.ex. 2023-06" class="form-input" />
+                </div>
+                <div class="bank-form-field bank-form-check">
+                    <label><input type="checkbox" id="new-exp-current" /> Nuvarande</label>
+                </div>
+            </div>
+            <div class="bank-form-row">
+                <div class="bank-form-field bank-form-full">
+                    <label>Beskrivning</label>
+                    <textarea id="new-exp-desc" rows="3" placeholder="Beskriv rollen eller erfarenheten..." class="form-input"></textarea>
+                </div>
+            </div>
+            <div class="bank-form-actions">
+                <button class="btn btn-primary btn-small" onclick="submitNewExperience()">Spara</button>
+                <button class="btn btn-ghost btn-small" onclick="hideAddExperienceForm()">Avbryt</button>
+            </div>
+        </div>
+    `;
+    document.getElementById('new-exp-title').focus();
+}
+
+function hideAddExperienceForm() {
+    const container = document.getElementById('add-experience-form-container');
+    if (container) container.innerHTML = '';
+}
+
+async function submitNewExperience() {
+    const title = document.getElementById('new-exp-title').value.trim();
+    if (!title) return alert('Titel krävs');
+
+    const body = {
+        title,
+        organization: document.getElementById('new-exp-org').value.trim() || null,
+        experience_type: document.getElementById('new-exp-type').value,
+        start_date: document.getElementById('new-exp-start').value.trim() || null,
+        end_date: document.getElementById('new-exp-end').value.trim() || null,
+        is_current: document.getElementById('new-exp-current').checked,
+        description: document.getElementById('new-exp-desc').value.trim() || null,
+        related_skills: [],
+        achievements: [],
+    };
+
+    try {
+        const res = await fetch(`${API_BASE_URL}/competence/experiences`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(body),
+        });
+        if (!res.ok) {
+            const err = await res.json();
+            throw new Error(err.detail || 'Kunde inte skapa erfarenhet');
+        }
+        hideAddExperienceForm();
         await loadBankData();
     } catch (err) {
         alert(err.message);

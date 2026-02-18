@@ -429,3 +429,104 @@ def rebuild_bank(cvs: list, db: Session) -> dict:
         "total_skills_added"     : total_skills,
         "total_experiences_added": total_experiences,
     }
+
+
+# ──────────────────────────────────────────────────────────────────────────────
+# Individual CRUD operations
+# ──────────────────────────────────────────────────────────────────────────────
+
+def add_skill(skill_name: str, category: str | None, skill_type: str | None, db: Session) -> dict:
+    """Lägg till en enskild skill i kompetensbanken."""
+    skill_name = skill_name.strip()
+    if not skill_name:
+        raise ValueError("Skill-namn får inte vara tomt")
+
+    existing = db.query(SkillEntry).filter(
+        func.lower(SkillEntry.skill_name) == skill_name.lower()
+    ).first()
+    if existing:
+        raise ValueError(f"Skill '{skill_name}' finns redan")
+
+    if not category:
+        category, skill_type = categorise_skill(skill_name)
+    else:
+        skill_type = skill_type or "technical"
+
+    entry = SkillEntry(
+        skill_name=skill_name,
+        category=category,
+        skill_type=skill_type,
+        source_cv_ids=[],
+    )
+    db.add(entry)
+    db.commit()
+    db.refresh(entry)
+
+    return {
+        "id": entry.id,
+        "skill_name": entry.skill_name,
+        "category": entry.category,
+        "skill_type": entry.skill_type,
+        "source_count": 0,
+    }
+
+
+def delete_skill(skill_id: int, db: Session) -> None:
+    """Ta bort en enskild skill."""
+    skill = db.query(SkillEntry).filter(SkillEntry.id == skill_id).first()
+    if not skill:
+        raise ValueError("Skill hittades inte")
+    db.delete(skill)
+    db.commit()
+
+
+def delete_experience(experience_id: int, db: Session) -> None:
+    """Ta bort en enskild erfarenhetspost."""
+    exp = db.query(ExperienceEntry).filter(ExperienceEntry.id == experience_id).first()
+    if not exp:
+        raise ValueError("Erfarenhet hittades inte")
+    db.delete(exp)
+    db.commit()
+
+
+def add_achievement(experience_id: int, text: str, db: Session) -> list:
+    """Lägg till en prestation på en erfarenhetspost."""
+    exp = db.query(ExperienceEntry).filter(ExperienceEntry.id == experience_id).first()
+    if not exp:
+        raise ValueError("Erfarenhet hittades inte")
+    achievements = list(exp.achievements or [])
+    achievements.append(text.strip())
+    exp.achievements = achievements
+    flag_modified(exp, "achievements")
+    db.commit()
+    return exp.achievements
+
+
+def update_achievement(experience_id: int, index: int, new_text: str, db: Session) -> list:
+    """Uppdatera en prestation på en erfarenhetspost (via arrayindex)."""
+    exp = db.query(ExperienceEntry).filter(ExperienceEntry.id == experience_id).first()
+    if not exp:
+        raise ValueError("Erfarenhet hittades inte")
+    achievements = list(exp.achievements or [])
+    if index < 0 or index >= len(achievements):
+        raise ValueError("Ogiltigt index")
+    achievements[index] = new_text.strip()
+    exp.achievements = achievements
+    flag_modified(exp, "achievements")
+    db.commit()
+    return exp.achievements
+
+
+def delete_achievement(experience_id: int, index: int, db: Session) -> list:
+    """Ta bort en prestation från en erfarenhetspost (via arrayindex)."""
+    exp = db.query(ExperienceEntry).filter(ExperienceEntry.id == experience_id).first()
+    if not exp:
+        raise ValueError("Erfarenhet hittades inte")
+    achievements = list(exp.achievements or [])
+    if index < 0 or index >= len(achievements):
+        raise ValueError("Ogiltigt index")
+    achievements.pop(index)
+    exp.achievements = achievements
+    flag_modified(exp, "achievements")
+    db.commit()
+    return exp.achievements

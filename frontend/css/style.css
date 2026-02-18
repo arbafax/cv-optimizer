@@ -756,6 +756,127 @@ body {
     font-size: 14px;
 }
 
+/* ── CRUD action buttons & forms ── */
+
+.bank-action-row {
+    margin-bottom: 16px;
+    display: flex;
+    gap: 8px;
+}
+
+.bank-inline-form {
+    display: flex;
+    gap: 8px;
+    align-items: center;
+    margin-bottom: 12px;
+    padding: 10px 12px;
+    background: var(--bg);
+    border-radius: var(--r-sm);
+    border: 1px solid var(--border);
+}
+
+.bank-inline-form .form-input {
+    padding: 5px 10px;
+    border: 1px solid var(--border);
+    border-radius: var(--r-sm);
+    font-size: 13px;
+    font-family: inherit;
+    flex: 1;
+}
+
+.form-input-inline {
+    width: 100%;
+    padding: 3px 6px;
+    border: 1px solid var(--blue);
+    border-radius: 4px;
+    font-size: inherit;
+    font-family: inherit;
+}
+
+/* Delete × on skill chips */
+.chip-delete {
+    background: none;
+    border: none;
+    cursor: pointer;
+    font-size: 14px;
+    line-height: 1;
+    margin-left: 4px;
+    padding: 0 2px;
+    opacity: 0;
+    transition: opacity var(--t);
+    color: inherit;
+}
+
+.bank-skill-chip:hover .chip-delete {
+    opacity: 0.7;
+}
+
+.chip-delete:hover {
+    opacity: 1 !important;
+    color: #dc2626;
+}
+
+/* Icon buttons for actions */
+.btn-icon {
+    background: none;
+    border: none;
+    cursor: pointer;
+    font-size: 16px;
+    padding: 2px 6px;
+    border-radius: 4px;
+    color: var(--text-tertiary);
+    transition: all var(--t);
+}
+
+.btn-icon:hover {
+    background: var(--bg);
+    color: var(--text-primary);
+}
+
+.btn-icon-danger:hover {
+    color: #dc2626;
+    background: #fef2f2;
+}
+
+.btn-icon-small {
+    font-size: 13px;
+    padding: 1px 4px;
+}
+
+/* Experience delete button */
+.bank-exp-actions {
+    flex-shrink: 0;
+    opacity: 0;
+    transition: opacity var(--t);
+}
+
+.bank-exp-item:hover .bank-exp-actions {
+    opacity: 1;
+}
+
+/* Achievement inline actions */
+.bank-exp-achievements li {
+    display: flex;
+    align-items: baseline;
+    gap: 6px;
+}
+
+.achievement-text {
+    flex: 1;
+}
+
+.achievement-actions {
+    opacity: 0;
+    transition: opacity var(--t);
+    display: flex;
+    gap: 2px;
+    flex-shrink: 0;
+}
+
+.bank-exp-achievements li:hover .achievement-actions {
+    opacity: 1;
+}
+
 /* ══════════════ OPTIMIZE LAYOUT ══════════════ */
 
 .optimize-layout { display: flex; flex-direction: column; gap: 20px; }

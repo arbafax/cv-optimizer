@@ -1,4 +1,5 @@
 from fastapi import APIRouter, Depends, HTTPException
+from pydantic import BaseModel
 from sqlalchemy.orm import Session
 from sqlalchemy import func
 import logging
@@ -6,7 +7,21 @@ import logging
 from app.core.database import get_db
 from app.models.cv import CV
 from app.models.competence import SkillEntry, ExperienceEntry
-from app.services.competence_service import merge_cv_into_bank, merge_experiences, clear_bank, rebuild_bank
+from app.services.competence_service import (
+    merge_cv_into_bank, merge_experiences, clear_bank, rebuild_bank,
+    add_skill, delete_skill, delete_experience,
+    add_achievement, update_achievement, delete_achievement,
+)
+
+
+class AddSkillRequest(BaseModel):
+    skill_name: str
+    category: str | None = None
+    skill_type: str | None = None
+
+
+class AchievementRequest(BaseModel):
+    text: str
 
 logger = logging.getLogger(__name__)
 
@@ -134,6 +149,72 @@ async def merge_experience_entries(
         raise HTTPException(status_code=400, detail=str(e))
 
     return result
+
+
+@router.post("/skills")
+async def create_skill(body: AddSkillRequest, db: Session = Depends(get_db)):
+    """Lägg till en enskild skill i kompetensbanken."""
+    try:
+        result = add_skill(body.skill_name, body.category, body.skill_type, db)
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+    return result
+
+
+@router.delete("/skills/{skill_id}")
+async def remove_skill(skill_id: int, db: Session = Depends(get_db)):
+    """Ta bort en enskild skill."""
+    try:
+        delete_skill(skill_id, db)
+    except ValueError as e:
+        raise HTTPException(status_code=404, detail=str(e))
+    return {"message": "Skill borttagen"}
+
+
+@router.delete("/experiences/{experience_id}")
+async def remove_experience(experience_id: int, db: Session = Depends(get_db)):
+    """Ta bort en enskild erfarenhetspost."""
+    try:
+        delete_experience(experience_id, db)
+    except ValueError as e:
+        raise HTTPException(status_code=404, detail=str(e))
+    return {"message": "Erfarenhet borttagen"}
+
+
+@router.post("/experiences/{experience_id}/achievements")
+async def create_achievement(
+    experience_id: int, body: AchievementRequest, db: Session = Depends(get_db),
+):
+    """Lägg till en prestation på en erfarenhetspost."""
+    try:
+        achievements = add_achievement(experience_id, body.text, db)
+    except ValueError as e:
+        raise HTTPException(status_code=404, detail=str(e))
+    return {"achievements": achievements}
+
+
+@router.put("/experiences/{experience_id}/achievements/{index}")
+async def edit_achievement(
+    experience_id: int, index: int, body: AchievementRequest, db: Session = Depends(get_db),
+):
+    """Uppdatera en prestation."""
+    try:
+        achievements = update_achievement(experience_id, index, body.text, db)
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+    return {"achievements": achievements}
+
+
+@router.delete("/experiences/{experience_id}/achievements/{index}")
+async def remove_achievement(
+    experience_id: int, index: int, db: Session = Depends(get_db),
+):
+    """Ta bort en prestation."""
+    try:
+        achievements = delete_achievement(experience_id, index, db)
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+    return {"achievements": achievements}
 
 
 @router.delete("/reset")

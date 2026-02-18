@@ -912,8 +912,15 @@ function renderActiveBankTab() {
 
 // Group skills by category and render chips
 function renderSkillsTab() {
+    const addRow = `
+        <div class="bank-action-row">
+            <button class="btn btn-primary btn-small" onclick="showAddSkillForm()">+ Lägg till skill</button>
+        </div>
+        <div id="add-skill-form-container"></div>
+    `;
+
     if (bankSkills.length === 0) {
-        return '<div class="bank-empty"><p>Inga skills ännu</p></div>';
+        return addRow + '<div class="bank-empty"><p>Inga skills ännu</p></div>';
     }
 
     // Group by category
@@ -936,7 +943,7 @@ function renderSkillsTab() {
         ...Object.keys(groups).filter(c => !categoryOrder.includes(c)).sort()
     ];
 
-    return sortedCats.map(cat => `
+    return addRow + sortedCats.map(cat => `
         <div class="bank-category-block">
             <div class="bank-category-title">
                 ${categoryIcon(cat)} ${cat}
@@ -946,6 +953,7 @@ function renderSkillsTab() {
                 ${groups[cat].map(s => `
                     <span class="bank-skill-chip chip-${s.skill_type || 'default'}">
                         ${s.skill_name}
+                        <button class="chip-delete" onclick="event.stopPropagation(); deleteSkill(${s.id}, '${s.skill_name.replace(/'/g, "\\'")}')" title="Ta bort">&times;</button>
                     </span>
                 `).join('')}
             </div>
@@ -1016,23 +1024,40 @@ function renderExperiencesTab() {
                             </label>
                             <div class="bank-exp-main">
                                 <div class="bank-exp-header">
-                                    <h4>
-                                        ${e.title}
-                                        ${e.is_current ? '<span class="bank-exp-badge">Nuvarande</span>' : ''}
-                                        ${sourceCount > 1 ? `<span class="bank-exp-source-badge">${sourceCount} CV:n</span>` : ''}
-                                    </h4>
-                                    ${dateStr ? `<div class="bank-exp-date">${dateStr}</div>` : ''}
+                                    <div>
+                                        <h4>
+                                            ${e.title}
+                                            ${e.is_current ? '<span class="bank-exp-badge">Nuvarande</span>' : ''}
+                                            ${sourceCount > 1 ? `<span class="bank-exp-source-badge">${sourceCount} CV:n</span>` : ''}
+                                        </h4>
+                                        ${dateStr ? `<div class="bank-exp-date">${dateStr}</div>` : ''}
+                                    </div>
+                                    <div class="bank-exp-actions">
+                                        <button class="btn-icon btn-icon-danger" onclick="event.stopPropagation(); deleteExperience(${e.id}, '${e.title.replace(/'/g, "\\'")}')" title="Ta bort erfarenhet">&times;</button>
+                                    </div>
                                 </div>
                                 ${e.organization ? `<div class="bank-exp-org">${e.organization}</div>` : ''}
                                 ${e.description  ? `<div class="bank-exp-desc">${e.description}</div>` : ''}
-                                ${achievements.length > 0 ? `
-                                    <div class="bank-exp-achievements">
-                                        <div class="bank-exp-achievements-label">Huvudsakliga prestationer</div>
-                                        <ul>
-                                            ${achievements.map(a => `<li>${a}</li>`).join('')}
-                                        </ul>
+                                <div class="bank-exp-achievements">
+                                    <div class="bank-exp-achievements-label">
+                                        Huvudsakliga prestationer
+                                        <button class="btn-icon btn-icon-small" onclick="showAddAchievementForm(${e.id})" title="Lägg till prestation">+</button>
                                     </div>
-                                ` : ''}
+                                    <div id="add-achievement-form-${e.id}"></div>
+                                    ${achievements.length > 0 ? `
+                                        <ul>
+                                            ${achievements.map((a, idx) => `
+                                                <li>
+                                                    <span class="achievement-text" id="ach-text-${e.id}-${idx}">${a}</span>
+                                                    <span class="achievement-actions">
+                                                        <button class="btn-icon btn-icon-small" onclick="editAchievement(${e.id}, ${idx})" title="Redigera">&#9998;</button>
+                                                        <button class="btn-icon btn-icon-small btn-icon-danger" onclick="deleteAchievement(${e.id}, ${idx})" title="Ta bort">&times;</button>
+                                                    </span>
+                                                </li>
+                                            `).join('')}
+                                        </ul>
+                                    ` : ''}
+                                </div>
                                 ${skills.length > 0 ? `
                                     <div class="bank-exp-skills">
                                         ${skills.map(s => `<span class="bank-skill-chip chip-technical">${s}</span>`).join('')}
@@ -1155,6 +1180,154 @@ async function mergeSelectedCV() {
         showMergeStatus(`❌ ${err.message}`, 'error');
     } finally {
         document.getElementById('merge-selected-btn').disabled = false;
+    }
+}
+
+// ── Skill CRUD ──────────────────────────────────────────────────────────────
+
+function showAddSkillForm() {
+    const container = document.getElementById('add-skill-form-container');
+    container.innerHTML = `
+        <div class="bank-inline-form">
+            <input type="text" id="new-skill-name" placeholder="Skill-namn" class="form-input" />
+            <select id="new-skill-category" class="form-input">
+                <option value="">Auto-kategorisera</option>
+                <option value="Programming Languages">Programming Languages</option>
+                <option value="Frameworks & APIs">Frameworks & APIs</option>
+                <option value="Databases">Databases</option>
+                <option value="Cloud & DevOps">Cloud & DevOps</option>
+                <option value="AI & Machine Learning">AI & Machine Learning</option>
+                <option value="Frontend">Frontend</option>
+                <option value="Tools">Tools</option>
+                <option value="Soft Skills">Soft Skills</option>
+                <option value="Languages">Languages</option>
+            </select>
+            <button class="btn btn-primary btn-small" onclick="submitNewSkill()">Spara</button>
+            <button class="btn btn-ghost btn-small" onclick="hideAddSkillForm()">Avbryt</button>
+        </div>
+    `;
+    document.getElementById('new-skill-name').focus();
+}
+
+function hideAddSkillForm() {
+    const container = document.getElementById('add-skill-form-container');
+    if (container) container.innerHTML = '';
+}
+
+async function submitNewSkill() {
+    const name = document.getElementById('new-skill-name').value.trim();
+    if (!name) return alert('Ange ett skill-namn');
+    const category = document.getElementById('new-skill-category').value || null;
+    try {
+        const res = await fetch(`${API_BASE_URL}/competence/skills`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ skill_name: name, category: category }),
+        });
+        if (!res.ok) {
+            const err = await res.json();
+            throw new Error(err.detail || 'Kunde inte lägga till skill');
+        }
+        hideAddSkillForm();
+        await loadBankData();
+    } catch (err) {
+        alert(err.message);
+    }
+}
+
+async function deleteSkill(skillId, skillName) {
+    if (!confirm(`Ta bort "${skillName}" från kompetensbanken?`)) return;
+    try {
+        const res = await fetch(`${API_BASE_URL}/competence/skills/${skillId}`, { method: 'DELETE' });
+        if (!res.ok) throw new Error('Kunde inte ta bort skill');
+        await loadBankData();
+    } catch (err) {
+        alert(err.message);
+    }
+}
+
+// ── Experience delete ───────────────────────────────────────────────────────
+
+async function deleteExperience(expId, title) {
+    if (!confirm(`Ta bort "${title}" från kompetensbanken?`)) return;
+    try {
+        const res = await fetch(`${API_BASE_URL}/competence/experiences/${expId}`, { method: 'DELETE' });
+        if (!res.ok) throw new Error('Kunde inte ta bort erfarenhet');
+        selectedExperienceIds.delete(expId);
+        await loadBankData();
+    } catch (err) {
+        alert(err.message);
+    }
+}
+
+// ── Achievement CRUD ────────────────────────────────────────────────────────
+
+function showAddAchievementForm(expId) {
+    const container = document.getElementById(`add-achievement-form-${expId}`);
+    container.innerHTML = `
+        <div class="bank-inline-form">
+            <input type="text" id="new-ach-text-${expId}" placeholder="Ny prestation..." class="form-input"
+                   onkeydown="if(event.key==='Enter') submitNewAchievement(${expId}); if(event.key==='Escape') document.getElementById('add-achievement-form-${expId}').innerHTML='';" />
+            <button class="btn btn-primary btn-small" onclick="submitNewAchievement(${expId})">Spara</button>
+            <button class="btn btn-ghost btn-small" onclick="document.getElementById('add-achievement-form-${expId}').innerHTML=''">Avbryt</button>
+        </div>
+    `;
+    document.getElementById(`new-ach-text-${expId}`).focus();
+}
+
+async function submitNewAchievement(expId) {
+    const input = document.getElementById(`new-ach-text-${expId}`);
+    const text = input.value.trim();
+    if (!text) return;
+    try {
+        const res = await fetch(`${API_BASE_URL}/competence/experiences/${expId}/achievements`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ text }),
+        });
+        if (!res.ok) throw new Error('Kunde inte lägga till prestation');
+        await loadBankData();
+    } catch (err) {
+        alert(err.message);
+    }
+}
+
+function editAchievement(expId, index) {
+    const span = document.getElementById(`ach-text-${expId}-${index}`);
+    const currentText = span.textContent;
+    span.innerHTML = `
+        <input type="text" class="form-input form-input-inline" value="${currentText.replace(/"/g, '&quot;')}"
+               id="edit-ach-${expId}-${index}"
+               onkeydown="if(event.key==='Enter') submitEditAchievement(${expId}, ${index}); if(event.key==='Escape') loadBankData();" />
+    `;
+    document.getElementById(`edit-ach-${expId}-${index}`).focus();
+}
+
+async function submitEditAchievement(expId, index) {
+    const input = document.getElementById(`edit-ach-${expId}-${index}`);
+    const text = input.value.trim();
+    if (!text) return;
+    try {
+        const res = await fetch(`${API_BASE_URL}/competence/experiences/${expId}/achievements/${index}`, {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ text }),
+        });
+        if (!res.ok) throw new Error('Kunde inte uppdatera prestation');
+        await loadBankData();
+    } catch (err) {
+        alert(err.message);
+    }
+}
+
+async function deleteAchievement(expId, index) {
+    if (!confirm('Ta bort denna prestation?')) return;
+    try {
+        const res = await fetch(`${API_BASE_URL}/competence/experiences/${expId}/achievements/${index}`, { method: 'DELETE' });
+        if (!res.ok) throw new Error('Kunde inte ta bort prestation');
+        await loadBankData();
+    } catch (err) {
+        alert(err.message);
     }
 }
 

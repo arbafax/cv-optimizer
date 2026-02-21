@@ -233,3 +233,142 @@ Optimera CV:t för denna jobbannons."""
         except Exception as e:
             logger.error(f"Error optimizing CV: {str(e)}", exc_info=True)
             return None
+
+    def match_competences_to_job(
+        self,
+        skills: list[dict],
+        experiences: list[dict],
+        job_title: str,
+        job_description: str,
+    ) -> dict:
+        """
+        Matcha kompetensbanken (skills + erfarenheter) mot en jobbannons.
+        Returnerar matchningspoäng och förklaring per skill/erfarenhet.
+        """
+        skills_list = "\n".join(
+            f"- {s['skill_name']} ({s['category']})" for s in skills
+        ) or "(inga skills)"
+
+        exp_list = "\n".join(
+            f"- [ID:{e['id']}] {e['title']}"
+            + (f" på {e['organization']}" if e.get('organization') else "")
+            + (f" ({e['start_date']}–{e.get('end_date') or 'nu'})" if e.get('start_date') else "")
+            for e in experiences
+        ) or "(inga erfarenheter)"
+
+        system_prompt = """Du är en expert på rekrytering och kompetensanalys.
+Du får en lista med skills och erfarenheter från en persons kompetensbank, samt en jobbannons.
+Din uppgift är att analysera hur väl kompetenserna matchar jobbet.
+
+Svara ENDAST med JSON i exakt detta format:
+{
+  "overall_score": <0-100>,
+  "summary": "<2-3 meningar om matchningen totalt sett>",
+  "skills": [
+    {"skill_name": "<namn>", "score": <1-100>, "reason": "<kort förklaring>"},
+    ...
+  ],
+  "experiences": [
+    {"id": <id>, "score": <1-100>, "reason": "<kort förklaring varför erfarenheten är relevant>"},
+    ...
+  ],
+  "missing_skills": ["<skill som nämns i annonsen men saknas i kompetensbanken>", ...]
+}
+
+Regler:
+- Inkludera ENDAST skills och erfarenheter som är relevanta för jobbet (score >= 1). Utelämna sådant som inte alls berörs av annonsen.
+- Lägg till i missing_skills alla tekniker, verktyg, språk och kompetenser som annonsen efterfrågar men som INTE finns i personens kompetensbank.
+- Sortera skills och experiences med högst poäng först."""
+
+        user_prompt = f"""Jobbannons:
+Titel: {job_title}
+
+{job_description}
+
+---
+Personens skills:
+{skills_list}
+
+Personens erfarenheter:
+{exp_list}
+"""
+
+        logger.info(f"Matchar kompetensbank mot jobb: {job_title}")
+        response = self.client.chat.completions.create(
+            model="gpt-4o",
+            messages=[
+                {"role": "system", "content": system_prompt},
+                {"role": "user", "content": user_prompt},
+            ],
+            temperature=0.2,
+            response_format={"type": "json_object"},
+        )
+
+        return json.loads(response.choices[0].message.content)
+
+    def generate_cv_for_job(
+        self,
+        job_description: str,
+        experiences_data: list[dict],
+        skills: list[str],
+    ) -> dict:
+        """
+        Genererar ett anpassat CV-utkast (pitch + highlighted achievements per erfarenhet)
+        för en specifik jobbannons.
+        """
+        exp_text = "\n\n".join(
+            f"[ID:{e['id']}] {e['title']}"
+            + (f" på {e['organization']}" if e.get("organization") else "")
+            + (f" ({e.get('start_date', '')}–{e.get('end_date') or 'nu'})" if e.get("start_date") else "")
+            + (f"\nBeskrivning: {e['description']}" if e.get("description") else "")
+            + (
+                "\nPrestationer:\n" + "\n".join(f"- {a}" for a in e["achievements"])
+                if e.get("achievements")
+                else ""
+            )
+            for e in experiences_data
+        ) or "(inga erfarenheter)"
+
+        skills_text = ", ".join(skills) or "(inga)"
+
+        system_prompt = """Du är en expert på CV-skrivning och rekrytering.
+Skapa ett anpassat CV-utkast för en specifik jobbannons baserat på personens erfarenheter.
+
+Svara ENDAST med JSON i exakt detta format:
+{
+  "pitch": "<3-5 meningar som profil/sammanfattning. Förklara varför kandidaten passar jobbet. Skriv utan personliga pronomen, som en CV-profil.>",
+  "experiences": [
+    {
+      "id": <id>,
+      "highlighted_achievements": ["<prestation 1>", "<prestation 2>", ...]
+    }
+  ]
+}
+
+Regler:
+- Inkludera bara erfarenheter som är relevanta för jobbet
+- Max 4 prestationer per erfarenhet – välj de mest relevanta och jobbspecifika
+- Du får omformulera prestationer för att bättre matcha jobbannonsens nyckelord, men ljug aldrig
+- Sortera erfarenheterna med mest relevanta först"""
+
+        user_prompt = f"""Jobbannons:
+{job_description}
+
+---
+Personens erfarenheter:
+{exp_text}
+
+Personens skills: {skills_text}"""
+
+        logger.info("Genererar CV-utkast med AI")
+        response = self.client.chat.completions.create(
+            model="gpt-4o",
+            messages=[
+                {"role": "system", "content": system_prompt},
+                {"role": "user", "content": user_prompt},
+            ],
+            temperature=0.3,
+            response_format={"type": "json_object"},
+        )
+
+        return json.loads(response.choices[0].message.content)

@@ -576,6 +576,16 @@ def add_experience_skill(experience_id: int, skill_name: str, db: Session) -> li
     return exp.related_skills
 
 
+def update_experience_description(experience_id: int, description: str, db: Session) -> str | None:
+    """Uppdatera beskrivningen på en erfarenhetspost."""
+    exp = db.query(ExperienceEntry).filter(ExperienceEntry.id == experience_id).first()
+    if not exp:
+        raise ValueError("Erfarenhet hittades inte")
+    exp.description = description.strip() or None
+    db.commit()
+    return exp.description
+
+
 def remove_experience_skill(experience_id: int, index: int, db: Session) -> list:
     """Ta bort en skill från en erfarenhetspost (via arrayindex)."""
     exp = db.query(ExperienceEntry).filter(ExperienceEntry.id == experience_id).first()

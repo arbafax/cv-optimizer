@@ -8,15 +8,19 @@ const cvUpload      = document.getElementById('cv-upload');
 const uploadStatus  = document.getElementById('upload-status');
 const cvPreview     = document.getElementById('cv-preview');
 const cvList        = document.getElementById('cv-list');
-const optimizeBtn   = document.getElementById('optimize-btn');
-const jobTitle      = document.getElementById('job-title');
+const optimizeBtn    = document.getElementById('optimize-btn');
 const jobDescription = document.getElementById('job-description');
-const charCount     = document.getElementById('char-count');
+const charCount      = document.getElementById('char-count');
 const optimizeResult = document.getElementById('optimize-result');
+const jobUrlInput    = document.getElementById('job-url');
+const fetchUrlBtn    = document.getElementById('fetch-url-btn');
+const fetchUrlStatus = document.getElementById('fetch-url-status');
 
 // State
-let selectedCV = null;
-let allCVs     = [];
+let selectedCV      = null;
+let allCVs          = [];
+let lastMatchResult = null;
+let lastJobDesc     = '';
 
 // ── Navigation ────────────────────────────────────────────
 function showView(viewId, navEl) {
@@ -49,8 +53,9 @@ function setupEventListeners() {
     uploadArea.addEventListener('drop', handleDrop);
     optimizeBtn.addEventListener('click', handleOptimize);
     jobDescription.addEventListener('input', updateCharCount);
-    jobTitle.addEventListener('input', updateOptimizeButton);
     jobDescription.addEventListener('input', updateOptimizeButton);
+    fetchUrlBtn.addEventListener('click', handleFetchUrl);
+    jobUrlInput.addEventListener('keydown', e => { if (e.key === 'Enter') handleFetchUrl(); });
 }
 
 // Drag and Drop Handlers
@@ -633,69 +638,94 @@ function updateCharCount() {
     charCount.textContent = `${count} tecken`;
 }
 
-// Update optimize button state
-function updateOptimizeButton() {
-    const hasCV = selectedCV !== null;
-    const hasTitle = jobTitle.value.trim().length > 0;
-    const hasDescription = jobDescription.value.trim().length > 0;
-    
-    optimizeBtn.disabled = !(hasCV && hasTitle && hasDescription);
+// Fetch job posting text from URL
+async function handleFetchUrl() {
+    const url = jobUrlInput.value.trim();
+    if (!url) return;
+
+    fetchUrlBtn.disabled = true;
+    fetchUrlBtn.querySelector('.btn-text').classList.add('hidden');
+    fetchUrlBtn.querySelector('.btn-loading').classList.remove('hidden');
+    fetchUrlStatus.innerHTML = '';
+
+    try {
+        const response = await fetch(`${API_BASE_URL}/competence/fetch-job-url`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ url }),
+        });
+
+        const data = await response.json();
+
+        if (!response.ok) {
+            const blocked = response.status === 502 || response.status === 504;
+            if (blocked) {
+                document.getElementById('url-blocked-popup').classList.remove('hidden');
+                document.getElementById('url-blocked-popup').scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+                return;
+            }
+            throw new Error(data.detail || 'Kunde inte hämta sidan');
+        }
+
+        jobDescription.value = data.text;
+        updateCharCount();
+        updateOptimizeButton();
+        fetchUrlStatus.innerHTML = '<span class="fetch-url-ok">✓ Annonstext hämtad</span>';
+        jobUrlInput.value = '';
+
+    } catch (err) {
+        fetchUrlStatus.innerHTML = `<span class="fetch-url-err">✗ ${err.message}</span>`;
+    } finally {
+        fetchUrlBtn.disabled = false;
+        fetchUrlBtn.querySelector('.btn-text').classList.remove('hidden');
+        fetchUrlBtn.querySelector('.btn-loading').classList.add('hidden');
+    }
 }
 
-// Optimize CV
+// Update optimize button state
+function updateOptimizeButton() {
+    optimizeBtn.disabled = jobDescription.value.trim().length === 0;
+}
+
+// Match competences against job
 async function handleOptimize() {
-    if (!selectedCV) {
-        alert('Välj ett CV först');
+    if (!jobDescription.value.trim()) {
+        alert('Klistra in en jobbannons');
         return;
     }
-    
-    if (!jobTitle.value || !jobDescription.value) {
-        alert('Fyll i jobbtitel och beskrivning');
-        return;
-    }
-    
-    // Show loading state
+
     optimizeBtn.disabled = true;
     optimizeBtn.querySelector('.btn-text').style.display = 'none';
     optimizeBtn.querySelector('.btn-loading').classList.remove('hidden');
     optimizeResult.classList.add('hidden');
-    
+
     try {
-        const response = await fetch(`${API_BASE_URL}/optimize`, {
+        const response = await fetch(`${API_BASE_URL}/competence/match-job`, {
             method: 'POST',
-            headers: {
-                'Content-Type': 'application/json'
-            },
+            headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
-                cv_id: selectedCV.id,
-                job_posting: {
-                    title: jobTitle.value,
-                    description: jobDescription.value
-                }
-            })
+                job_title: '',
+                job_description: jobDescription.value.trim(),
+            }),
         });
-        
+
         if (!response.ok) {
             const error = await response.json();
-            throw new Error(error.detail || 'Optimering misslyckades');
+            throw new Error(error.detail || 'Matchning misslyckades');
         }
-        
+
         const result = await response.json();
-        displayOptimizedCV(result);
-        
-        // Scroll to result
+        lastMatchResult = result;
+        lastJobDesc = jobDescription.value.trim();
+        displayMatchResult(result);
+
         setTimeout(() => {
-            optimizeResult.scrollIntoView({ 
-                behavior: 'smooth', 
-                block: 'start' 
-            });
+            optimizeResult.scrollIntoView({ behavior: 'smooth', block: 'start' });
         }, 100);
-        
+
     } catch (error) {
         optimizeResult.innerHTML = `
-            <div class="status-message status-error">
-                ❌ Fel: ${error.message}
-            </div>
+            <div class="status-message status-error">❌ Fel: ${error.message}</div>
         `;
         optimizeResult.classList.remove('hidden');
     } finally {
@@ -706,91 +736,179 @@ async function handleOptimize() {
     }
 }
 
-// Display optimized CV
-function displayOptimizedCV(result) {
-    const originalSummary = selectedCV.structured_data.summary || 'Ingen sammanfattning';
-    const optimizedSummary = result.optimized_data.summary || 'Ingen sammanfattning';
-    
-    const originalSkills = selectedCV.structured_data.skills.slice(0, 8).join(', ');
-    const optimizedSkills = result.optimized_data.skills.slice(0, 8).join(', ');
-    
+function scoreColor(score) {
+    if (score >= 75) return 'match-high';
+    if (score >= 45) return 'match-mid';
+    return 'match-low';
+}
+
+function scoreBar(score) {
+    return `<div class="match-bar"><div class="match-bar-fill ${scoreColor(score)}" style="width:${score}%"></div></div>`;
+}
+
+function displayMatchResult(result) {
+    const overall = result.overall_score ?? 0;
+    const skills = (result.skills ?? []).filter(s => s.score > 0);
+    const experiences = (result.experiences ?? []).filter(e => e.score > 0);
+    const missing = result.missing_skills ?? [];
+
+    const typeLabels = { work: 'Arbete', education: 'Utbildning', certification: 'Certifiering', project: 'Projekt' };
+
+    const skillsHtml = skills.map(s => `
+        <div class="match-item">
+            <div class="match-item-header">
+                <span class="match-item-name">${s.skill_name}</span>
+                <span class="match-item-score ${scoreColor(s.score)}">${s.score}%</span>
+            </div>
+            ${scoreBar(s.score)}
+            <div class="match-item-reason">${s.reason}</div>
+        </div>
+    `).join('');
+
+    const expHtml = experiences.map(e => `
+        <div class="match-item">
+            <div class="match-item-header">
+                <div>
+                    <span class="match-item-name">${e.title}</span>
+                    ${e.organization ? `<span class="match-item-org"> · ${e.organization}</span>` : ''}
+                    ${e.experience_type ? `<span class="match-type-badge">${typeLabels[e.experience_type] || e.experience_type}</span>` : ''}
+                </div>
+                <span class="match-item-score ${scoreColor(e.score)}">${e.score}%</span>
+            </div>
+            ${scoreBar(e.score)}
+            <div class="match-item-reason">${e.reason}</div>
+        </div>
+    `).join('');
+
+    const missingHtml = missing.length
+        ? missing.map(m => `<span class="match-missing-chip">${m}</span>`).join('')
+        : '<p class="match-empty">Inga saknade kompetenser identifierade</p>';
+
     optimizeResult.innerHTML = `
-        <h3>✨ CV optimerat för: ${result.job_title}</h3>
-        
-        <div class="match-score">
-            <div class="score-circle">${result.match_score || 85}%</div>
-            <div>
-                <strong>Matchningsgrad</strong>
-                <p style="color: var(--text-secondary); margin-top: 5px;">
-                    Ditt CV matchar väl med denna jobbannons!
-                </p>
+        <div class="match-result-header">
+            <div class="match-overall-score ${scoreColor(overall)}">
+                <span class="match-overall-number">${overall}</span>
+                <span class="match-overall-label">/ 100</span>
+            </div>
+            <p class="match-summary">${result.summary || ''}</p>
+        </div>
+
+        <div class="match-sections">
+            <div class="match-section">
+                <h4 class="match-section-title">Matchande skills (${skills.length})</h4>
+                <div class="match-list">${skillsHtml || '<p class="match-empty">Inga matchande skills</p>'}</div>
+            </div>
+            <div class="match-section">
+                <h4 class="match-section-title">Matchande erfarenheter (${experiences.length})</h4>
+                <div class="match-list">${expHtml || '<p class="match-empty">Inga matchande erfarenheter</p>'}</div>
             </div>
         </div>
-        
-        <div class="result-comparison">
-            <div class="result-column">
-                <h4>📄 Original</h4>
-                <div style="margin-bottom: 15px;">
-                    <strong>Sammanfattning:</strong>
-                    <p style="color: var(--text-secondary); margin-top: 5px; font-size: 0.9rem;">
-                        ${originalSummary}
-                    </p>
-                </div>
-                <div>
-                    <strong>Kompetenser:</strong>
-                    <p style="color: var(--text-secondary); margin-top: 5px; font-size: 0.9rem;">
-                        ${originalSkills}
-                    </p>
-                </div>
-            </div>
-            
-            <div class="result-column" style="background: #ecfdf5;">
-                <h4>✨ Optimerad</h4>
-                <div style="margin-bottom: 15px;">
-                    <strong>Sammanfattning:</strong>
-                    <p style="color: var(--text-secondary); margin-top: 5px; font-size: 0.9rem;">
-                        ${optimizedSummary}
-                    </p>
-                </div>
-                <div>
-                    <strong>Kompetenser:</strong>
-                    <p style="color: var(--text-secondary); margin-top: 5px; font-size: 0.9rem;">
-                        ${optimizedSkills}
-                    </p>
-                </div>
-            </div>
-        </div>
-        
-        <div style="margin-top: 30px; text-align: center;">
-            <button class="btn btn-primary" onclick="viewFullOptimizedCV(${result.id})">
-                👁️ Visa komplett optimerat CV
+
+        ${missing.length ? `
+        <div class="match-missing-section">
+            <h4 class="match-section-title">Saknade kompetenser (${missing.length})</h4>
+            <p class="match-missing-desc">Annonsen efterfrågar dessa kompetenser som saknas i din kompetensbank:</p>
+            <div class="match-missing-chips">${missingHtml}</div>
+        </div>` : ''}
+
+        ${experiences.length > 0 ? `
+        <div class="gen-cv-action">
+            <button id="gen-cv-btn" class="btn btn-primary" onclick="handleGenerateCV()">
+                ✨ Generera anpassat CV-utkast
             </button>
-            <button class="btn btn-secondary" style="margin-left: 10px;" onclick="downloadOptimizedCV(${result.id})">
-                📥 Ladda ner PDF (kommer snart)
-            </button>
-        </div>
+        </div>` : ''}
     `;
-    
+
     optimizeResult.classList.remove('hidden');
 }
 
-// View full optimized CV
-async function viewFullOptimizedCV(id) {
+async function handleGenerateCV() {
+    const genBtn = document.getElementById('gen-cv-btn');
+    genBtn.disabled = true;
+    genBtn.innerHTML = '<span class="spinner-small"></span> Genererar...';
+
+    const expIds = (lastMatchResult.experiences ?? [])
+        .filter(e => e.score > 0)
+        .map(e => e.id);
+    const skills = (lastMatchResult.skills ?? [])
+        .filter(s => s.score > 0)
+        .map(s => s.skill_name);
+
     try {
-        const response = await fetch(`${API_BASE_URL}/optimize/${id}`);
+        const response = await fetch(`${API_BASE_URL}/competence/generate-cv`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                job_description: lastJobDesc,
+                experience_ids: expIds,
+                skills,
+            }),
+        });
+
+        if (!response.ok) {
+            const err = await response.json();
+            throw new Error(err.detail || 'Kunde inte generera CV');
+        }
+
         const data = await response.json();
-        
-        console.log('Optimerat CV:', data);
-        alert('Komplett CV-data finns i konsolen (F12). En dedikerad vy kommer snart!');
-        
-    } catch (error) {
-        alert(`Fel: ${error.message}`);
+        displayGeneratedCV(data);
+
+    } catch (err) {
+        genBtn.disabled = false;
+        genBtn.innerHTML = '✨ Generera anpassat CV-utkast';
+        alert('Fel: ' + err.message);
     }
 }
 
-// Download optimized CV (placeholder)
-function downloadOptimizedCV(id) {
-    alert('PDF-export kommer i nästa version! För tillfället kan du kopiera data från "Visa komplett optimerat CV".');
+function displayGeneratedCV(data) {
+    const body = document.getElementById('cv-generate-body');
+
+    const expHtml = (data.experiences || []).map(e => {
+        const start = e.start_date || '';
+        const end   = e.is_current ? 'nu' : (e.end_date || '');
+        const dates = start ? `${start}–${end}` : '';
+        const achievements = (e.highlighted_achievements || [])
+            .map(a => `<li>${a}</li>`).join('');
+        return `
+            <div class="gen-cv-exp">
+                <div class="gen-cv-exp-header">
+                    <div>
+                        <span class="gen-cv-exp-title">${e.title}</span>
+                        ${e.organization ? `<span class="gen-cv-exp-org"> · ${e.organization}</span>` : ''}
+                    </div>
+                    ${dates ? `<span class="gen-cv-exp-date">${dates}</span>` : ''}
+                </div>
+                ${achievements ? `<ul class="gen-cv-achievements">${achievements}</ul>` : ''}
+            </div>
+        `;
+    }).join('');
+
+    const skillsHtml = (data.skills || [])
+        .map(s => `<span class="cv-skill-tag">${s}</span>`).join('');
+
+    body.innerHTML = `
+        <div class="gen-cv-pitch">
+            <h3 class="gen-cv-section-title">Profil</h3>
+            <p>${data.pitch || ''}</p>
+        </div>
+
+        <div class="gen-cv-section">
+            <h3 class="gen-cv-section-title">Erfarenheter</h3>
+            ${expHtml || '<p>Inga matchande erfarenheter</p>'}
+        </div>
+
+        ${skillsHtml ? `
+        <div class="gen-cv-section">
+            <h3 class="gen-cv-section-title">Relevanta kompetenser</h3>
+            <div class="cv-skills-grid">${skillsHtml}</div>
+        </div>` : ''}
+    `;
+
+    document.getElementById('cv-generate-modal').classList.remove('hidden');
+}
+
+function closeCVGenerateModal() {
+    document.getElementById('cv-generate-modal').classList.add('hidden');
 }
 
 // Show status message
@@ -1044,7 +1162,10 @@ function renderExperiencesTab() {
                                     </div>
                                 </div>
                                 ${e.organization ? `<div class="bank-exp-org">${e.organization}</div>` : ''}
-                                ${e.description  ? `<div class="bank-exp-desc">${e.description}</div>` : ''}
+                                <div class="bank-exp-desc ${e.description ? '' : 'bank-exp-desc-empty'}"
+                                     onclick="editDescription(${e.id}, this)"
+                                     title="Klicka för att redigera"
+                                     id="desc-${e.id}">${e.description || '<span class="desc-placeholder">Klicka för att lägga till beskrivning...</span>'}</div>
                                 <div class="bank-exp-achievements">
                                     <div class="bank-exp-achievements-label">
                                         Huvudsakliga prestationer
@@ -1309,6 +1430,45 @@ async function submitNewAchievement(expId) {
     } catch (err) {
         alert(err.message);
     }
+}
+
+function editDescription(expId, el) {
+    if (el.querySelector('textarea')) return; // redan i redigeringsläge
+    const current = el.dataset.desc ?? el.textContent.trim();
+    el.innerHTML = `
+        <textarea class="desc-textarea" id="desc-ta-${expId}"
+                  onkeydown="if(event.key==='Escape') cancelEditDescription(this.closest('.bank-exp-desc'))"
+        >${current}</textarea>
+        <div class="desc-actions">
+            <button class="btn btn-primary btn-small" onclick="event.stopPropagation(); saveDescription(${expId})">Spara</button>
+            <button class="btn btn-ghost btn-small" onclick="event.stopPropagation(); cancelEditDescription(document.getElementById('desc-${expId}'))">Avbryt</button>
+        </div>
+    `;
+    el.dataset.desc = current;
+    document.getElementById(`desc-ta-${expId}`).focus();
+}
+
+async function saveDescription(expId) {
+    const ta = document.getElementById(`desc-ta-${expId}`);
+    if (!ta) return;
+    const text = ta.value.trim();
+    try {
+        const res = await fetch(`${API_BASE_URL}/competence/experiences/${expId}/description`, {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ description: text }),
+        });
+        if (!res.ok) throw new Error('Kunde inte spara beskrivning');
+        await loadBankData();
+    } catch (err) {
+        alert(err.message);
+    }
+}
+
+function cancelEditDescription(el) {
+    const original = el.dataset.desc || '';
+    el.innerHTML = original || '<span class="desc-placeholder">Klicka för att lägga till beskrivning...</span>';
+    delete el.dataset.desc;
 }
 
 function editAchievement(expId, index) {

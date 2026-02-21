@@ -211,35 +211,32 @@
         <div class="view-header">
             <div>
                 <h1>Matcha jobb</h1>
-                <p class="view-subtitle">Klistra in en jobbannons – AI anpassar ditt CV automatiskt.</p>
+                <p class="view-subtitle">Klistra in en jobbannons – AI matchar hela din kompetensbank mot jobbet.</p>
             </div>
         </div>
 
         <div class="optimize-layout">
             <div class="card">
-                <h2 class="card-title">Välj CV &amp; jobbannons</h2>
+                <h2 class="card-title">Jobbannons</h2>
 
-                <div class="form-group">
-                    <label>Välj CV att optimera</label>
-                    <div id="cv-select-list" class="cv-select-list">
-                        <p class="empty-hint">Ladda upp ett CV först</p>
-                    </div>
+                <div class="job-url-row">
+                    <input type="url" id="job-url" placeholder="https://... klistra in länk till annonsen">
+                    <button id="fetch-url-btn" class="btn btn-secondary">
+                        <span class="btn-text">Hämta</span>
+                        <span class="btn-loading hidden"><span class="spinner-small"></span></span>
+                    </button>
                 </div>
+                <div id="fetch-url-status"></div>
 
                 <div class="form-group">
-                    <label for="job-title">Jobbtitel <span class="required">*</span></label>
-                    <input type="text" id="job-title" placeholder="t.ex. Senior Backend Developer">
-                </div>
-
-                <div class="form-group">
-                    <label for="job-description">Jobbeskrivning <span class="required">*</span></label>
+                    <label for="job-description">eller klistra in annonstexten direkt</label>
                     <textarea id="job-description" rows="10" placeholder="Klistra in hela jobbannonsen här..."></textarea>
                     <div class="char-count" id="char-count">0 tecken</div>
                 </div>
 
                 <button id="optimize-btn" class="btn btn-primary btn-full" disabled>
-                    <span class="btn-text">Optimera CV med AI</span>
-                    <span class="btn-loading hidden"><span class="spinner-small"></span> Optimerar...</span>
+                    <span class="btn-text">AI-matcha kompetenser mot jobb</span>
+                    <span class="btn-loading hidden"><span class="spinner-small"></span> Analyserar...</span>
                 </button>
             </div>
 
@@ -248,6 +245,33 @@
     </div>
 
 </main>
+
+<!-- ════════════════════════════════ URL-BLOCKED POPUP ════════════════════════════════ -->
+<div id="url-blocked-popup" class="url-blocked-popup hidden">
+    <div class="url-blocked-icon">🔒</div>
+    <h3>Sidan blockerar automatisk hämtning</h3>
+    <p>Den här webbplatsen tillåter inte att vi hämtar annonstexten automatiskt (vanligt på LinkedIn, Arbetsförmedlingen m.fl.).</p>
+    <p class="url-blocked-hint">Öppna annonsen i webbläsaren, markera all text (<kbd>Ctrl+A</kbd> / <kbd>⌘+A</kbd>), kopiera och klistra in i textfältet nedan.</p>
+    <button class="btn btn-primary" onclick="document.getElementById('url-blocked-popup').classList.add('hidden')">Stäng</button>
+</div>
+
+<!-- ════════════════════════════════ GENERATED CV MODAL ════════════════════════════════ -->
+<div id="cv-generate-modal" class="modal hidden">
+    <div class="modal-overlay" onclick="closeCVGenerateModal()"></div>
+    <div class="modal-content modal-content--wide">
+        <div class="modal-header">
+            <h2>CV-utkast</h2>
+            <div class="modal-header-actions">
+                <button class="btn btn-secondary btn-sm" onclick="window.print()">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" width="15" height="15"><polyline points="6 9 6 2 18 2 18 9"/><path d="M6 18H4a2 2 0 01-2-2v-5a2 2 0 012-2h16a2 2 0 012 2v5a2 2 0 01-2 2h-2"/><rect x="6" y="14" width="12" height="8"/></svg>
+                    Skriv ut / Spara PDF
+                </button>
+                <button class="modal-close" onclick="closeCVGenerateModal()">&times;</button>
+            </div>
+        </div>
+        <div class="modal-body" id="cv-generate-body"></div>
+    </div>
+</div>
 
 <!-- ════════════════════════════════ MODAL ════════════════════════════════ -->
 <div id="cv-modal" class="modal hidden">

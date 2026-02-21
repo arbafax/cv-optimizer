@@ -3,6 +3,8 @@ from pydantic import BaseModel
 from sqlalchemy.orm import Session
 from sqlalchemy import func
 import logging
+import httpx
+from bs4 import BeautifulSoup
 
 from app.core.database import get_db
 from app.models.cv import CV
@@ -12,6 +14,7 @@ from app.services.competence_service import (
     add_skill, delete_skill, delete_experience,
     add_achievement, update_achievement, delete_achievement,
     add_experience_skill, remove_experience_skill, create_experience,
+    update_experience_description,
 )
 
 
@@ -27,6 +30,25 @@ class AchievementRequest(BaseModel):
 
 class ExperienceSkillRequest(BaseModel):
     skill_name: str
+
+
+class MatchJobRequest(BaseModel):
+    job_title: str = ''
+    job_description: str
+
+
+class FetchUrlRequest(BaseModel):
+    url: str
+
+
+class GenerateCVRequest(BaseModel):
+    job_description: str
+    experience_ids: list[int]
+    skills: list[str] = []
+
+
+class UpdateDescriptionRequest(BaseModel):
+    description: str
 
 
 class CreateExperienceRequest(BaseModel):
@@ -234,6 +256,18 @@ async def remove_achievement(
     return {"achievements": achievements}
 
 
+@router.put("/experiences/{experience_id}/description")
+async def update_exp_description(
+    experience_id: int, body: UpdateDescriptionRequest, db: Session = Depends(get_db),
+):
+    """Uppdatera beskrivningen på en erfarenhetspost."""
+    try:
+        description = update_experience_description(experience_id, body.description, db)
+    except ValueError as e:
+        raise HTTPException(status_code=404, detail=str(e))
+    return {"description": description}
+
+
 @router.post("/experiences/{experience_id}/skills")
 async def create_experience_skill(
     experience_id: int, body: ExperienceSkillRequest, db: Session = Depends(get_db),
@@ -279,6 +313,176 @@ async def create_new_experience(
     except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e))
     return result
+
+
+@router.post("/match-job")
+async def match_job(body: MatchJobRequest, db: Session = Depends(get_db)):
+    """Matcha kompetensbanken mot en jobbannons med AI."""
+    from app.services.ai_service import AIService
+
+    skills = db.query(SkillEntry).order_by(SkillEntry.category, SkillEntry.skill_name).all()
+    experiences = db.query(ExperienceEntry).order_by(ExperienceEntry.start_date.desc()).all()
+
+    if not skills and not experiences:
+        raise HTTPException(status_code=400, detail="Kompetensbanken är tom")
+
+    skills_data = [
+        {"skill_name": s.skill_name, "category": s.category or "Övrigt"}
+        for s in skills
+    ]
+    experiences_data = [
+        {
+            "id": e.id,
+            "title": e.title,
+            "organization": e.organization,
+            "start_date": e.start_date,
+            "end_date": e.end_date,
+            "description": e.description,
+            "achievements": e.achievements or [],
+        }
+        for e in experiences
+    ]
+
+    ai = AIService()
+    result = ai.match_competences_to_job(
+        skills=skills_data,
+        experiences=experiences_data,
+        job_title=body.job_title,
+        job_description=body.job_description,
+    )
+
+    # Berikar erfarenheterna med full data från DB
+    exp_by_id = {e.id: e for e in experiences}
+    enriched_experiences = []
+    for item in result.get("experiences", []):
+        exp = exp_by_id.get(item["id"])
+        if exp:
+            enriched_experiences.append({
+                **item,
+                "title": exp.title,
+                "organization": exp.organization,
+                "start_date": exp.start_date,
+                "end_date": exp.end_date,
+                "is_current": exp.is_current,
+                "experience_type": exp.experience_type,
+            })
+
+    result["experiences"] = enriched_experiences
+    return result
+
+
+@router.post("/generate-cv")
+async def generate_cv(body: GenerateCVRequest, db: Session = Depends(get_db)):
+    """Genererar ett anpassat CV-utkast för en jobbannons."""
+    from app.services.ai_service import AIService
+
+    if not body.experience_ids:
+        raise HTTPException(status_code=400, detail="Inga erfarenheter angivna")
+
+    experiences = db.query(ExperienceEntry).filter(
+        ExperienceEntry.id.in_(body.experience_ids)
+    ).all()
+
+    exp_by_id = {e.id: e for e in experiences}
+
+    ordered_experiences = []
+    for eid in body.experience_ids:
+        exp = exp_by_id.get(eid)
+        if exp:
+            ordered_experiences.append({
+                "id": exp.id,
+                "title": exp.title,
+                "organization": exp.organization,
+                "start_date": exp.start_date,
+                "end_date": exp.end_date,
+                "is_current": exp.is_current,
+                "experience_type": exp.experience_type,
+                "description": exp.description,
+                "achievements": exp.achievements or [],
+            })
+
+    ai = AIService()
+    result = ai.generate_cv_for_job(
+        job_description=body.job_description,
+        experiences_data=ordered_experiences,
+        skills=body.skills,
+    )
+
+    # Berika AI-svaret med full DB-data
+    enriched = []
+    for item in result.get("experiences", []):
+        exp = exp_by_id.get(item["id"])
+        if exp:
+            enriched.append({
+                **item,
+                "title": exp.title,
+                "organization": exp.organization,
+                "start_date": exp.start_date,
+                "end_date": exp.end_date,
+                "is_current": exp.is_current,
+                "experience_type": exp.experience_type,
+            })
+
+    result["experiences"] = enriched
+    result["skills"] = body.skills
+    return result
+
+
+@router.post("/fetch-job-url")
+async def fetch_job_url(body: FetchUrlRequest):
+    """Hämtar en jobbannons från en URL och returnerar texten."""
+    url = body.url.strip()
+    if not url.startswith(("http://", "https://")):
+        raise HTTPException(status_code=400, detail="Ogiltig URL – måste börja med http:// eller https://")
+
+    headers = {
+        "User-Agent": (
+            "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) "
+            "AppleWebKit/537.36 (KHTML, like Gecko) "
+            "Chrome/124.0.0.0 Safari/537.36"
+        ),
+        "Accept-Language": "sv,en;q=0.9",
+    }
+
+    try:
+        async with httpx.AsyncClient(follow_redirects=True, timeout=15) as client:
+            resp = await client.get(url, headers=headers)
+        resp.raise_for_status()
+    except httpx.TimeoutException:
+        raise HTTPException(status_code=504, detail="Tidsgräns överskreds vid hämtning av URL")
+    except httpx.HTTPStatusError as e:
+        raise HTTPException(status_code=502, detail=f"Sidan svarade med statuskod {e.response.status_code}")
+    except Exception as e:
+        raise HTTPException(status_code=502, detail=f"Kunde inte hämta URL: {str(e)}")
+
+    soup = BeautifulSoup(resp.text, "html.parser")
+
+    # Ta bort skript, stilar och navigeringselement
+    for tag in soup(["script", "style", "nav", "header", "footer", "aside", "noscript"]):
+        tag.decompose()
+
+    # Försök hitta huvudinnehållet
+    main = (
+        soup.find("main")
+        or soup.find("article")
+        or soup.find(id="job-description")
+        or soup.find(class_=lambda c: c and any(
+            kw in c.lower() for kw in ("job-description", "job_description", "jobdescription",
+                                        "vacancy", "posting", "ad-description", "job-detail")
+        ))
+        or soup.find("body")
+    )
+
+    text = main.get_text(separator="\n") if main else soup.get_text(separator="\n")
+
+    # Rensa upp blankrader
+    lines = [line.strip() for line in text.splitlines()]
+    cleaned = "\n".join(line for line in lines if line)
+
+    if len(cleaned) < 100:
+        raise HTTPException(status_code=422, detail="Kunde inte extrahera tillräckligt med text från sidan")
+
+    return {"text": cleaned}
 
 
 @router.delete("/reset")

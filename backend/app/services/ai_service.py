@@ -372,3 +372,72 @@ Personens skills: {skills_text}"""
         )
 
         return json.loads(response.choices[0].message.content)
+
+    def generate_improvement_tips(
+        self,
+        job_description: str,
+        overall_score: int,
+        current_skills: list[str],
+        missing_skills: list[str],
+        experiences_data: list[dict],
+    ) -> dict:
+        """
+        Genererar förbättringsförslag: skills att lägga till och konkreta tips
+        för att öka matchningsprocenten mot en jobbannons.
+        """
+        skills_text  = ", ".join(current_skills) or "(inga)"
+        missing_text = ", ".join(missing_skills) or "(inga)"
+
+        exp_text = "\n\n".join(
+            f"- {e['title']}"
+            + (f" på {e['organization']}" if e.get("organization") else "")
+            + (f"\n  Beskrivning: {e['description']}" if e.get("description") else "")
+            + (
+                "\n  Prestationer:\n" + "\n".join(f"  • {a}" for a in e["achievements"])
+                if e.get("achievements")
+                else ""
+            )
+            for e in experiences_data
+        ) or "(inga erfarenheter)"
+
+        system_prompt = f"""Du är en expert på rekrytering och CV-optimering.
+En person har sökt ett jobb och fått matchningspoängen {overall_score}/100.
+Din uppgift är att ge konkreta förslag på hur de kan höja sin matchningspoäng.
+
+Svara EXAKT med JSON i detta format:
+{{
+  "suggested_skills": [
+    {{"skill_name": "<namn>", "category": "<kategori>", "reason": "<varför detta ökar matchningen>"}}
+  ],
+  "tips": [
+    {{"tip": "<konkret, handlingsorienterat förbättringstips>", "impact": "high|medium|low"}}
+  ]
+}}
+
+Regler:
+- suggested_skills: max 8 skills som saknas men som direkt ökar matchningen. Föreslå INTE skills som redan finns i kompetensbanken.
+- tips: max 8 konkreta tips för erfarenheter eller formuleringar. Ge specifika exempel på omformuleringar när det är möjligt. Sortera med högst impact först.
+- Svara på svenska."""
+
+        user_prompt = f"""Jobbannons:
+{job_description}
+
+---
+Personens nuvarande skills: {skills_text}
+Skills som saknas (jobbet kräver): {missing_text}
+
+Personens matchande erfarenheter:
+{exp_text}"""
+
+        logger.info("Genererar förbättringstips med AI")
+        response = self.client.chat.completions.create(
+            model="gpt-4o",
+            messages=[
+                {"role": "system", "content": system_prompt},
+                {"role": "user", "content": user_prompt},
+            ],
+            temperature=0.4,
+            response_format={"type": "json_object"},
+        )
+
+        return json.loads(response.choices[0].message.content)

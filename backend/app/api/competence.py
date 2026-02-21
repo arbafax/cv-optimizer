@@ -43,8 +43,16 @@ class FetchUrlRequest(BaseModel):
 
 class GenerateCVRequest(BaseModel):
     job_description: str
-    experience_ids: list[int]
+    matched_experience_ids: list[int]
     skills: list[str] = []
+
+
+class ImprovementTipsRequest(BaseModel):
+    job_description: str
+    overall_score: int
+    current_skills: list[str] = []
+    missing_skills: list[str] = []
+    matched_experience_ids: list[int] = []
 
 
 class UpdateDescriptionRequest(BaseModel):
@@ -376,56 +384,107 @@ async def generate_cv(body: GenerateCVRequest, db: Session = Depends(get_db)):
     """Genererar ett anpassat CV-utkast för en jobbannons."""
     from app.services.ai_service import AIService
 
-    if not body.experience_ids:
-        raise HTTPException(status_code=400, detail="Inga erfarenheter angivna")
+    # Hämta alla erfarenheter för komplett tidslinje
+    all_experiences = db.query(ExperienceEntry).all()
+    if not all_experiences:
+        raise HTTPException(status_code=400, detail="Inga erfarenheter i kompetensbanken")
 
-    experiences = db.query(ExperienceEntry).filter(
-        ExperienceEntry.id.in_(body.experience_ids)
-    ).all()
+    matched_ids = set(body.matched_experience_ids)
+    exp_by_id   = {e.id: e for e in all_experiences}
 
-    exp_by_id = {e.id: e for e in experiences}
-
-    ordered_experiences = []
-    for eid in body.experience_ids:
-        exp = exp_by_id.get(eid)
-        if exp:
-            ordered_experiences.append({
-                "id": exp.id,
-                "title": exp.title,
-                "organization": exp.organization,
-                "start_date": exp.start_date,
-                "end_date": exp.end_date,
-                "is_current": exp.is_current,
-                "experience_type": exp.experience_type,
-                "description": exp.description,
-                "achievements": exp.achievements or [],
-            })
+    # Skicka bara matchade erfarenheter till AI för pitch + prestationshighlighting
+    matched_data = [
+        {
+            "id": exp.id,
+            "title": exp.title,
+            "organization": exp.organization,
+            "start_date": exp.start_date,
+            "end_date": exp.end_date,
+            "is_current": exp.is_current,
+            "experience_type": exp.experience_type,
+            "description": exp.description,
+            "achievements": exp.achievements or [],
+        }
+        for eid in body.matched_experience_ids
+        if (exp := exp_by_id.get(eid))
+    ]
 
     ai = AIService()
-    result = ai.generate_cv_for_job(
+    ai_result = ai.generate_cv_for_job(
         job_description=body.job_description,
-        experiences_data=ordered_experiences,
+        experiences_data=matched_data,
         skills=body.skills,
     )
 
-    # Berika AI-svaret med full DB-data
-    enriched = []
-    for item in result.get("experiences", []):
-        exp = exp_by_id.get(item["id"])
-        if exp:
-            enriched.append({
-                **item,
-                "title": exp.title,
-                "organization": exp.organization,
-                "start_date": exp.start_date,
-                "end_date": exp.end_date,
-                "is_current": exp.is_current,
-                "experience_type": exp.experience_type,
-            })
+    # Bygg upp AI:ns highlighted achievements per ID
+    ai_highlights = {
+        item["id"]: item.get("highlighted_achievements", [])
+        for item in ai_result.get("experiences", [])
+    }
 
-    result["experiences"] = enriched
-    result["skills"] = body.skills
-    return result
+    # Sortera alla erfarenheter i omvänd kronologisk ordning
+    def sort_key(e):
+        if e.is_current:
+            return "9999-99"
+        return e.start_date or "0000-00"
+
+    sorted_all = sorted(all_experiences, key=sort_key, reverse=True)
+
+    # Bygg komplett tidslinje: matchade får AI-prestationer, övriga sina egna
+    timeline = []
+    for exp in sorted_all:
+        is_matched = exp.id in matched_ids
+        achievements = (
+            ai_highlights.get(exp.id) or exp.achievements or []
+            if is_matched
+            else exp.achievements or []
+        )
+        timeline.append({
+            "id":                     exp.id,
+            "title":                  exp.title,
+            "organization":           exp.organization,
+            "start_date":             exp.start_date,
+            "end_date":               exp.end_date,
+            "is_current":             exp.is_current,
+            "experience_type":        exp.experience_type,
+            "is_matched":             is_matched,
+            "highlighted_achievements": achievements,
+        })
+
+    return {
+        "pitch":       ai_result.get("pitch", ""),
+        "experiences": timeline,
+        "skills":      body.skills,
+    }
+
+
+@router.post("/improvement-tips")
+async def get_improvement_tips(body: ImprovementTipsRequest, db: Session = Depends(get_db)):
+    """Genererar förbättringstips och föreslagna skills för att öka matchningspoängen."""
+    from app.services.ai_service import AIService
+
+    experiences = db.query(ExperienceEntry).filter(
+        ExperienceEntry.id.in_(body.matched_experience_ids)
+    ).all() if body.matched_experience_ids else []
+
+    experiences_data = [
+        {
+            "title":        e.title,
+            "organization": e.organization,
+            "description":  e.description,
+            "achievements": e.achievements or [],
+        }
+        for e in experiences
+    ]
+
+    ai = AIService()
+    return ai.generate_improvement_tips(
+        job_description=body.job_description,
+        overall_score=body.overall_score,
+        current_skills=body.current_skills,
+        missing_skills=body.missing_skills,
+        experiences_data=experiences_data,
+    )
 
 
 @router.post("/fetch-job-url")

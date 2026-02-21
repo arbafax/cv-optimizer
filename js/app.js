@@ -813,6 +813,9 @@ function displayMatchResult(result) {
 
         ${experiences.length > 0 ? `
         <div class="gen-cv-action">
+            <button id="tips-btn" class="btn btn-secondary" onclick="handleTips()">
+                💡 Tips
+            </button>
             <button id="gen-cv-btn" class="btn btn-primary" onclick="handleGenerateCV()">
                 ✨ Generera anpassat CV-utkast
             </button>
@@ -840,7 +843,7 @@ async function handleGenerateCV() {
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
                 job_description: lastJobDesc,
-                experience_ids: expIds,
+                matched_experience_ids: expIds,
                 skills,
             }),
         });
@@ -869,12 +872,14 @@ function displayGeneratedCV(data) {
         const dates = start ? `${start}–${end}` : '';
         const achievements = (e.highlighted_achievements || [])
             .map(a => `<li>${a}</li>`).join('');
+        const matchedClass = e.is_matched ? ' gen-cv-exp--matched' : '';
         return `
-            <div class="gen-cv-exp">
+            <div class="gen-cv-exp${matchedClass}">
                 <div class="gen-cv-exp-header">
                     <div>
                         <span class="gen-cv-exp-title">${e.title}</span>
                         ${e.organization ? `<span class="gen-cv-exp-org"> · ${e.organization}</span>` : ''}
+                        ${e.is_matched ? '<span class="gen-cv-match-badge">✦ Matchar jobbet</span>' : ''}
                     </div>
                     ${dates ? `<span class="gen-cv-exp-date">${dates}</span>` : ''}
                 </div>
@@ -909,6 +914,136 @@ function displayGeneratedCV(data) {
 
 function closeCVGenerateModal() {
     document.getElementById('cv-generate-modal').classList.add('hidden');
+    const genBtn = document.getElementById('gen-cv-btn');
+    if (genBtn) {
+        genBtn.disabled = false;
+        genBtn.innerHTML = '✨ Generera anpassat CV-utkast';
+    }
+}
+
+// ── Tips ────────────────────────────────────────────────────────────────────
+
+async function handleTips() {
+    const tipsBtn = document.getElementById('tips-btn');
+    tipsBtn.disabled = true;
+    tipsBtn.innerHTML = '<span class="spinner-small"></span> Analyserar...';
+
+    const currentSkills  = (lastMatchResult.skills ?? []).filter(s => s.score > 0).map(s => s.skill_name);
+    const missingSkills  = lastMatchResult.missing_skills ?? [];
+    const matchedExpIds  = (lastMatchResult.experiences ?? []).filter(e => e.score > 0).map(e => e.id);
+    const overallScore   = lastMatchResult.overall_score ?? 0;
+
+    try {
+        const response = await fetch(`${API_BASE_URL}/competence/improvement-tips`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                job_description:        lastJobDesc,
+                overall_score:          overallScore,
+                current_skills:         currentSkills,
+                missing_skills:         missingSkills,
+                matched_experience_ids: matchedExpIds,
+            }),
+        });
+
+        if (!response.ok) {
+            const err = await response.json();
+            throw new Error(err.detail || 'Kunde inte generera tips');
+        }
+
+        const data = await response.json();
+        displayTips(data, overallScore);
+
+    } catch (err) {
+        alert('Fel: ' + err.message);
+    } finally {
+        tipsBtn.disabled = false;
+        tipsBtn.innerHTML = '💡 Tips';
+    }
+}
+
+function displayTips(data, overallScore) {
+    const body = document.getElementById('tips-body');
+
+    const suggestedSkills = data.suggested_skills ?? [];
+    const tips            = data.tips ?? [];
+
+    const impactLabel = { high: 'Hög effekt', medium: 'Medel', low: 'Lägre' };
+    const impactClass = { high: 'tip-impact--high', medium: 'tip-impact--medium', low: 'tip-impact--low' };
+
+    const skillsHtml = suggestedSkills.map((s, i) => `
+        <div class="tip-skill-row" id="tip-skill-${i}">
+            <div class="tip-skill-info">
+                <span class="tip-skill-name">${s.skill_name}</span>
+                ${s.category ? `<span class="tip-skill-cat">${s.category}</span>` : ''}
+                <span class="tip-skill-reason">${s.reason}</span>
+            </div>
+            <button class="btn btn-secondary btn-sm" onclick="addSuggestedSkill('${s.skill_name.replace(/'/g, "\\'")}', '${(s.category || '').replace(/'/g, "\\'")}', ${i})">
+                + Lägg till
+            </button>
+        </div>
+    `).join('');
+
+    const tipsHtml = tips.map(t => `
+        <li class="tip-item">
+            <span class="tip-impact ${impactClass[t.impact] || ''}">${impactLabel[t.impact] || ''}</span>
+            ${t.tip}
+        </li>
+    `).join('');
+
+    body.innerHTML = `
+        <div class="tips-score-row">
+            <span class="tips-score-label">Nuvarande matchning</span>
+            <span class="tips-score-value ${scoreColor(overallScore)}">${overallScore} / 100</span>
+        </div>
+
+        ${suggestedSkills.length ? `
+        <div class="tips-section">
+            <h3 class="tips-section-title">Skills att lägga till</h3>
+            <p class="tips-section-desc">Dessa kompetenser nämns i annonsen och saknas i din bank. Klicka "+ Lägg till" för att direkt lägga till dem.</p>
+            <div class="tip-skills-list">${skillsHtml}</div>
+        </div>` : ''}
+
+        ${tipsHtml ? `
+        <div class="tips-section">
+            <h3 class="tips-section-title">Förbättringstips</h3>
+            <ul class="tips-list">${tipsHtml}</ul>
+        </div>` : ''}
+    `;
+
+    document.getElementById('tips-modal').classList.remove('hidden');
+}
+
+async function addSuggestedSkill(skillName, category, rowIndex) {
+    const row = document.getElementById(`tip-skill-${rowIndex}`);
+    const btn = row.querySelector('button');
+    btn.disabled = true;
+    btn.textContent = '…';
+
+    try {
+        const response = await fetch(`${API_BASE_URL}/competence/skills`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ skill_name: skillName, category: category || null }),
+        });
+
+        if (!response.ok) {
+            const err = await response.json();
+            throw new Error(err.detail || 'Kunde inte lägga till skill');
+        }
+
+        row.classList.add('tip-skill-row--added');
+        btn.textContent = '✓ Tillagd';
+
+    } catch (err) {
+        btn.disabled = false;
+        btn.textContent = '+ Lägg till';
+        alert('Fel: ' + err.message);
+    }
+}
+
+function closeTipsModal() {
+    document.getElementById('tips-modal').classList.add('hidden');
 }
 
 // Show status message

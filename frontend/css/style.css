@@ -1909,6 +1909,152 @@ body {
     font-size: 14px;
 }
 
+/* ══════════════ PERIOD EDIT ══════════════ */
+
+.bank-exp-date-row {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+}
+
+.bank-exp-date-empty {
+    color: var(--text-tertiary);
+    font-style: italic;
+}
+
+.btn-edit-period {
+    opacity: 0;
+    transition: opacity 0.15s;
+    font-size: 13px;
+    padding: 1px 4px;
+}
+.bank-exp-item:hover .btn-edit-period {
+    opacity: 1;
+}
+
+.period-edit-form {
+    margin: 6px 0 8px;
+    padding: 10px 14px;
+    background: var(--bg-secondary);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+}
+
+.period-edit-fields {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: flex-end;
+    gap: 10px;
+    margin-bottom: 10px;
+}
+
+.period-edit-field {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+.period-edit-field label {
+    font-size: 11px;
+    color: var(--text-secondary);
+    font-weight: 500;
+}
+.period-edit-check {
+    justify-content: flex-end;
+    padding-bottom: 4px;
+}
+.period-edit-check label {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 13px;
+    color: var(--text-primary);
+    cursor: pointer;
+}
+
+.form-input-small {
+    width: 130px;
+    padding: 4px 8px;
+    font-size: 13px;
+}
+
+.period-edit-actions {
+    display: flex;
+    gap: 8px;
+}
+
+/* ══════════════ IMPROVE ACHIEVEMENTS ══════════════ */
+
+.btn-improve-ach {
+    background: none;
+    border: 1px solid var(--accent);
+    color: var(--accent);
+    border-radius: 4px;
+    padding: 2px 8px;
+    font-size: 12px;
+    cursor: pointer;
+    margin-left: 8px;
+    transition: background 0.15s, color 0.15s;
+}
+.btn-improve-ach:hover:not(:disabled) {
+    background: var(--accent);
+    color: #fff;
+}
+.btn-improve-ach:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+.ach-improve-loading,
+.ach-improve-error {
+    font-size: 13px;
+    color: var(--text-secondary);
+    padding: 6px 0;
+    margin: 0;
+}
+.ach-improve-error { color: var(--danger, #e74c3c); }
+
+.ach-improve-box {
+    background: var(--bg-secondary);
+    border: 1px solid var(--accent);
+    border-radius: 8px;
+    padding: 12px 16px;
+    margin: 10px 0;
+}
+
+.ach-improve-header {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 10px;
+}
+.ach-improve-title {
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--accent);
+}
+.ach-improve-count {
+    font-size: 12px;
+    color: var(--text-tertiary);
+    margin-left: auto;
+}
+
+.ach-improve-list {
+    list-style: disc;
+    margin: 0 0 12px 18px;
+    padding: 0;
+}
+.ach-improve-list li {
+    font-size: 13px;
+    color: var(--text-primary);
+    padding: 3px 0;
+    line-height: 1.5;
+}
+
+.ach-improve-actions {
+    display: flex;
+    gap: 8px;
+}
+
 /* ══════════════ HIDDEN ══════════════ */
 
 .hidden { display: none !important; }

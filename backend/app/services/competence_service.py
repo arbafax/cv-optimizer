@@ -576,6 +576,28 @@ def add_experience_skill(experience_id: int, skill_name: str, db: Session) -> li
     return exp.related_skills
 
 
+def update_experience_period(
+    experience_id: int,
+    start_date: str | None,
+    end_date: str | None,
+    is_current: bool,
+    db: Session,
+) -> dict:
+    """Uppdatera tidsperiod på en erfarenhetspost."""
+    exp = db.query(ExperienceEntry).filter(ExperienceEntry.id == experience_id).first()
+    if not exp:
+        raise ValueError("Erfarenhet hittades inte")
+    exp.start_date = start_date.strip() if start_date else None
+    exp.end_date = None if is_current else (end_date.strip() if end_date else None)
+    exp.is_current = is_current
+    db.commit()
+    return {
+        "start_date": exp.start_date,
+        "end_date": exp.end_date,
+        "is_current": exp.is_current,
+    }
+
+
 def update_experience_description(experience_id: int, description: str, db: Session) -> str | None:
     """Uppdatera beskrivningen på en erfarenhetspost."""
     exp = db.query(ExperienceEntry).filter(ExperienceEntry.id == experience_id).first()

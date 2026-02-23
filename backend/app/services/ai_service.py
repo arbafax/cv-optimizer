@@ -441,3 +441,46 @@ Personens matchande erfarenheter:
         )
 
         return json.loads(response.choices[0].message.content)
+
+    def improve_achievements(
+        self,
+        achievements: list[str],
+        title: str = "",
+        organization: str = "",
+    ) -> list[str]:
+        """
+        Rensar duplikat och förbättrar formuleringarna i en lista av prestationer.
+        """
+        context = f" för rollen {title}" if title else ""
+        if organization:
+            context += f" på {organization}"
+
+        items = "\n".join(f"- {a}" for a in achievements)
+
+        system_prompt = """Du är en expert på CV-skrivning.
+Du får en lista med prestationer från en erfarenhet i ett CV.
+Din uppgift är att:
+1. Ta bort exakta och nära duplikat (behåll den bästa versionen)
+2. Förbättra formuleringarna så att de är tydliga, konkreta och slagkraftiga
+3. Behålla alla unika prestationer – lägg inte till nya
+
+Svara EXAKT med JSON:
+{"achievements": ["<prestation 1>", "<prestation 2>", ...]}
+
+Svara på svenska."""
+
+        user_prompt = f"Erfarenhet{context}:\n\n{items}"
+
+        logger.info(f"Förbättrar prestationer för: {title}")
+        response = self.client.chat.completions.create(
+            model="gpt-4o",
+            messages=[
+                {"role": "system", "content": system_prompt},
+                {"role": "user", "content": user_prompt},
+            ],
+            temperature=0.2,
+            response_format={"type": "json_object"},
+        )
+
+        result = json.loads(response.choices[0].message.content)
+        return result.get("achievements", achievements)

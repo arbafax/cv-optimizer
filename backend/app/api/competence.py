@@ -15,6 +15,7 @@ from app.services.competence_service import (
     add_achievement, update_achievement, delete_achievement,
     add_experience_skill, remove_experience_skill, create_experience,
     update_experience_description,
+    update_experience_period,
 )
 
 
@@ -57,6 +58,16 @@ class ImprovementTipsRequest(BaseModel):
 
 class UpdateDescriptionRequest(BaseModel):
     description: str
+
+
+class UpdatePeriodRequest(BaseModel):
+    start_date: str | None = None
+    end_date: str | None = None
+    is_current: bool = False
+
+
+class ReplaceAchievementsRequest(BaseModel):
+    achievements: list[str]
 
 
 class CreateExperienceRequest(BaseModel):
@@ -264,6 +275,42 @@ async def remove_achievement(
     return {"achievements": achievements}
 
 
+@router.put("/experiences/{experience_id}/achievements")
+async def replace_achievements(
+    experience_id: int, body: ReplaceAchievementsRequest, db: Session = Depends(get_db),
+):
+    """Ersätt hela prestationslistan för en erfarenhetspost."""
+    exp = db.get(ExperienceEntry, experience_id)
+    if not exp:
+        raise HTTPException(status_code=404, detail="Erfarenhet hittades inte")
+    exp.achievements = body.achievements
+    from sqlalchemy.orm.attributes import flag_modified
+    flag_modified(exp, "achievements")
+    db.commit()
+    return {"achievements": exp.achievements}
+
+
+@router.post("/experiences/{experience_id}/improve-achievements")
+async def improve_achievements(
+    experience_id: int, db: Session = Depends(get_db),
+):
+    """Analysera och förbättra prestationslistan med AI."""
+    from app.services.ai_service import AIService
+    exp = db.get(ExperienceEntry, experience_id)
+    if not exp:
+        raise HTTPException(status_code=404, detail="Erfarenhet hittades inte")
+    if not exp.achievements:
+        raise HTTPException(status_code=400, detail="Inga prestationer att förbättra")
+
+    ai = AIService()
+    improved = ai.improve_achievements(
+        achievements=exp.achievements,
+        title=exp.title or "",
+        organization=exp.organization or "",
+    )
+    return {"improved": improved, "original": exp.achievements}
+
+
 @router.put("/experiences/{experience_id}/description")
 async def update_exp_description(
     experience_id: int, body: UpdateDescriptionRequest, db: Session = Depends(get_db),
@@ -274,6 +321,20 @@ async def update_exp_description(
     except ValueError as e:
         raise HTTPException(status_code=404, detail=str(e))
     return {"description": description}
+
+
+@router.put("/experiences/{experience_id}/period")
+async def update_exp_period(
+    experience_id: int, body: UpdatePeriodRequest, db: Session = Depends(get_db),
+):
+    """Uppdatera tidsperiod på en erfarenhetspost."""
+    try:
+        result = update_experience_period(
+            experience_id, body.start_date, body.end_date, body.is_current, db
+        )
+    except ValueError as e:
+        raise HTTPException(status_code=404, detail=str(e))
+    return result
 
 
 @router.post("/experiences/{experience_id}/skills")

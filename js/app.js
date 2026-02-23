@@ -914,42 +914,32 @@ function displayGeneratedCV(data) {
     document.getElementById('cv-generate-modal').classList.remove('hidden');
 }
 
+function renderCVMarkdown(d) {
+    // Render {{experiences}}
+    const experiencesBlock = (d.experiences || []).map(e => {
+        const start = e.start_date || '';
+        const end   = e.is_current ? 'nu' : (e.end_date || '');
+        const dates = start ? ` *(${start}–${end})*` : '';
+        const org   = e.organization ? ` · ${e.organization}` : '';
+        const achievements = (e.highlighted_achievements || [])
+            .map(a => `- ${a}`)
+            .join('\n');
+        return `### ${e.title}${org}${dates}${achievements ? '\n' + achievements : ''}`;
+    }).join('\n\n');
+
+    // Render {{skills}}
+    const skillsBlock = (d.skills || []).join(' · ');
+
+    return CV_TEMPLATE
+        .replace('{{pitch}}',       d.pitch || '')
+        .replace('{{experiences}}', experiencesBlock)
+        .replace('{{skills}}',      skillsBlock);
+}
+
 function downloadCVAsMarkdown() {
     if (!lastGeneratedCV) return;
 
-    const d = lastGeneratedCV;
-    const lines = [];
-
-    if (d.pitch) {
-        lines.push('## Profil\n');
-        lines.push(d.pitch);
-        lines.push('');
-    }
-
-    if (d.experiences && d.experiences.length > 0) {
-        lines.push('## Erfarenheter\n');
-        for (const e of d.experiences) {
-            const start = e.start_date || '';
-            const end   = e.is_current ? 'nu' : (e.end_date || '');
-            const dates = start ? ` *(${start}–${end})*` : '';
-            const org   = e.organization ? ` · ${e.organization}` : '';
-            lines.push(`### ${e.title}${org}${dates}`);
-            if (e.highlighted_achievements && e.highlighted_achievements.length > 0) {
-                for (const a of e.highlighted_achievements) {
-                    lines.push(`- ${a}`);
-                }
-            }
-            lines.push('');
-        }
-    }
-
-    if (d.skills && d.skills.length > 0) {
-        lines.push('## Relevanta kompetenser\n');
-        lines.push(d.skills.join(' · '));
-        lines.push('');
-    }
-
-    const markdown = lines.join('\n');
+    const markdown = renderCVMarkdown(lastGeneratedCV);
     const blob = new Blob([markdown], { type: 'text/markdown;charset=utf-8' });
     const url  = URL.createObjectURL(blob);
     const a    = document.createElement('a');
@@ -1337,7 +1327,11 @@ function renderExperiencesTab() {
                                             ${e.is_current ? '<span class="bank-exp-badge">Nuvarande</span>' : ''}
                                             ${sourceCount > 1 ? `<span class="bank-exp-source-badge">${sourceCount} CV:n</span>` : ''}
                                         </h4>
-                                        ${dateStr ? `<div class="bank-exp-date">${dateStr}</div>` : ''}
+                                        <div class="bank-exp-date-row" id="date-row-${e.id}">
+                                            ${dateStr ? `<span class="bank-exp-date">${dateStr}</span>` : '<span class="bank-exp-date bank-exp-date-empty">Ingen tidsperiod</span>'}
+                                            <button class="btn-icon btn-icon-small btn-edit-period" onclick="editPeriod(${e.id}, '${e.start_date || ''}', '${e.end_date || ''}', ${e.is_current})" title="Redigera tidsperiod">&#9998;</button>
+                                        </div>
+                                        <div id="period-form-${e.id}"></div>
                                     </div>
                                     <div class="bank-exp-actions">
                                         <button class="btn-icon btn-icon-danger" onclick="event.stopPropagation(); deleteExperience(${e.id}, '${e.title.replace(/'/g, "\\'")}')" title="Ta bort erfarenhet">&times;</button>
@@ -1352,10 +1346,12 @@ function renderExperiencesTab() {
                                     <div class="bank-exp-achievements-label">
                                         Huvudsakliga prestationer
                                         <button class="btn-icon btn-icon-small" onclick="showAddAchievementForm(${e.id})" title="Lägg till prestation">+</button>
+                                        ${achievements.length > 0 ? `<button class="btn-improve-ach" onclick="improveAchievements(${e.id})" title="Rensa duplikat och förbättra formuleringar">✨ Förbättra</button>` : ''}
                                     </div>
                                     <div id="add-achievement-form-${e.id}"></div>
+                                    <div id="improve-achievement-preview-${e.id}"></div>
                                     ${achievements.length > 0 ? `
-                                        <ul>
+                                        <ul id="ach-list-${e.id}">
                                             ${achievements.map((a, idx) => `
                                                 <li>
                                                     <span class="achievement-text" id="ach-text-${e.id}-${idx}">${a}</span>
@@ -1827,6 +1823,170 @@ async function submitNewExperience() {
     } catch (err) {
         alert(err.message);
     }
+}
+
+// ── Improve Achievements ──────────────────────────────────
+
+async function improveAchievements(expId) {
+    const btn = document.querySelector(`button[onclick="improveAchievements(${expId})"]`);
+    const preview = document.getElementById(`improve-achievement-preview-${expId}`);
+    if (!btn || !preview) return;
+
+    btn.disabled = true;
+    btn.textContent = '⏳';
+    preview.innerHTML = '<p class="ach-improve-loading">Analyserar prestationer...</p>';
+
+    try {
+        const res = await fetch(`${API_BASE_URL}/competence/experiences/${expId}/improve-achievements`, {
+            method: 'POST',
+        });
+        if (!res.ok) {
+            const err = await res.json();
+            throw new Error(err.detail || 'Kunde inte förbättra prestationer');
+        }
+        const data = await res.json();
+        showImprovePreview(expId, data.improved, data.original);
+    } catch (err) {
+        preview.innerHTML = `<p class="ach-improve-error">❌ ${err.message}</p>`;
+        btn.disabled = false;
+        btn.textContent = '✨ Förbättra';
+    }
+}
+
+function showImprovePreview(expId, improved, original) {
+    const preview = document.getElementById(`improve-achievement-preview-${expId}`);
+    if (!preview) return;
+
+    const listHTML = improved.map((a, i) => `
+        <li class="ach-improve-item">
+            <span>${a}</span>
+        </li>
+    `).join('');
+
+    // Escape for inline JSON attribute
+    const improvedJSON = JSON.stringify(improved).replace(/'/g, '&#39;');
+
+    preview.innerHTML = `
+        <div class="ach-improve-box">
+            <div class="ach-improve-header">
+                <span class="ach-improve-title">✨ Förslag på förbättrad lista</span>
+                <span class="ach-improve-count">${improved.length} prestationer</span>
+            </div>
+            <ul class="ach-improve-list">${listHTML}</ul>
+            <div class="ach-improve-actions">
+                <button class="btn btn-primary btn-small" onclick="acceptImprovedAchievements(${expId}, this)">Acceptera</button>
+                <button class="btn btn-ghost btn-small" onclick="cancelImprovedAchievements(${expId})">Avbryt</button>
+            </div>
+        </div>
+    `;
+    // Store improved list on the accept button for retrieval
+    preview.querySelector('.btn-primary')._improvedData = improved;
+}
+
+async function acceptImprovedAchievements(expId, btn) {
+    const improved = btn._improvedData;
+    if (!improved) return;
+
+    btn.disabled = true;
+    btn.textContent = '⏳';
+
+    try {
+        const res = await fetch(`${API_BASE_URL}/competence/experiences/${expId}/achievements`, {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ achievements: improved }),
+        });
+        if (!res.ok) {
+            const err = await res.json();
+            throw new Error(err.detail || 'Kunde inte spara prestationer');
+        }
+        await loadBankData();
+    } catch (err) {
+        alert(err.message);
+        btn.disabled = false;
+        btn.textContent = 'Acceptera';
+    }
+}
+
+function cancelImprovedAchievements(expId) {
+    const preview = document.getElementById(`improve-achievement-preview-${expId}`);
+    if (preview) preview.innerHTML = '';
+
+    const btn = document.querySelector(`button[onclick="improveAchievements(${expId})"]`);
+    if (btn) {
+        btn.disabled = false;
+        btn.textContent = '✨ Förbättra';
+    }
+}
+
+// ── Edit Period ───────────────────────────────────────────
+
+function editPeriod(expId, startDate, endDate, isCurrent) {
+    const form = document.getElementById(`period-form-${expId}`);
+    const row  = document.getElementById(`date-row-${expId}`);
+    if (!form || !row) return;
+
+    row.style.display = 'none';
+    form.innerHTML = `
+        <div class="period-edit-form">
+            <div class="period-edit-fields">
+                <div class="period-edit-field">
+                    <label>Startdatum</label>
+                    <input type="text" id="period-start-${expId}" value="${startDate}" placeholder="T.ex. 2020-01" class="form-input form-input-small" />
+                </div>
+                <div class="period-edit-field" id="period-end-wrap-${expId}" ${isCurrent ? 'style="display:none"' : ''}>
+                    <label>Slutdatum</label>
+                    <input type="text" id="period-end-${expId}" value="${endDate}" placeholder="T.ex. 2023-06" class="form-input form-input-small" />
+                </div>
+                <div class="period-edit-field period-edit-check">
+                    <label>
+                        <input type="checkbox" id="period-current-${expId}" ${isCurrent ? 'checked' : ''}
+                               onchange="toggleCurrentCheckbox(${expId})" />
+                        Nuvarande
+                    </label>
+                </div>
+            </div>
+            <div class="period-edit-actions">
+                <button class="btn btn-primary btn-small" onclick="savePeriod(${expId})">Spara</button>
+                <button class="btn btn-ghost btn-small" onclick="cancelEditPeriod(${expId})">Avbryt</button>
+            </div>
+        </div>
+    `;
+    document.getElementById(`period-start-${expId}`).focus();
+}
+
+function toggleCurrentCheckbox(expId) {
+    const isCurrent = document.getElementById(`period-current-${expId}`).checked;
+    const wrap = document.getElementById(`period-end-wrap-${expId}`);
+    if (wrap) wrap.style.display = isCurrent ? 'none' : '';
+}
+
+async function savePeriod(expId) {
+    const startDate = document.getElementById(`period-start-${expId}`).value.trim() || null;
+    const isCurrent = document.getElementById(`period-current-${expId}`).checked;
+    const endDate   = isCurrent ? null : (document.getElementById(`period-end-${expId}`).value.trim() || null);
+
+    try {
+        const res = await fetch(`${API_BASE_URL}/competence/experiences/${expId}/period`, {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ start_date: startDate, end_date: endDate, is_current: isCurrent }),
+        });
+        if (!res.ok) {
+            const err = await res.json();
+            throw new Error(err.detail || 'Kunde inte spara tidsperiod');
+        }
+        await loadBankData();
+    } catch (err) {
+        alert(err.message);
+    }
+}
+
+function cancelEditPeriod(expId) {
+    const form = document.getElementById(`period-form-${expId}`);
+    const row  = document.getElementById(`date-row-${expId}`);
+    if (form) form.innerHTML = '';
+    if (row)  row.style.display = '';
 }
 
 // Merge ALL CVs

@@ -19,8 +19,9 @@ const fetchUrlStatus = document.getElementById('fetch-url-status');
 // State
 let selectedCV      = null;
 let allCVs          = [];
-let lastMatchResult = null;
-let lastJobDesc     = '';
+let lastMatchResult  = null;
+let lastJobDesc      = '';
+let lastGeneratedCV  = null;
 
 // ── Navigation ────────────────────────────────────────────
 function showView(viewId, navEl) {
@@ -909,7 +910,53 @@ function displayGeneratedCV(data) {
         </div>` : ''}
     `;
 
+    lastGeneratedCV = data;
     document.getElementById('cv-generate-modal').classList.remove('hidden');
+}
+
+function downloadCVAsMarkdown() {
+    if (!lastGeneratedCV) return;
+
+    const d = lastGeneratedCV;
+    const lines = [];
+
+    if (d.pitch) {
+        lines.push('## Profil\n');
+        lines.push(d.pitch);
+        lines.push('');
+    }
+
+    if (d.experiences && d.experiences.length > 0) {
+        lines.push('## Erfarenheter\n');
+        for (const e of d.experiences) {
+            const start = e.start_date || '';
+            const end   = e.is_current ? 'nu' : (e.end_date || '');
+            const dates = start ? ` *(${start}–${end})*` : '';
+            const org   = e.organization ? ` · ${e.organization}` : '';
+            lines.push(`### ${e.title}${org}${dates}`);
+            if (e.highlighted_achievements && e.highlighted_achievements.length > 0) {
+                for (const a of e.highlighted_achievements) {
+                    lines.push(`- ${a}`);
+                }
+            }
+            lines.push('');
+        }
+    }
+
+    if (d.skills && d.skills.length > 0) {
+        lines.push('## Relevanta kompetenser\n');
+        lines.push(d.skills.join(' · '));
+        lines.push('');
+    }
+
+    const markdown = lines.join('\n');
+    const blob = new Blob([markdown], { type: 'text/markdown;charset=utf-8' });
+    const url  = URL.createObjectURL(blob);
+    const a    = document.createElement('a');
+    a.href     = url;
+    a.download = 'cv-utkast.md';
+    a.click();
+    URL.revokeObjectURL(url);
 }
 
 function closeCVGenerateModal() {
@@ -1131,11 +1178,11 @@ function renderBankContent() {
     container.innerHTML = `
         <div class="bank-tabs">
             <button class="bank-tab ${activeBankTab === 'skills' ? 'active' : ''}"
-                    onclick="switchBankTab('skills')">
+                    onclick="switchBankTab('skills', this)">
                 🎯 Skills (${bankSkills.length})
             </button>
             <button class="bank-tab ${activeBankTab === 'experiences' ? 'active' : ''}"
-                    onclick="switchBankTab('experiences')">
+                    onclick="switchBankTab('experiences', this)">
                 💼 Erfarenheter (${bankExperiences.length})
             </button>
         </div>
@@ -1145,10 +1192,10 @@ function renderBankContent() {
     renderActiveBankTab();
 }
 
-function switchBankTab(tab) {
+function switchBankTab(tab, el) {
     activeBankTab = tab;
     document.querySelectorAll('.bank-tab').forEach(btn => btn.classList.remove('active'));
-    event.currentTarget.classList.add('active');
+    if (el) el.classList.add('active');
     renderActiveBankTab();
 }
 

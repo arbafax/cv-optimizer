@@ -70,29 +70,14 @@ async def upload_cv(
         if not cv_structure:
             raise HTTPException(status_code=500, detail="Misslyckades med att strukturera CV-data")
 
-        # Generate embeddings
-        full_content_text = f"{cv_structure.personal_info.full_name}\n{cv_structure.summary or ''}\n"
-        full_content_text += "\n".join([
-            f"{exp.position} at {exp.company}"
-            for exp in cv_structure.work_experience
-        ])
-        full_embedding    = ai_service.generate_embeddings(full_content_text)
-        summary_text      = cv_structure.summary or cv_structure.personal_info.full_name
-        summary_embedding = ai_service.generate_embeddings(summary_text)
-        skills_text       = ", ".join(cv_structure.skills)
-        skills_embedding  = ai_service.generate_embeddings(skills_text) if skills_text else None
-
         # Använd filnamnet utan ändelse som titel
         title = os.path.splitext(file.filename)[0]
 
         db_cv = CV(
-            filename               = file.filename,
-            title                  = title,
-            original_text          = cv_text,
-            structured_data        = cv_structure.model_dump(),
-            full_content_embedding = full_embedding,
-            summary_embedding      = summary_embedding,
-            skills_embedding       = skills_embedding,
+            filename        = file.filename,
+            title           = title,
+            original_text   = cv_text,
+            structured_data = cv_structure.model_dump(),
         )
 
         db.add(db_cv)

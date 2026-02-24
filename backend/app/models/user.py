@@ -10,6 +10,7 @@ class User(Base):
     email           = Column(String(255), nullable=False, unique=True, index=True)
     name            = Column(String(255), nullable=False)
     phone           = Column(String(50), nullable=True)
+    address         = Column(String(500), nullable=True)
     hashed_password = Column(String(255), nullable=False)
     created_at      = Column(DateTime(timezone=True), server_default=func.now())
 

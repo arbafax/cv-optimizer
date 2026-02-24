@@ -2397,6 +2397,32 @@ body {
     flex-wrap: wrap;
 }
 
+/* ══════════════ ACCOUNT VIEW ══════════════ */
+
+.account-layout {
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+    max-width: 520px;
+}
+
+.sidebar-user-clickable {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    flex: 1;
+    min-width: 0;
+    cursor: pointer;
+    border-radius: var(--r-sm);
+    padding: 4px 6px;
+    margin: -4px -6px;
+    transition: background var(--t);
+}
+
+.sidebar-user-clickable:hover {
+    background: rgba(255,255,255,.06);
+}
+
 /* ══════════════ HIDDEN ══════════════ */
 
 .hidden { display: none !important; }

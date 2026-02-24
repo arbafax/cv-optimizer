@@ -29,6 +29,7 @@ class UpdateProfileRequest(BaseModel):
     name: str | None = None
     email: str | None = None
     phone: str | None = None
+    address: str | None = None
 
 
 class ChangePasswordRequest(BaseModel):
@@ -39,7 +40,13 @@ class ChangePasswordRequest(BaseModel):
 # ── Helpers ───────────────────────────────────────────────
 
 def _user_response(user: User) -> dict:
-    return {"id": user.id, "name": user.name, "email": user.email, "phone": user.phone}
+    return {
+        "id":      user.id,
+        "name":    user.name,
+        "email":   user.email,
+        "phone":   user.phone,
+        "address": user.address,
+    }
 
 
 def _set_auth_cookie(response: Response, user_id: int) -> None:
@@ -119,6 +126,8 @@ async def update_me(
         current_user.name = body.name.strip()
     if body.phone is not None:
         current_user.phone = body.phone.strip() or None
+    if body.address is not None:
+        current_user.address = body.address.strip() or None
     db.commit()
     db.refresh(current_user)
     return _user_response(current_user)

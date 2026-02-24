@@ -74,9 +74,9 @@
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
             Matcha jobb
         </a>
-        <a href="#" class="nav-item" onclick="showView('profiles', this); loadProfiles()">
+        <a href="#" class="nav-item" onclick="showView('sokprofil', this); loadSokprofil()">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M22 19a2 2 0 01-2 2H4a2 2 0 01-2-2V5a2 2 0 012-2h5l2 3h9a2 2 0 012 2z"/></svg>
-            Sökprofiler
+            Sökprofil
         </a>
         <a href="#" class="nav-item" id="nav-account" onclick="showView('account', this); loadAccountView()">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
@@ -338,33 +338,103 @@
         </div>
     </div>
 
-</main>
-
-    <!-- ── PROFILES VIEW ── -->
-    <div id="view-profiles" class="view">
+    <!-- ── SÖKPROFIL VIEW ── -->
+    <div id="view-sokprofil" class="view">
         <div class="view-header">
             <div>
-                <h1>Sökprofiler</h1>
-                <p class="view-subtitle">Spara jobbsökningar med matchresultat och CV-utkast.</p>
-            </div>
-            <div class="view-header-actions">
-                <button class="btn btn-primary" onclick="showCreateProfileForm()">+ Ny profil</button>
+                <h1>Sökprofil</h1>
+                <p class="view-subtitle">Hur du presenterar dig och vad du söker.</p>
             </div>
         </div>
 
-        <div class="profiles-layout">
-            <div class="profiles-list-panel">
-                <div id="profiles-list">
-                    <div class="empty-hint">Inga profiler ännu</div>
+        <div class="card sokprofil-card">
+            <div class="form-group">
+                <label for="sp-public-name">Publikt namn</label>
+                <input type="text" id="sp-public-name" class="form-input" placeholder="Ditt namn som visas för arbetsgivare">
+            </div>
+            <div class="form-group">
+                <label for="sp-public-phone">Publikt telefonnummer</label>
+                <input type="tel" id="sp-public-phone" class="form-input" placeholder="+46 70 000 00 00">
+            </div>
+            <div class="form-group">
+                <label for="sp-roles">Roller</label>
+                <input type="text" id="sp-roles" class="form-input" placeholder="t.ex. Frontend-utvecklare, UX-designer">
+                <span class="form-hint">Separera med kommatecken</span>
+            </div>
+            <div class="form-group">
+                <label for="sp-city">Önskad ort</label>
+                <input type="text" id="sp-city" class="form-input" placeholder="t.ex. Stockholm, Göteborg">
+            </div>
+
+            <div class="form-group">
+                <label>Önskad anställningsform</label>
+                <div class="checkbox-group">
+                    <label class="checkbox-label">
+                        <input type="checkbox" id="sp-emp-heltid" value="Heltid">
+                        <span>Heltid</span>
+                    </label>
+                    <label class="checkbox-label">
+                        <input type="checkbox" id="sp-emp-deltid" value="Deltid">
+                        <span>Deltid</span>
+                    </label>
+                    <label class="checkbox-label">
+                        <input type="checkbox" id="sp-emp-timmar" value="Timmar">
+                        <span>Timmar</span>
+                    </label>
                 </div>
             </div>
-            <div class="profiles-detail-panel" id="profiles-detail-panel">
-                <div class="profiles-empty-detail">
-                    <p>Välj en profil till vänster för att se detaljer</p>
+
+            <div class="form-group">
+                <label>Önskad arbetsplats</label>
+                <div class="checkbox-group">
+                    <label class="checkbox-label">
+                        <input type="checkbox" id="sp-wp-plats" value="På plats">
+                        <span>På plats</span>
+                    </label>
+                    <label class="checkbox-label">
+                        <input type="checkbox" id="sp-wp-hybrid" value="Hybrid">
+                        <span>Hybrid</span>
+                    </label>
+                    <label class="checkbox-label">
+                        <input type="checkbox" id="sp-wp-distans" value="Distans">
+                        <span>Distans</span>
+                    </label>
                 </div>
             </div>
+
+            <div class="form-group">
+                <div class="toggle-row">
+                    <div>
+                        <span class="toggle-label">Resbar</span>
+                        <span class="form-hint">Villig att pendla eller resa i tjänsten</span>
+                    </div>
+                    <label class="toggle-switch">
+                        <input type="checkbox" id="sp-commute">
+                        <span class="toggle-slider"></span>
+                    </label>
+                </div>
+            </div>
+
+            <div class="form-group">
+                <div class="toggle-row">
+                    <div>
+                        <span class="toggle-label">Sökbar</span>
+                        <span class="form-hint">Visa din profil för rekryterare</span>
+                    </div>
+                    <label class="toggle-switch">
+                        <input type="checkbox" id="sp-searchable">
+                        <span class="toggle-slider"></span>
+                    </label>
+                </div>
+            </div>
+
+            <div id="sp-status"></div>
+            <button class="btn btn-primary" onclick="saveSokprofil()">Spara sökprofil</button>
         </div>
     </div>
+
+</main>
+
 
 <!-- ════════════════════════════════ URL-BLOCKED POPUP ════════════════════════════════ -->
 <div id="url-blocked-popup" class="url-blocked-popup hidden">

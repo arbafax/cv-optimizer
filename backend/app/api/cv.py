@@ -8,7 +8,9 @@ import logging
 
 from app.core.database import get_db
 from app.core.config import settings
+from app.core.auth import get_current_user
 from app.models.cv import CV
+from app.models.user import User
 from app.schemas.cv import CVResponse, CVStructure, CVUpdateTitle
 from app.services.pdf_parser import PDFParser
 from app.services.ai_service import AIService
@@ -29,7 +31,8 @@ os.makedirs(settings.UPLOAD_DIR, exist_ok=True)
 @router.post("/upload", response_model=CVResponse, status_code=201)
 async def upload_cv(
     file: UploadFile = File(...),
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
 ):
     """
     Ladda upp en CV-PDF, extrahera text och strukturera med AI.
@@ -74,6 +77,7 @@ async def upload_cv(
         title = os.path.splitext(file.filename)[0]
 
         db_cv = CV(
+            user_id         = current_user.id,
             filename        = file.filename,
             title           = title,
             original_text   = cv_text,
@@ -112,10 +116,11 @@ async def upload_cv(
 async def list_cvs(
     skip: int = 0,
     limit: int = 100,
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
 ):
     """Lista alla uppladdade CV:n."""
-    cvs = db.query(CV).offset(skip).limit(limit).all()
+    cvs = db.query(CV).filter(CV.user_id == current_user.id).offset(skip).limit(limit).all()
     return [
         CVResponse(
             id              = cv.id,
@@ -129,9 +134,13 @@ async def list_cvs(
 
 
 @router.get("/{cv_id}", response_model=CVResponse)
-async def get_cv(cv_id: int, db: Session = Depends(get_db)):
+async def get_cv(
+    cv_id: int,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
     """Hämta ett specifikt CV med ID."""
-    cv = db.query(CV).filter(CV.id == cv_id).first()
+    cv = db.query(CV).filter(CV.id == cv_id, CV.user_id == current_user.id).first()
     if not cv:
         raise HTTPException(status_code=404, detail="CV hittades inte")
     return CVResponse(
@@ -147,10 +156,11 @@ async def get_cv(cv_id: int, db: Session = Depends(get_db)):
 async def update_cv_title(
     cv_id: int,
     body: CVUpdateTitle,
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
 ):
     """Uppdatera titeln på ett CV."""
-    cv = db.query(CV).filter(CV.id == cv_id).first()
+    cv = db.query(CV).filter(CV.id == cv_id, CV.user_id == current_user.id).first()
     if not cv:
         raise HTTPException(status_code=404, detail="CV hittades inte")
 
@@ -170,12 +180,16 @@ async def update_cv_title(
 
 
 @router.delete("/{cv_id}")
-async def delete_cv(cv_id: int, db: Session = Depends(get_db)):
+async def delete_cv(
+    cv_id: int,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
     """
     Radera ett CV och bygg automatiskt om kompetensbanken
     från kvarvarande CV:n.
     """
-    cv = db.query(CV).filter(CV.id == cv_id).first()
+    cv = db.query(CV).filter(CV.id == cv_id, CV.user_id == current_user.id).first()
     if not cv:
         raise HTTPException(status_code=404, detail="CV hittades inte")
 
@@ -186,9 +200,9 @@ async def delete_cv(cv_id: int, db: Session = Depends(get_db)):
     db.commit()
     logger.info(f"Raderade CV {cv_id} ({cv_name})")
 
-    # Hämta kvarvarande CV:n och bygg om banken
-    remaining_cvs = db.query(CV).all()
-    result = rebuild_bank(remaining_cvs, db)
+    # Hämta kvarvarande CV:n för denna användare och bygg om banken
+    remaining_cvs = db.query(CV).filter(CV.user_id == current_user.id).all()
+    result = rebuild_bank(remaining_cvs, db, current_user.id)
     logger.info(
         f"Ombyggd kompetensbank: {result['total_skills_added']} skills, "
         f"{result['total_experiences_added']} erfarenheter från "

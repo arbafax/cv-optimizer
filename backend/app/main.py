@@ -3,15 +3,18 @@ from fastapi.middleware.cors import CORSMiddleware
 import logging
 from app.core.config import settings
 from app.core.database import engine, Base
-from sqlalchemy import text
 
 # Import routers
 from app.api import cv, optimize
 from app.api.competence import router as competence_router
+from app.api.auth import router as auth_router
+from app.api.profiles import router as profiles_router
 
 # Import all models so Base.metadata knows about them
-from app.models import cv as cv_models  # noqa: F401
+from app.models import cv as cv_models               # noqa: F401
 from app.models import competence as competence_models  # noqa: F401
+from app.models import user as user_models           # noqa: F401
+from app.models import search_profile as sp_models   # noqa: F401
 
 # Configure logging
 logging.basicConfig(
@@ -19,87 +22,18 @@ logging.basicConfig(
     format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
 )
 
-# Create database tables
+# Create all database tables
 Base.metadata.create_all(bind=engine)
-
-with engine.connect() as conn:
-    conn.execute(
-        text(
-            """
-        ALTER TABLE cvs ADD COLUMN IF NOT EXISTS title VARCHAR
-    """
-        )
-    )
-    conn.commit()
-
-with engine.connect() as conn:
-    conn.execute(
-        text(
-            """
-        ALTER TABLE skills_collection 
-        ADD COLUMN IF NOT EXISTS source_cv_ids JSONB NOT NULL DEFAULT '[]'
-    """
-        )
-    )
-    conn.execute(
-        text(
-            """
-        ALTER TABLE experiences_pool 
-        ADD COLUMN IF NOT EXISTS is_current BOOLEAN NOT NULL DEFAULT FALSE
-    """
-        )
-    )
-    conn.commit()
-
-with engine.connect() as conn:
-    conn.execute(
-        text(
-            "ALTER TABLE experiences_pool ADD COLUMN IF NOT EXISTS related_skills JSONB DEFAULT '[]'"
-        )
-    )
-    conn.execute(
-        text(
-            "ALTER TABLE experiences_pool ADD COLUMN IF NOT EXISTS source_cv_ids JSONB DEFAULT '[]'"
-        )
-    )
-    # Droppa gammal vy som beror på achievements-kolumnen (används ej av appen)
-    conn.execute(text("DROP VIEW IF EXISTS experience_timeline"))
-    conn.execute(
-        text(
-            "ALTER TABLE experiences_pool ADD COLUMN IF NOT EXISTS achievements JSONB DEFAULT '[]'"
-        )
-    )
-    # Konvertera om kolumnen inte redan är JSONB (kan vara text[] i äldre DB)
-    col_type = conn.execute(
-        text(
-            "SELECT data_type FROM information_schema.columns "
-            "WHERE table_name = 'experiences_pool' AND column_name = 'achievements'"
-        )
-    ).fetchone()
-    if col_type and col_type[0] != 'jsonb':
-        conn.execute(
-            text(
-                "ALTER TABLE experiences_pool ALTER COLUMN achievements TYPE JSONB "
-                "USING CASE WHEN achievements IS NULL THEN '[]'::jsonb "
-                "ELSE array_to_json(achievements)::jsonb END"
-            )
-        )
-    conn.execute(
-        text(
-            "ALTER TABLE experiences_pool ALTER COLUMN achievements SET DEFAULT '[]'"
-        )
-    )
-    conn.commit()
 
 # Initialize FastAPI app
 app = FastAPI(
     title=settings.APP_NAME,
     version=settings.APP_VERSION,
     debug=settings.DEBUG,
-    description="AI-powered CV optimization service with semantic search",
+    description="AI-powered CV optimization service",
 )
 
-# Configure CORS
+# Configure CORS — credentials kräver explicita origins (ej wildcard)
 app.add_middleware(
     CORSMiddleware,
     allow_origins=settings.allowed_origins_list,
@@ -125,11 +59,12 @@ async def health_check():
 
 
 # Include API routers
+app.include_router(auth_router, prefix="/api/v1")
 app.include_router(cv.router, prefix="/api/v1")
 app.include_router(optimize.router, prefix="/api/v1")
 app.include_router(competence_router, prefix="/api/v1")
+app.include_router(profiles_router, prefix="/api/v1")
 
 if __name__ == "__main__":
     import uvicorn
-
     uvicorn.run("app.main:app", host="0.0.0.0", port=8000, reload=settings.DEBUG)

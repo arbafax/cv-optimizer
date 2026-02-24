@@ -23,6 +23,25 @@ let lastMatchResult  = null;
 let lastJobDesc      = '';
 let lastGeneratedCV  = null;
 
+// Auth state
+let currentUser = null;
+let authMode    = 'login'; // 'login' | 'register'
+
+// Profile state
+let profiles        = [];
+let selectedProfile = null;
+
+// ── apiFetch — wraps fetch with credentials + 401-guard ───────────────────
+async function apiFetch(url, options = {}) {
+    const response = await fetch(url, { ...options, credentials: 'include' });
+    if (response.status === 401) {
+        currentUser = null;
+        showAuthView();
+        throw new Error('Inte inloggad');
+    }
+    return response;
+}
+
 // ── Navigation ────────────────────────────────────────────
 function showView(viewId, navEl) {
     // Hide all views
@@ -38,8 +57,7 @@ function showView(viewId, navEl) {
 // Initialize
 document.addEventListener('DOMContentLoaded', () => {
     setupEventListeners();
-    loadCVs();
-    loadBankData();
+    loadCurrentUser();
 
     document.addEventListener('keydown', (e) => {
         if (e.key === 'Escape') closeCVModal();
@@ -106,7 +124,7 @@ async function handleFileUpload(file) {
     showStatus('⏳ Laddar upp och analyserar CV...', 'loading');
     
     try {
-        const response = await fetch(`${API_BASE_URL}/cv/upload`, {
+        const response = await apiFetch(`${API_BASE_URL}/cv/upload`, {
             method: 'POST',
             body: formData
         });
@@ -163,7 +181,7 @@ function displayCVPreview(cvData) {
 // Load all CVs
 async function loadCVs() {
     try {
-        const response = await fetch(`${API_BASE_URL}/cv/`);
+        const response = await apiFetch(`${API_BASE_URL}/cv/`);
         if (!response.ok) throw new Error('Kunde inte ladda CV:n');
 
         allCVs = await response.json();
@@ -282,7 +300,7 @@ async function editTitle(id, event) {
     if (newTitle === null) return;
 
     try {
-        const res = await fetch(`${API_BASE_URL}/cv/${id}/title`, {
+        const res = await apiFetch(`${API_BASE_URL}/cv/${id}/title`, {
             method: 'PATCH',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ title: newTitle.trim() || cv.structured_data.personal_info.full_name })
@@ -593,7 +611,7 @@ async function deleteCV(id, event) {
     showStatus('⏳ Raderar CV och bygger om kompetensbanken...', 'loading');
 
     try {
-        const response = await fetch(`${API_BASE_URL}/cv/${id}`, {
+        const response = await apiFetch(`${API_BASE_URL}/cv/${id}`, {
             method: 'DELETE'
         });
 
@@ -642,7 +660,7 @@ async function handleFetchUrl() {
     fetchUrlStatus.innerHTML = '';
 
     try {
-        const response = await fetch(`${API_BASE_URL}/competence/fetch-job-url`, {
+        const response = await apiFetch(`${API_BASE_URL}/competence/fetch-job-url`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ url }),
@@ -693,7 +711,7 @@ async function handleOptimize() {
     optimizeResult.classList.add('hidden');
 
     try {
-        const response = await fetch(`${API_BASE_URL}/competence/match-job`, {
+        const response = await apiFetch(`${API_BASE_URL}/competence/match-job`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
@@ -831,7 +849,7 @@ async function handleGenerateCV() {
         .map(s => s.skill_name);
 
     try {
-        const response = await fetch(`${API_BASE_URL}/competence/generate-cv`, {
+        const response = await apiFetch(`${API_BASE_URL}/competence/generate-cv`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
@@ -963,7 +981,7 @@ async function handleTips() {
     const overallScore   = lastMatchResult.overall_score ?? 0;
 
     try {
-        const response = await fetch(`${API_BASE_URL}/competence/improvement-tips`, {
+        const response = await apiFetch(`${API_BASE_URL}/competence/improvement-tips`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
@@ -1050,7 +1068,7 @@ async function addSuggestedSkill(skillName, category, rowIndex) {
     btn.textContent = '…';
 
     try {
-        const response = await fetch(`${API_BASE_URL}/competence/skills`, {
+        const response = await apiFetch(`${API_BASE_URL}/competence/skills`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ skill_name: skillName, category: category || null }),
@@ -1106,9 +1124,9 @@ let selectedExperienceIds = new Set();
 async function loadBankData() {
     try {
         const [statsRes, skillsRes, expRes] = await Promise.all([
-            fetch(`${API_BASE_URL}/competence/stats`),
-            fetch(`${API_BASE_URL}/competence/skills`),
-            fetch(`${API_BASE_URL}/competence/experiences`),
+            apiFetch(`${API_BASE_URL}/competence/stats`),
+            apiFetch(`${API_BASE_URL}/competence/skills`),
+            apiFetch(`${API_BASE_URL}/competence/experiences`),
         ]);
 
         if (!statsRes.ok || !skillsRes.ok || !expRes.ok) return;
@@ -1407,7 +1425,7 @@ async function mergeSelectedExperiences() {
     showMergeStatus('⏳ Slår ihop erfarenheter...', 'loading');
 
     try {
-        const res = await fetch(`${API_BASE_URL}/competence/experiences/merge`, {
+        const res = await apiFetch(`${API_BASE_URL}/competence/experiences/merge`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ experience_ids: ids }),
@@ -1470,7 +1488,7 @@ async function mergeSelectedCV() {
     document.getElementById('merge-selected-btn').disabled = true;
 
     try {
-        const res = await fetch(`${API_BASE_URL}/competence/merge/${selectedCV.id}`, {
+        const res = await apiFetch(`${API_BASE_URL}/competence/merge/${selectedCV.id}`, {
             method: 'POST'
         });
 
@@ -1529,7 +1547,7 @@ async function submitNewSkill() {
     if (!name) return alert('Ange ett skill-namn');
     const category = document.getElementById('new-skill-category').value || null;
     try {
-        const res = await fetch(`${API_BASE_URL}/competence/skills`, {
+        const res = await apiFetch(`${API_BASE_URL}/competence/skills`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ skill_name: name, category: category }),
@@ -1548,7 +1566,7 @@ async function submitNewSkill() {
 async function deleteSkill(skillId, skillName) {
     if (!confirm(`Ta bort "${skillName}" från kompetensbanken?`)) return;
     try {
-        const res = await fetch(`${API_BASE_URL}/competence/skills/${skillId}`, { method: 'DELETE' });
+        const res = await apiFetch(`${API_BASE_URL}/competence/skills/${skillId}`, { method: 'DELETE' });
         if (!res.ok) throw new Error('Kunde inte ta bort skill');
         await loadBankData();
     } catch (err) {
@@ -1561,7 +1579,7 @@ async function deleteSkill(skillId, skillName) {
 async function deleteExperience(expId, title) {
     if (!confirm(`Ta bort "${title}" från kompetensbanken?`)) return;
     try {
-        const res = await fetch(`${API_BASE_URL}/competence/experiences/${expId}`, { method: 'DELETE' });
+        const res = await apiFetch(`${API_BASE_URL}/competence/experiences/${expId}`, { method: 'DELETE' });
         if (!res.ok) throw new Error('Kunde inte ta bort erfarenhet');
         selectedExperienceIds.delete(expId);
         await loadBankData();
@@ -1590,7 +1608,7 @@ async function submitNewAchievement(expId) {
     const text = input.value.trim();
     if (!text) return;
     try {
-        const res = await fetch(`${API_BASE_URL}/competence/experiences/${expId}/achievements`, {
+        const res = await apiFetch(`${API_BASE_URL}/competence/experiences/${expId}/achievements`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ text }),
@@ -1623,7 +1641,7 @@ async function saveDescription(expId) {
     if (!ta) return;
     const text = ta.value.trim();
     try {
-        const res = await fetch(`${API_BASE_URL}/competence/experiences/${expId}/description`, {
+        const res = await apiFetch(`${API_BASE_URL}/competence/experiences/${expId}/description`, {
             method: 'PUT',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ description: text }),
@@ -1657,7 +1675,7 @@ async function submitEditAchievement(expId, index) {
     const text = input.value.trim();
     if (!text) return;
     try {
-        const res = await fetch(`${API_BASE_URL}/competence/experiences/${expId}/achievements/${index}`, {
+        const res = await apiFetch(`${API_BASE_URL}/competence/experiences/${expId}/achievements/${index}`, {
             method: 'PUT',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ text }),
@@ -1672,7 +1690,7 @@ async function submitEditAchievement(expId, index) {
 async function deleteAchievement(expId, index) {
     if (!confirm('Ta bort denna prestation?')) return;
     try {
-        const res = await fetch(`${API_BASE_URL}/competence/experiences/${expId}/achievements/${index}`, { method: 'DELETE' });
+        const res = await apiFetch(`${API_BASE_URL}/competence/experiences/${expId}/achievements/${index}`, { method: 'DELETE' });
         if (!res.ok) throw new Error('Kunde inte ta bort prestation');
         await loadBankData();
     } catch (err) {
@@ -1700,7 +1718,7 @@ async function submitNewExpSkill(expId) {
     const name = input.value.trim();
     if (!name) return;
     try {
-        const res = await fetch(`${API_BASE_URL}/competence/experiences/${expId}/skills`, {
+        const res = await apiFetch(`${API_BASE_URL}/competence/experiences/${expId}/skills`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ skill_name: name }),
@@ -1718,7 +1736,7 @@ async function submitNewExpSkill(expId) {
 async function removeExpSkill(expId, index, skillName) {
     if (!confirm(`Ta bort "${skillName}" från denna erfarenhet?`)) return;
     try {
-        const res = await fetch(`${API_BASE_URL}/competence/experiences/${expId}/skills/${index}`, { method: 'DELETE' });
+        const res = await apiFetch(`${API_BASE_URL}/competence/experiences/${expId}/skills/${index}`, { method: 'DELETE' });
         if (!res.ok) throw new Error('Kunde inte ta bort skill');
         await loadBankData();
     } catch (err) {
@@ -1801,7 +1819,7 @@ async function submitNewExperience() {
     };
 
     try {
-        const res = await fetch(`${API_BASE_URL}/competence/experiences`, {
+        const res = await apiFetch(`${API_BASE_URL}/competence/experiences`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify(body),
@@ -1829,7 +1847,7 @@ async function improveAchievements(expId) {
     preview.innerHTML = '<p class="ach-improve-loading">Analyserar prestationer...</p>';
 
     try {
-        const res = await fetch(`${API_BASE_URL}/competence/experiences/${expId}/improve-achievements`, {
+        const res = await apiFetch(`${API_BASE_URL}/competence/experiences/${expId}/improve-achievements`, {
             method: 'POST',
         });
         if (!res.ok) {
@@ -1883,7 +1901,7 @@ async function acceptImprovedAchievements(expId, btn) {
     btn.textContent = '⏳';
 
     try {
-        const res = await fetch(`${API_BASE_URL}/competence/experiences/${expId}/achievements`, {
+        const res = await apiFetch(`${API_BASE_URL}/competence/experiences/${expId}/achievements`, {
             method: 'PUT',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ achievements: improved }),
@@ -1959,7 +1977,7 @@ async function savePeriod(expId) {
     const endDate   = isCurrent ? null : (document.getElementById(`period-end-${expId}`).value.trim() || null);
 
     try {
-        const res = await fetch(`${API_BASE_URL}/competence/experiences/${expId}/period`, {
+        const res = await apiFetch(`${API_BASE_URL}/competence/experiences/${expId}/period`, {
             method: 'PUT',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ start_date: startDate, end_date: endDate, is_current: isCurrent }),
@@ -1981,13 +1999,361 @@ function cancelEditPeriod(expId) {
     if (row)  row.style.display = '';
 }
 
+// ════════════════════════════════════════════════════
+// AUTH
+// ════════════════════════════════════════════════════
+
+async function loadCurrentUser() {
+    try {
+        const res = await fetch(`${API_BASE_URL}/auth/me`, { credentials: 'include' });
+        if (res.status === 401) {
+            showAuthView();
+            return;
+        }
+        currentUser = await res.json();
+        showApp();
+    } catch {
+        showAuthView();
+    }
+}
+
+function showAuthView() {
+    document.getElementById('view-auth').classList.remove('hidden');
+    document.getElementById('sidebar').classList.add('hidden');
+    document.getElementById('main-content').classList.add('hidden');
+    document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
+}
+
+function showApp() {
+    document.getElementById('view-auth').classList.add('hidden');
+    document.getElementById('sidebar').classList.remove('hidden');
+    document.getElementById('main-content').classList.remove('hidden');
+    renderSidebarUser();
+    // Update dashboard greeting
+    const h1 = document.querySelector('#view-dashboard .view-header h1');
+    if (h1 && currentUser) {
+        h1.textContent = `Välkommen tillbaka, ${currentUser.name.split(' ')[0]}! 👋`;
+    }
+    loadCVs();
+    loadBankData();
+}
+
+function renderSidebarUser() {
+    const el = document.getElementById('sidebar-user');
+    if (!el || !currentUser) return;
+    const initials = currentUser.name
+        .split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2);
+    el.innerHTML = `
+        <div class="sidebar-user-row">
+            <div class="sidebar-avatar">${initials}</div>
+            <div class="sidebar-user-text">
+                <div class="sidebar-user-name">${currentUser.name}</div>
+                <div class="sidebar-user-email">${currentUser.email}</div>
+            </div>
+            <button class="btn-logout" onclick="handleLogout()" title="Logga ut">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
+                    <path d="M9 21H5a2 2 0 01-2-2V5a2 2 0 012-2h4"/>
+                    <polyline points="16 17 21 12 16 7"/>
+                    <line x1="21" y1="12" x2="9" y2="12"/>
+                </svg>
+            </button>
+        </div>
+    `;
+}
+
+function toggleAuthMode() {
+    authMode = authMode === 'login' ? 'register' : 'login';
+    const isReg = authMode === 'register';
+    document.getElementById('auth-heading').textContent      = isReg ? 'Skapa konto' : 'Logga in';
+    document.getElementById('auth-name-group').classList.toggle('hidden', !isReg);
+    document.getElementById('auth-submit').textContent       = isReg ? 'Skapa konto' : 'Logga in';
+    document.getElementById('auth-toggle-msg').textContent   = isReg ? 'Har du ett konto?' : 'Inget konto?';
+    document.getElementById('auth-toggle-link').textContent  = isReg ? 'Logga in' : 'Registrera dig';
+    document.getElementById('auth-error').classList.add('hidden');
+}
+
+async function handleAuthSubmit() {
+    const email    = document.getElementById('auth-email').value.trim();
+    const password = document.getElementById('auth-password').value;
+
+    if (!email || !password) { showAuthError('Fyll i e-post och lösenord'); return; }
+
+    const btn = document.getElementById('auth-submit');
+    btn.disabled    = true;
+    btn.textContent = '…';
+    document.getElementById('auth-error').classList.add('hidden');
+
+    try {
+        let url, body;
+        if (authMode === 'login') {
+            url  = `${API_BASE_URL}/auth/login`;
+            body = { email, password };
+        } else {
+            const name = document.getElementById('auth-name').value.trim();
+            if (!name) { showAuthError('Ange ditt namn'); btn.disabled = false; btn.textContent = 'Skapa konto'; return; }
+            url  = `${API_BASE_URL}/auth/register`;
+            body = { name, email, password };
+        }
+
+        const res  = await fetch(url, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(body),
+            credentials: 'include',
+        });
+        const data = await res.json();
+
+        if (!res.ok) { showAuthError(data.detail || 'Inloggning misslyckades'); return; }
+
+        currentUser = data;
+        showApp();
+
+    } finally {
+        btn.disabled    = false;
+        btn.textContent = authMode === 'login' ? 'Logga in' : 'Skapa konto';
+    }
+}
+
+function showAuthError(msg) {
+    const el = document.getElementById('auth-error');
+    el.textContent = msg;
+    el.classList.remove('hidden');
+}
+
+async function handleLogout() {
+    await fetch(`${API_BASE_URL}/auth/logout`, { method: 'POST', credentials: 'include' });
+    currentUser = null;
+    // Reset app state
+    allCVs = []; bankSkills = []; bankExperiences = [];
+    lastMatchResult = null; lastJobDesc = ''; lastGeneratedCV = null;
+    profiles = []; selectedProfile = null;
+    showAuthView();
+}
+
+// ════════════════════════════════════════════════════
+// SÖKPROFILER
+// ════════════════════════════════════════════════════
+
+async function loadProfiles() {
+    try {
+        const res  = await apiFetch(`${API_BASE_URL}/profiles/`);
+        const data = await res.json();
+        profiles = data.profiles || [];
+        renderProfilesList();
+        if (selectedProfile) {
+            selectedProfile = profiles.find(p => p.id === selectedProfile.id) || null;
+            renderProfileDetail();
+        }
+    } catch (err) {
+        if (err.message !== 'Inte inloggad') console.error(err);
+    }
+}
+
+function renderProfilesList() {
+    const el = document.getElementById('profiles-list');
+    if (!el) return;
+
+    if (profiles.length === 0) {
+        el.innerHTML = '<div class="empty-hint">Inga profiler ännu — klicka "+ Ny profil" ovan</div>';
+        return;
+    }
+
+    el.innerHTML = profiles.map(p => `
+        <div class="profile-list-item ${selectedProfile?.id === p.id ? 'active' : ''}"
+             onclick="selectProfile(${p.id})">
+            <div class="profile-list-name">${p.name}</div>
+            <div class="profile-list-hint ${p.job_description ? '' : 'dim'}">
+                ${p.job_description ? 'Jobbannons sparad' : 'Ingen jobbannons'}
+            </div>
+        </div>
+    `).join('');
+}
+
+function selectProfile(id) {
+    selectedProfile = profiles.find(p => p.id === id) || null;
+    renderProfilesList();
+    renderProfileDetail();
+}
+
+function renderProfileDetail() {
+    const el = document.getElementById('profiles-detail-panel');
+    if (!el) return;
+
+    if (!selectedProfile) {
+        el.innerHTML = '<div class="profiles-empty-detail"><p>Välj en profil till vänster för att se detaljer</p></div>';
+        return;
+    }
+
+    const p = selectedProfile;
+    const matchScore = p.last_match_result?.overall_score;
+
+    el.innerHTML = `
+        <div class="profile-detail">
+            <div class="profile-detail-header">
+                <h2 class="profile-name-heading" onclick="editProfileName(${p.id})"
+                    title="Klicka för att byta namn" id="profile-name-heading-${p.id}">${p.name}</h2>
+                <button class="btn btn-danger btn-small" onclick="confirmDeleteProfile(${p.id})">Ta bort</button>
+            </div>
+            <div id="profile-name-edit-${p.id}" class="hidden"></div>
+
+            <div class="profile-section">
+                <h3 class="profile-section-title">Jobbannons</h3>
+                <textarea id="profile-job-desc-${p.id}" class="form-input profile-job-textarea" rows="7"
+                    placeholder="Klistra in jobbannonsen här...">${p.job_description || ''}</textarea>
+                <div class="profile-job-url-row">
+                    <input type="url" id="profile-job-url-${p.id}" class="form-input"
+                           value="${p.job_url || ''}" placeholder="URL till annonsen (valfritt)">
+                    <button class="btn btn-secondary btn-small" onclick="saveProfileJob(${p.id})">Spara annons</button>
+                </div>
+            </div>
+
+            ${matchScore !== undefined && matchScore !== null ? `
+            <div class="profile-section">
+                <div class="profile-section-header">
+                    <h3 class="profile-section-title">Senaste matchning</h3>
+                    <span class="profile-match-score ${scoreColor(matchScore)}">${matchScore} / 100</span>
+                </div>
+                <p class="profile-match-summary">${p.last_match_result.summary || ''}</p>
+                ${p.last_cv_draft ? `
+                <button class="btn btn-secondary btn-small" onclick="showProfileCVDraft()">
+                    CV-utkast genererat — Visa
+                </button>` : ''}
+            </div>` : ''}
+
+            <div class="profile-actions">
+                <button class="btn btn-primary" onclick="runProfileMatch(${p.id})"
+                        ${!p.job_description ? 'disabled title="Spara en jobbannons först"' : ''}>
+                    ✦ Kör matchning
+                </button>
+            </div>
+        </div>
+    `;
+}
+
+async function saveProfileJob(profileId) {
+    const jobDesc = document.getElementById(`profile-job-desc-${profileId}`).value;
+    const jobUrl  = document.getElementById(`profile-job-url-${profileId}`).value.trim();
+    try {
+        const res = await apiFetch(`${API_BASE_URL}/profiles/${profileId}/job`, {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ job_description: jobDesc, job_url: jobUrl || null }),
+        });
+        if (!res.ok) throw new Error('Kunde inte spara');
+        const updated = await res.json();
+        const idx = profiles.findIndex(p => p.id === profileId);
+        if (idx !== -1) { profiles[idx] = updated; selectedProfile = updated; }
+        renderProfilesList();
+        renderProfileDetail();
+    } catch (err) {
+        alert(err.message);
+    }
+}
+
+function showCreateProfileForm() {
+    const name = prompt('Namn på profilen (t.ex. "Backend på Spotify"):');
+    if (!name || !name.trim()) return;
+    createProfile(name.trim());
+}
+
+async function createProfile(name) {
+    try {
+        const res = await apiFetch(`${API_BASE_URL}/profiles/`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ name }),
+        });
+        if (!res.ok) throw new Error('Kunde inte skapa profil');
+        const p = await res.json();
+        profiles.push(p);
+        selectedProfile = p;
+        renderProfilesList();
+        renderProfileDetail();
+    } catch (err) {
+        alert(err.message);
+    }
+}
+
+async function confirmDeleteProfile(profileId) {
+    if (!confirm('Ta bort denna sökprofil?')) return;
+    try {
+        await apiFetch(`${API_BASE_URL}/profiles/${profileId}`, { method: 'DELETE' });
+        profiles = profiles.filter(p => p.id !== profileId);
+        if (selectedProfile?.id === profileId) selectedProfile = null;
+        renderProfilesList();
+        renderProfileDetail();
+    } catch (err) {
+        if (err.message !== 'Inte inloggad') alert(err.message);
+    }
+}
+
+function runProfileMatch(profileId) {
+    const p = profiles.find(prof => prof.id === profileId);
+    if (!p?.job_description) { alert('Spara en jobbannons på profilen först'); return; }
+    jobDescription.value = p.job_description;
+    updateCharCount();
+    updateOptimizeButton();
+    showView('optimize', document.querySelector('[onclick*=optimize]'));
+    setTimeout(() => handleOptimize(), 100);
+}
+
+function showProfileCVDraft() {
+    if (selectedProfile?.last_cv_draft) displayGeneratedCV(selectedProfile.last_cv_draft);
+}
+
+function editProfileName(profileId) {
+    const p = profiles.find(prof => prof.id === profileId);
+    if (!p) return;
+    const heading = document.getElementById(`profile-name-heading-${profileId}`);
+    const editEl  = document.getElementById(`profile-name-edit-${profileId}`);
+    if (!heading || !editEl) return;
+
+    heading.classList.add('hidden');
+    editEl.classList.remove('hidden');
+    editEl.innerHTML = `
+        <div class="bank-inline-form">
+            <input type="text" id="profile-name-input-${profileId}" class="form-input" value="${p.name}">
+            <button class="btn btn-primary btn-small" onclick="submitProfileName(${profileId})">Spara</button>
+            <button class="btn btn-ghost btn-small" onclick="cancelEditProfileName(${profileId})">Avbryt</button>
+        </div>
+    `;
+    document.getElementById(`profile-name-input-${profileId}`).focus();
+}
+
+async function submitProfileName(profileId) {
+    const name = document.getElementById(`profile-name-input-${profileId}`).value.trim();
+    if (!name) return;
+    try {
+        const res = await apiFetch(`${API_BASE_URL}/profiles/${profileId}`, {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ name }),
+        });
+        if (!res.ok) throw new Error('Kunde inte uppdatera');
+        const updated = await res.json();
+        const idx = profiles.findIndex(p => p.id === profileId);
+        if (idx !== -1) { profiles[idx] = updated; selectedProfile = updated; }
+        renderProfilesList();
+        renderProfileDetail();
+    } catch (err) {
+        alert(err.message);
+    }
+}
+
+function cancelEditProfileName(profileId) {
+    const heading = document.getElementById(`profile-name-heading-${profileId}`);
+    const editEl  = document.getElementById(`profile-name-edit-${profileId}`);
+    if (heading) heading.classList.remove('hidden');
+    if (editEl) editEl.classList.add('hidden');
+}
+
 // Merge ALL CVs
 async function mergeAllCVs() {
     showMergeStatus('⏳ Mergar alla CV:n...', 'loading');
     document.getElementById('merge-all-btn').disabled = true;
 
     try {
-        const res = await fetch(`${API_BASE_URL}/competence/merge-all`, {
+        const res = await apiFetch(`${API_BASE_URL}/competence/merge-all`, {
             method: 'POST'
         });
 

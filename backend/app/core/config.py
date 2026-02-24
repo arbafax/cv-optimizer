@@ -19,6 +19,11 @@ class Settings(BaseSettings):
     DATABASE_USER: str
     DATABASE_PASSWORD: str
 
+    # JWT
+    JWT_SECRET_KEY: str
+    JWT_ALGORITHM: str = "HS256"
+    JWT_EXPIRE_MINUTES: int = 10080  # 7 dagar
+
     # OpenAI
     OPENAI_API_KEY: str
     EMBEDDING_MODEL: str = "text-embedding-3-small"

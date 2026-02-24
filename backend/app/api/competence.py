@@ -7,8 +7,10 @@ import httpx
 from bs4 import BeautifulSoup
 
 from app.core.database import get_db
+from app.core.auth import get_current_user
 from app.models.cv import CV
 from app.models.competence import SkillEntry, ExperienceEntry
+from app.models.user import User
 from app.services.competence_service import (
     merge_cv_into_bank, merge_experiences, clear_bank, rebuild_bank,
     add_skill, delete_skill, delete_experience,
@@ -89,9 +91,12 @@ router = APIRouter(prefix="/competence", tags=["Competence Bank"])
 # ── Endpoints ────────────────────────────────────────────────────────────────
 
 @router.post("/merge-all")
-async def merge_all_cvs(db: Session = Depends(get_db)):
+async def merge_all_cvs(
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
     """Merge alla CV:n i databasen till kompetensbanken."""
-    cvs = db.query(CV).all()
+    cvs = db.query(CV).filter(CV.user_id == current_user.id).all()
     if not cvs:
         raise HTTPException(status_code=404, detail="Inga CV:n hittades")
 
@@ -111,29 +116,37 @@ async def merge_all_cvs(db: Session = Depends(get_db)):
 
 
 @router.post("/merge/{cv_id}")
-async def merge_cv(cv_id: int, db: Session = Depends(get_db)):
+async def merge_cv(
+    cv_id: int,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
     """Merge ett enskilt CV till kompetensbanken."""
-    cv = db.query(CV).filter(CV.id == cv_id).first()
+    cv = db.query(CV).filter(CV.id == cv_id, CV.user_id == current_user.id).first()
     if not cv:
         raise HTTPException(status_code=404, detail="CV hittades inte")
     return merge_cv_into_bank(cv, db)
 
 
 @router.get("/stats")
-async def get_bank_stats(db: Session = Depends(get_db)):
+async def get_bank_stats(
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
     """Returnerar aggregerad statistik för kompetensbanken."""
-    total_skills = db.query(SkillEntry).count()
-    total_exp    = db.query(ExperienceEntry).count()
+    uid = current_user.id
+    total_skills = db.query(SkillEntry).filter(SkillEntry.user_id == uid).count()
+    total_exp    = db.query(ExperienceEntry).filter(ExperienceEntry.user_id == uid).count()
 
     all_sources: set = set()
-    for row in db.query(SkillEntry.source_cv_ids).all():
+    for row in db.query(SkillEntry.source_cv_ids).filter(SkillEntry.user_id == uid).all():
         if row[0]:
             all_sources.update(row[0])
 
     skills_by_category: dict = {}
     for row in db.query(
         SkillEntry.category, func.count(SkillEntry.id)
-    ).group_by(SkillEntry.category).all():
+    ).filter(SkillEntry.user_id == uid).group_by(SkillEntry.category).all():
         skills_by_category[row[0]] = row[1]
 
     return {
@@ -145,11 +158,14 @@ async def get_bank_stats(db: Session = Depends(get_db)):
 
 
 @router.get("/skills")
-async def get_bank_skills(db: Session = Depends(get_db)):
+async def get_bank_skills(
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
     """Returnerar alla skills i kompetensbanken, sorterade per kategori."""
-    skills = db.query(SkillEntry).order_by(
-        SkillEntry.category, SkillEntry.skill_name
-    ).all()
+    skills = db.query(SkillEntry).filter(
+        SkillEntry.user_id == current_user.id
+    ).order_by(SkillEntry.category, SkillEntry.skill_name).all()
     return {
         "skills": [
             {
@@ -165,9 +181,14 @@ async def get_bank_skills(db: Session = Depends(get_db)):
 
 
 @router.get("/experiences")
-async def get_bank_experiences(db: Session = Depends(get_db)):
+async def get_bank_experiences(
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
     """Returnerar alla erfarenheter i kompetensbanken."""
-    experiences = db.query(ExperienceEntry).order_by(
+    experiences = db.query(ExperienceEntry).filter(
+        ExperienceEntry.user_id == current_user.id
+    ).order_by(
         ExperienceEntry.experience_type,
         ExperienceEntry.start_date.desc()
     ).all()
@@ -195,6 +216,7 @@ async def get_bank_experiences(db: Session = Depends(get_db)):
 async def merge_experience_entries(
     body: dict,
     db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
 ):
     """Slå ihop flera erfarenhetsposter till en."""
     experience_ids = body.get("experience_ids", [])
@@ -202,7 +224,7 @@ async def merge_experience_entries(
         raise HTTPException(status_code=400, detail="Minst 2 erfarenhets-ID krävs")
 
     try:
-        result = merge_experiences(experience_ids, db)
+        result = merge_experiences(experience_ids, db, current_user.id)
     except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e))
 
@@ -210,30 +232,42 @@ async def merge_experience_entries(
 
 
 @router.post("/skills")
-async def create_skill(body: AddSkillRequest, db: Session = Depends(get_db)):
+async def create_skill(
+    body: AddSkillRequest,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
     """Lägg till en enskild skill i kompetensbanken."""
     try:
-        result = add_skill(body.skill_name, body.category, body.skill_type, db)
+        result = add_skill(body.skill_name, body.category, body.skill_type, db, current_user.id)
     except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e))
     return result
 
 
 @router.delete("/skills/{skill_id}")
-async def remove_skill(skill_id: int, db: Session = Depends(get_db)):
+async def remove_skill(
+    skill_id: int,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
     """Ta bort en enskild skill."""
     try:
-        delete_skill(skill_id, db)
+        delete_skill(skill_id, db, current_user.id)
     except ValueError as e:
         raise HTTPException(status_code=404, detail=str(e))
     return {"message": "Skill borttagen"}
 
 
 @router.delete("/experiences/{experience_id}")
-async def remove_experience(experience_id: int, db: Session = Depends(get_db)):
+async def remove_experience(
+    experience_id: int,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
     """Ta bort en enskild erfarenhetspost."""
     try:
-        delete_experience(experience_id, db)
+        delete_experience(experience_id, db, current_user.id)
     except ValueError as e:
         raise HTTPException(status_code=404, detail=str(e))
     return {"message": "Erfarenhet borttagen"}
@@ -241,11 +275,14 @@ async def remove_experience(experience_id: int, db: Session = Depends(get_db)):
 
 @router.post("/experiences/{experience_id}/achievements")
 async def create_achievement(
-    experience_id: int, body: AchievementRequest, db: Session = Depends(get_db),
+    experience_id: int,
+    body: AchievementRequest,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
 ):
     """Lägg till en prestation på en erfarenhetspost."""
     try:
-        achievements = add_achievement(experience_id, body.text, db)
+        achievements = add_achievement(experience_id, body.text, db, current_user.id)
     except ValueError as e:
         raise HTTPException(status_code=404, detail=str(e))
     return {"achievements": achievements}
@@ -253,11 +290,15 @@ async def create_achievement(
 
 @router.put("/experiences/{experience_id}/achievements/{index}")
 async def edit_achievement(
-    experience_id: int, index: int, body: AchievementRequest, db: Session = Depends(get_db),
+    experience_id: int,
+    index: int,
+    body: AchievementRequest,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
 ):
     """Uppdatera en prestation."""
     try:
-        achievements = update_achievement(experience_id, index, body.text, db)
+        achievements = update_achievement(experience_id, index, body.text, db, current_user.id)
     except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e))
     return {"achievements": achievements}
@@ -265,11 +306,14 @@ async def edit_achievement(
 
 @router.delete("/experiences/{experience_id}/achievements/{index}")
 async def remove_achievement(
-    experience_id: int, index: int, db: Session = Depends(get_db),
+    experience_id: int,
+    index: int,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
 ):
     """Ta bort en prestation."""
     try:
-        achievements = delete_achievement(experience_id, index, db)
+        achievements = delete_achievement(experience_id, index, db, current_user.id)
     except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e))
     return {"achievements": achievements}
@@ -277,10 +321,16 @@ async def remove_achievement(
 
 @router.put("/experiences/{experience_id}/achievements")
 async def replace_achievements(
-    experience_id: int, body: ReplaceAchievementsRequest, db: Session = Depends(get_db),
+    experience_id: int,
+    body: ReplaceAchievementsRequest,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
 ):
     """Ersätt hela prestationslistan för en erfarenhetspost."""
-    exp = db.get(ExperienceEntry, experience_id)
+    exp = db.query(ExperienceEntry).filter(
+        ExperienceEntry.id == experience_id,
+        ExperienceEntry.user_id == current_user.id,
+    ).first()
     if not exp:
         raise HTTPException(status_code=404, detail="Erfarenhet hittades inte")
     exp.achievements = body.achievements
@@ -292,11 +342,16 @@ async def replace_achievements(
 
 @router.post("/experiences/{experience_id}/improve-achievements")
 async def improve_achievements(
-    experience_id: int, db: Session = Depends(get_db),
+    experience_id: int,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
 ):
     """Analysera och förbättra prestationslistan med AI."""
     from app.services.ai_service import AIService
-    exp = db.get(ExperienceEntry, experience_id)
+    exp = db.query(ExperienceEntry).filter(
+        ExperienceEntry.id == experience_id,
+        ExperienceEntry.user_id == current_user.id,
+    ).first()
     if not exp:
         raise HTTPException(status_code=404, detail="Erfarenhet hittades inte")
     if not exp.achievements:
@@ -313,11 +368,14 @@ async def improve_achievements(
 
 @router.put("/experiences/{experience_id}/description")
 async def update_exp_description(
-    experience_id: int, body: UpdateDescriptionRequest, db: Session = Depends(get_db),
+    experience_id: int,
+    body: UpdateDescriptionRequest,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
 ):
     """Uppdatera beskrivningen på en erfarenhetspost."""
     try:
-        description = update_experience_description(experience_id, body.description, db)
+        description = update_experience_description(experience_id, body.description, db, current_user.id)
     except ValueError as e:
         raise HTTPException(status_code=404, detail=str(e))
     return {"description": description}
@@ -325,12 +383,15 @@ async def update_exp_description(
 
 @router.put("/experiences/{experience_id}/period")
 async def update_exp_period(
-    experience_id: int, body: UpdatePeriodRequest, db: Session = Depends(get_db),
+    experience_id: int,
+    body: UpdatePeriodRequest,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
 ):
     """Uppdatera tidsperiod på en erfarenhetspost."""
     try:
         result = update_experience_period(
-            experience_id, body.start_date, body.end_date, body.is_current, db
+            experience_id, body.start_date, body.end_date, body.is_current, db, current_user.id
         )
     except ValueError as e:
         raise HTTPException(status_code=404, detail=str(e))
@@ -339,11 +400,14 @@ async def update_exp_period(
 
 @router.post("/experiences/{experience_id}/skills")
 async def create_experience_skill(
-    experience_id: int, body: ExperienceSkillRequest, db: Session = Depends(get_db),
+    experience_id: int,
+    body: ExperienceSkillRequest,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
 ):
     """Lägg till en skill på en erfarenhetspost."""
     try:
-        skills = add_experience_skill(experience_id, body.skill_name, db)
+        skills = add_experience_skill(experience_id, body.skill_name, db, current_user.id)
     except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e))
     return {"related_skills": skills}
@@ -351,11 +415,14 @@ async def create_experience_skill(
 
 @router.delete("/experiences/{experience_id}/skills/{index}")
 async def remove_exp_skill(
-    experience_id: int, index: int, db: Session = Depends(get_db),
+    experience_id: int,
+    index: int,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
 ):
     """Ta bort en skill från en erfarenhetspost."""
     try:
-        skills = remove_experience_skill(experience_id, index, db)
+        skills = remove_experience_skill(experience_id, index, db, current_user.id)
     except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e))
     return {"related_skills": skills}
@@ -363,7 +430,9 @@ async def remove_exp_skill(
 
 @router.post("/experiences")
 async def create_new_experience(
-    body: CreateExperienceRequest, db: Session = Depends(get_db),
+    body: CreateExperienceRequest,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
 ):
     """Skapa en ny erfarenhetspost manuellt."""
     try:
@@ -378,6 +447,7 @@ async def create_new_experience(
             related_skills=body.related_skills,
             achievements=body.achievements,
             db=db,
+            user_id=current_user.id,
         )
     except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e))
@@ -385,12 +455,21 @@ async def create_new_experience(
 
 
 @router.post("/match-job")
-async def match_job(body: MatchJobRequest, db: Session = Depends(get_db)):
+async def match_job(
+    body: MatchJobRequest,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
     """Matcha kompetensbanken mot en jobbannons med AI."""
     from app.services.ai_service import AIService
+    uid = current_user.id
 
-    skills = db.query(SkillEntry).order_by(SkillEntry.category, SkillEntry.skill_name).all()
-    experiences = db.query(ExperienceEntry).order_by(ExperienceEntry.start_date.desc()).all()
+    skills = db.query(SkillEntry).filter(
+        SkillEntry.user_id == uid
+    ).order_by(SkillEntry.category, SkillEntry.skill_name).all()
+    experiences = db.query(ExperienceEntry).filter(
+        ExperienceEntry.user_id == uid
+    ).order_by(ExperienceEntry.start_date.desc()).all()
 
     if not skills and not experiences:
         raise HTTPException(status_code=400, detail="Kompetensbanken är tom")
@@ -441,12 +520,18 @@ async def match_job(body: MatchJobRequest, db: Session = Depends(get_db)):
 
 
 @router.post("/generate-cv")
-async def generate_cv(body: GenerateCVRequest, db: Session = Depends(get_db)):
+async def generate_cv(
+    body: GenerateCVRequest,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
     """Genererar ett anpassat CV-utkast för en jobbannons."""
     from app.services.ai_service import AIService
 
     # Hämta alla erfarenheter för komplett tidslinje
-    all_experiences = db.query(ExperienceEntry).all()
+    all_experiences = db.query(ExperienceEntry).filter(
+        ExperienceEntry.user_id == current_user.id
+    ).all()
     if not all_experiences:
         raise HTTPException(status_code=400, detail="Inga erfarenheter i kompetensbanken")
 
@@ -520,12 +605,17 @@ async def generate_cv(body: GenerateCVRequest, db: Session = Depends(get_db)):
 
 
 @router.post("/improvement-tips")
-async def get_improvement_tips(body: ImprovementTipsRequest, db: Session = Depends(get_db)):
+async def get_improvement_tips(
+    body: ImprovementTipsRequest,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
     """Genererar förbättringstips och föreslagna skills för att öka matchningspoängen."""
     from app.services.ai_service import AIService
 
     experiences = db.query(ExperienceEntry).filter(
-        ExperienceEntry.id.in_(body.matched_experience_ids)
+        ExperienceEntry.id.in_(body.matched_experience_ids),
+        ExperienceEntry.user_id == current_user.id,
     ).all() if body.matched_experience_ids else []
 
     experiences_data = [
@@ -549,7 +639,10 @@ async def get_improvement_tips(body: ImprovementTipsRequest, db: Session = Depen
 
 
 @router.post("/fetch-job-url")
-async def fetch_job_url(body: FetchUrlRequest):
+async def fetch_job_url(
+    body: FetchUrlRequest,
+    current_user: User = Depends(get_current_user),
+):
     """Hämtar en jobbannons från en URL och returnerar texten."""
     url = body.url.strip()
     if not url.startswith(("http://", "https://")):
@@ -606,7 +699,10 @@ async def fetch_job_url(body: FetchUrlRequest):
 
 
 @router.delete("/reset")
-async def reset_bank(db: Session = Depends(get_db)):
+async def reset_bank(
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
     """Rensa hela kompetensbanken."""
-    clear_bank(db)
+    clear_bank(db, current_user.id)
     return {"message": "Kompetensbanken rensad"}

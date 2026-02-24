@@ -350,24 +350,29 @@
         <div class="card sokprofil-card">
             <div class="form-group">
                 <label for="sp-public-name">Publikt namn</label>
+                <p class="field-desc">Det namn som visas för arbetsgivare och rekryterare. Kan skilja sig från ditt kontonamn om du föredrar ett kortare eller mer professionellt namn.</p>
                 <input type="text" id="sp-public-name" class="form-input" placeholder="Ditt namn som visas för arbetsgivare">
             </div>
             <div class="form-group">
                 <label for="sp-public-phone">Publikt telefonnummer</label>
+                <p class="field-desc">Det telefonnummer du vill bli kontaktad på av rekryterare. Visas enbart om du är sökbar.</p>
                 <input type="tel" id="sp-public-phone" class="form-input" placeholder="+46 70 000 00 00">
             </div>
             <div class="form-group">
                 <label for="sp-roles">Roller</label>
+                <p class="field-desc">Vilka typer av roller du kan tänka dig att jobba i. Används för att matcha dig mot relevanta jobb.</p>
                 <input type="text" id="sp-roles" class="form-input" placeholder="t.ex. Frontend-utvecklare, UX-designer">
                 <span class="form-hint">Separera med kommatecken</span>
             </div>
             <div class="form-group">
                 <label for="sp-city">Önskad ort</label>
+                <p class="field-desc">Den ort eller region där du i första hand vill arbeta.</p>
                 <input type="text" id="sp-city" class="form-input" placeholder="t.ex. Stockholm, Göteborg">
             </div>
 
             <div class="form-group">
                 <label>Önskad anställningsform</label>
+                <p class="field-desc">Vilken eller vilka anställningsformer du är öppen för. Du kan välja flera.</p>
                 <div class="checkbox-group">
                     <label class="checkbox-label">
                         <input type="checkbox" id="sp-emp-heltid" value="Heltid">
@@ -386,6 +391,7 @@
 
             <div class="form-group">
                 <label>Önskad arbetsplats</label>
+                <p class="field-desc">Var du föredrar att arbeta. Välj ett eller flera alternativ.</p>
                 <div class="checkbox-group">
                     <label class="checkbox-label">
                         <input type="checkbox" id="sp-wp-plats" value="På plats">
@@ -406,7 +412,7 @@
                 <div class="toggle-row">
                     <div>
                         <span class="toggle-label">Resbar</span>
-                        <span class="form-hint">Villig att pendla eller resa i tjänsten</span>
+                        <p class="field-desc">Markera om du är villig att pendla eller resa som en del av tjänsten.</p>
                     </div>
                     <label class="toggle-switch">
                         <input type="checkbox" id="sp-commute">
@@ -419,7 +425,7 @@
                 <div class="toggle-row">
                     <div>
                         <span class="toggle-label">Sökbar</span>
-                        <span class="form-hint">Visa din profil för rekryterare</span>
+                        <p class="field-desc">Om du aktiverar detta kan rekryterare hitta och kontakta dig baserat på din profil.</p>
                     </div>
                     <label class="toggle-switch">
                         <input type="checkbox" id="sp-searchable">

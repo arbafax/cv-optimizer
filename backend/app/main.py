@@ -8,13 +8,14 @@ from app.core.database import engine, Base
 from app.api import cv, optimize
 from app.api.competence import router as competence_router
 from app.api.auth import router as auth_router
-from app.api.profiles import router as profiles_router
+from app.api.job_seeker_profile import router as sokprofil_router
 
 # Import all models so Base.metadata knows about them
-from app.models import cv as cv_models               # noqa: F401
-from app.models import competence as competence_models  # noqa: F401
-from app.models import user as user_models           # noqa: F401
-from app.models import search_profile as sp_models   # noqa: F401
+from app.models import cv as cv_models                   # noqa: F401
+from app.models import competence as competence_models   # noqa: F401
+from app.models import user as user_models               # noqa: F401
+from app.models import search_profile as sp_models       # noqa: F401
+from app.models import job_seeker_profile as jsp_models  # noqa: F401
 
 # Configure logging
 logging.basicConfig(
@@ -63,7 +64,7 @@ app.include_router(auth_router, prefix="/api/v1")
 app.include_router(cv.router, prefix="/api/v1")
 app.include_router(optimize.router, prefix="/api/v1")
 app.include_router(competence_router, prefix="/api/v1")
-app.include_router(profiles_router, prefix="/api/v1")
+app.include_router(sokprofil_router, prefix="/api/v1")
 
 if __name__ == "__main__":
     import uvicorn

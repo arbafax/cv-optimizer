@@ -28,8 +28,6 @@ let currentUser = null;
 let authMode    = 'login'; // 'login' | 'register'
 
 // Profile state
-let profiles        = [];
-let selectedProfile = null;
 
 // ── apiFetch — wraps fetch with credentials + 401-guard ───────────────────
 async function apiFetch(url, options = {}) {
@@ -2130,7 +2128,6 @@ async function handleLogout() {
     // Reset app state
     allCVs = []; bankSkills = []; bankExperiences = [];
     lastMatchResult = null; lastJobDesc = ''; lastGeneratedCV = null;
-    profiles = []; selectedProfile = null;
     showAuthView();
 }
 
@@ -2215,220 +2212,74 @@ function showAccountStatus(elId, msg, type) {
 }
 
 // ════════════════════════════════════════════════════
-// SÖKPROFILER
+// SÖKPROFIL
 // ════════════════════════════════════════════════════
 
-async function loadProfiles() {
+async function loadSokprofil() {
     try {
-        const res  = await apiFetch(`${API_BASE_URL}/profiles/`);
+        const res  = await apiFetch(`${API_BASE_URL}/sokprofil/`);
+        if (!res.ok) return;
         const data = await res.json();
-        profiles = data.profiles || [];
-        renderProfilesList();
-        if (selectedProfile) {
-            selectedProfile = profiles.find(p => p.id === selectedProfile.id) || null;
-            renderProfileDetail();
-        }
+
+        document.getElementById('sp-public-name').value  = data.public_name  || '';
+        document.getElementById('sp-public-phone').value = data.public_phone || '';
+        document.getElementById('sp-roles').value        = data.roles        || '';
+        document.getElementById('sp-city').value         = data.desired_city || '';
+
+        ['sp-emp-heltid', 'sp-emp-deltid', 'sp-emp-timmar'].forEach(id => {
+            const el = document.getElementById(id);
+            el.checked = data.desired_employment.includes(el.value);
+        });
+
+        ['sp-wp-plats', 'sp-wp-hybrid', 'sp-wp-distans'].forEach(id => {
+            const el = document.getElementById(id);
+            el.checked = data.desired_workplace.includes(el.value);
+        });
+
+        document.getElementById('sp-commute').checked    = data.willing_to_commute;
+        document.getElementById('sp-searchable').checked = data.searchable;
     } catch (err) {
         if (err.message !== 'Inte inloggad') console.error(err);
     }
 }
 
-function renderProfilesList() {
-    const el = document.getElementById('profiles-list');
-    if (!el) return;
+async function saveSokprofil() {
+    const desired_employment = ['sp-emp-heltid', 'sp-emp-deltid', 'sp-emp-timmar']
+        .filter(id => document.getElementById(id).checked)
+        .map(id => document.getElementById(id).value);
 
-    if (profiles.length === 0) {
-        el.innerHTML = '<div class="empty-hint">Inga profiler ännu — klicka "+ Ny profil" ovan</div>';
-        return;
-    }
+    const desired_workplace = ['sp-wp-plats', 'sp-wp-hybrid', 'sp-wp-distans']
+        .filter(id => document.getElementById(id).checked)
+        .map(id => document.getElementById(id).value);
 
-    el.innerHTML = profiles.map(p => `
-        <div class="profile-list-item ${selectedProfile?.id === p.id ? 'active' : ''}"
-             onclick="selectProfile(${p.id})">
-            <div class="profile-list-name">${p.name}</div>
-            <div class="profile-list-hint ${p.job_description ? '' : 'dim'}">
-                ${p.job_description ? 'Jobbannons sparad' : 'Ingen jobbannons'}
-            </div>
-        </div>
-    `).join('');
-}
-
-function selectProfile(id) {
-    selectedProfile = profiles.find(p => p.id === id) || null;
-    renderProfilesList();
-    renderProfileDetail();
-}
-
-function renderProfileDetail() {
-    const el = document.getElementById('profiles-detail-panel');
-    if (!el) return;
-
-    if (!selectedProfile) {
-        el.innerHTML = '<div class="profiles-empty-detail"><p>Välj en profil till vänster för att se detaljer</p></div>';
-        return;
-    }
-
-    const p = selectedProfile;
-    const matchScore = p.last_match_result?.overall_score;
-
-    el.innerHTML = `
-        <div class="profile-detail">
-            <div class="profile-detail-header">
-                <h2 class="profile-name-heading" onclick="editProfileName(${p.id})"
-                    title="Klicka för att byta namn" id="profile-name-heading-${p.id}">${p.name}</h2>
-                <button class="btn btn-danger btn-small" onclick="confirmDeleteProfile(${p.id})">Ta bort</button>
-            </div>
-            <div id="profile-name-edit-${p.id}" class="hidden"></div>
-
-            <div class="profile-section">
-                <h3 class="profile-section-title">Jobbannons</h3>
-                <textarea id="profile-job-desc-${p.id}" class="form-input profile-job-textarea" rows="7"
-                    placeholder="Klistra in jobbannonsen här...">${p.job_description || ''}</textarea>
-                <div class="profile-job-url-row">
-                    <input type="url" id="profile-job-url-${p.id}" class="form-input"
-                           value="${p.job_url || ''}" placeholder="URL till annonsen (valfritt)">
-                    <button class="btn btn-secondary btn-small" onclick="saveProfileJob(${p.id})">Spara annons</button>
-                </div>
-            </div>
-
-            ${matchScore !== undefined && matchScore !== null ? `
-            <div class="profile-section">
-                <div class="profile-section-header">
-                    <h3 class="profile-section-title">Senaste matchning</h3>
-                    <span class="profile-match-score ${scoreColor(matchScore)}">${matchScore} / 100</span>
-                </div>
-                <p class="profile-match-summary">${p.last_match_result.summary || ''}</p>
-                ${p.last_cv_draft ? `
-                <button class="btn btn-secondary btn-small" onclick="showProfileCVDraft()">
-                    CV-utkast genererat — Visa
-                </button>` : ''}
-            </div>` : ''}
-
-            <div class="profile-actions">
-                <button class="btn btn-primary" onclick="runProfileMatch(${p.id})"
-                        ${!p.job_description ? 'disabled title="Spara en jobbannons först"' : ''}>
-                    ✦ Kör matchning
-                </button>
-            </div>
-        </div>
-    `;
-}
-
-async function saveProfileJob(profileId) {
-    const jobDesc = document.getElementById(`profile-job-desc-${profileId}`).value;
-    const jobUrl  = document.getElementById(`profile-job-url-${profileId}`).value.trim();
     try {
-        const res = await apiFetch(`${API_BASE_URL}/profiles/${profileId}/job`, {
+        const res = await apiFetch(`${API_BASE_URL}/sokprofil/`, {
             method: 'PUT',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ job_description: jobDesc, job_url: jobUrl || null }),
+            body: JSON.stringify({
+                public_name:        document.getElementById('sp-public-name').value.trim()  || null,
+                public_phone:       document.getElementById('sp-public-phone').value.trim() || null,
+                roles:              document.getElementById('sp-roles').value.trim()         || null,
+                desired_city:       document.getElementById('sp-city').value.trim()          || null,
+                desired_employment,
+                desired_workplace,
+                willing_to_commute: document.getElementById('sp-commute').checked,
+                searchable:         document.getElementById('sp-searchable').checked,
+            }),
         });
         if (!res.ok) throw new Error('Kunde inte spara');
-        const updated = await res.json();
-        const idx = profiles.findIndex(p => p.id === profileId);
-        if (idx !== -1) { profiles[idx] = updated; selectedProfile = updated; }
-        renderProfilesList();
-        renderProfileDetail();
+        showSokprofilStatus('Sökprofilen sparades ✓', 'success');
     } catch (err) {
-        alert(err.message);
+        showSokprofilStatus(err.message, 'error');
     }
 }
 
-function showCreateProfileForm() {
-    const name = prompt('Namn på profilen (t.ex. "Backend på Spotify"):');
-    if (!name || !name.trim()) return;
-    createProfile(name.trim());
-}
-
-async function createProfile(name) {
-    try {
-        const res = await apiFetch(`${API_BASE_URL}/profiles/`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ name }),
-        });
-        if (!res.ok) throw new Error('Kunde inte skapa profil');
-        const p = await res.json();
-        profiles.push(p);
-        selectedProfile = p;
-        renderProfilesList();
-        renderProfileDetail();
-    } catch (err) {
-        alert(err.message);
-    }
-}
-
-async function confirmDeleteProfile(profileId) {
-    if (!confirm('Ta bort denna sökprofil?')) return;
-    try {
-        await apiFetch(`${API_BASE_URL}/profiles/${profileId}`, { method: 'DELETE' });
-        profiles = profiles.filter(p => p.id !== profileId);
-        if (selectedProfile?.id === profileId) selectedProfile = null;
-        renderProfilesList();
-        renderProfileDetail();
-    } catch (err) {
-        if (err.message !== 'Inte inloggad') alert(err.message);
-    }
-}
-
-function runProfileMatch(profileId) {
-    const p = profiles.find(prof => prof.id === profileId);
-    if (!p?.job_description) { alert('Spara en jobbannons på profilen först'); return; }
-    jobDescription.value = p.job_description;
-    updateCharCount();
-    updateOptimizeButton();
-    showView('optimize', document.querySelector('[onclick*=optimize]'));
-    setTimeout(() => handleOptimize(), 100);
-}
-
-function showProfileCVDraft() {
-    if (selectedProfile?.last_cv_draft) displayGeneratedCV(selectedProfile.last_cv_draft);
-}
-
-function editProfileName(profileId) {
-    const p = profiles.find(prof => prof.id === profileId);
-    if (!p) return;
-    const heading = document.getElementById(`profile-name-heading-${profileId}`);
-    const editEl  = document.getElementById(`profile-name-edit-${profileId}`);
-    if (!heading || !editEl) return;
-
-    heading.classList.add('hidden');
-    editEl.classList.remove('hidden');
-    editEl.innerHTML = `
-        <div class="bank-inline-form">
-            <input type="text" id="profile-name-input-${profileId}" class="form-input" value="${p.name}">
-            <button class="btn btn-primary btn-small" onclick="submitProfileName(${profileId})">Spara</button>
-            <button class="btn btn-ghost btn-small" onclick="cancelEditProfileName(${profileId})">Avbryt</button>
-        </div>
-    `;
-    document.getElementById(`profile-name-input-${profileId}`).focus();
-}
-
-async function submitProfileName(profileId) {
-    const name = document.getElementById(`profile-name-input-${profileId}`).value.trim();
-    if (!name) return;
-    try {
-        const res = await apiFetch(`${API_BASE_URL}/profiles/${profileId}`, {
-            method: 'PUT',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ name }),
-        });
-        if (!res.ok) throw new Error('Kunde inte uppdatera');
-        const updated = await res.json();
-        const idx = profiles.findIndex(p => p.id === profileId);
-        if (idx !== -1) { profiles[idx] = updated; selectedProfile = updated; }
-        renderProfilesList();
-        renderProfileDetail();
-    } catch (err) {
-        alert(err.message);
-    }
-}
-
-function cancelEditProfileName(profileId) {
-    const heading = document.getElementById(`profile-name-heading-${profileId}`);
-    const editEl  = document.getElementById(`profile-name-edit-${profileId}`);
-    if (heading) heading.classList.remove('hidden');
-    if (editEl) editEl.classList.add('hidden');
+function showSokprofilStatus(msg, type) {
+    const el = document.getElementById('sp-status');
+    if (!el) return;
+    el.textContent = msg;
+    el.className = `status-message status-${type}`;
+    setTimeout(() => { el.textContent = ''; el.className = ''; }, 4000);
 }
 
 // Merge ALL CVs

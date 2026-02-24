@@ -12,9 +12,6 @@ const optimizeBtn    = document.getElementById('optimize-btn');
 const jobDescription = document.getElementById('job-description');
 const charCount      = document.getElementById('char-count');
 const optimizeResult = document.getElementById('optimize-result');
-const jobUrlInput    = document.getElementById('job-url');
-const fetchUrlBtn    = document.getElementById('fetch-url-btn');
-const fetchUrlStatus = document.getElementById('fetch-url-status');
 
 // State
 let selectedCV      = null;
@@ -71,8 +68,6 @@ function setupEventListeners() {
     optimizeBtn.addEventListener('click', handleOptimize);
     jobDescription.addEventListener('input', updateCharCount);
     jobDescription.addEventListener('input', updateOptimizeButton);
-    fetchUrlBtn.addEventListener('click', handleFetchUrl);
-    jobUrlInput.addEventListener('keydown', e => { if (e.key === 'Enter') handleFetchUrl(); });
 }
 
 // Drag and Drop Handlers
@@ -645,50 +640,6 @@ async function deleteCV(id, event) {
 function updateCharCount() {
     const count = jobDescription.value.length;
     charCount.textContent = `${count} tecken`;
-}
-
-// Fetch job posting text from URL
-async function handleFetchUrl() {
-    const url = jobUrlInput.value.trim();
-    if (!url) return;
-
-    fetchUrlBtn.disabled = true;
-    fetchUrlBtn.querySelector('.btn-text').classList.add('hidden');
-    fetchUrlBtn.querySelector('.btn-loading').classList.remove('hidden');
-    fetchUrlStatus.innerHTML = '';
-
-    try {
-        const response = await apiFetch(`${API_BASE_URL}/competence/fetch-job-url`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ url }),
-        });
-
-        const data = await response.json();
-
-        if (!response.ok) {
-            const blocked = response.status === 502 || response.status === 504;
-            if (blocked) {
-                document.getElementById('url-blocked-popup').classList.remove('hidden');
-                document.getElementById('url-blocked-popup').scrollIntoView({ behavior: 'smooth', block: 'nearest' });
-                return;
-            }
-            throw new Error(data.detail || 'Kunde inte hämta sidan');
-        }
-
-        jobDescription.value = data.text;
-        updateCharCount();
-        updateOptimizeButton();
-        fetchUrlStatus.innerHTML = '<span class="fetch-url-ok">✓ Annonstext hämtad</span>';
-        jobUrlInput.value = '';
-
-    } catch (err) {
-        fetchUrlStatus.innerHTML = `<span class="fetch-url-err">✗ ${err.message}</span>`;
-    } finally {
-        fetchUrlBtn.disabled = false;
-        fetchUrlBtn.querySelector('.btn-text').classList.remove('hidden');
-        fetchUrlBtn.querySelector('.btn-loading').classList.add('hidden');
-    }
 }
 
 // Update optimize button state

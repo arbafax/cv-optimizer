@@ -58,6 +58,7 @@ body {
     display: flex;
     min-height: 100vh;
     -webkit-font-smoothing: antialiased;
+    zoom: 1.2;
 }
 
 /* ══════════════ SIDEBAR ══════════════ */

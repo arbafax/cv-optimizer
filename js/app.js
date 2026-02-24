@@ -358,38 +358,37 @@ function buildCVDetailsHTML(cvData) {
     html += `
         <div class="cv-section">
             <h3 class="cv-section-title">
-                <span class="cv-section-icon">👤</span>
                 Personlig Information
             </h3>
             <div class="cv-personal-grid">
                 ${cvData.personal_info.email ? `
                     <div class="cv-personal-item">
-                        📧 <strong>Email:</strong> ${cvData.personal_info.email}
+                        <strong>Email:</strong> ${cvData.personal_info.email}
                     </div>
                 ` : ''}
                 ${cvData.personal_info.phone ? `
                     <div class="cv-personal-item">
-                        📱 <strong>Telefon:</strong> ${cvData.personal_info.phone}
+                        <strong>Telefon:</strong> ${cvData.personal_info.phone}
                     </div>
                 ` : ''}
                 ${cvData.personal_info.location ? `
                     <div class="cv-personal-item">
-                        📍 <strong>Plats:</strong> ${cvData.personal_info.location}
+                        <strong>Plats:</strong> ${cvData.personal_info.location}
                     </div>
                 ` : ''}
                 ${cvData.personal_info.linkedin ? `
                     <div class="cv-personal-item">
-                        💼 <strong>LinkedIn:</strong> <a href="${cvData.personal_info.linkedin}" target="_blank">Profil</a>
+                        <strong>LinkedIn:</strong> <a href="${cvData.personal_info.linkedin}" target="_blank">Profil</a>
                     </div>
                 ` : ''}
                 ${cvData.personal_info.github ? `
                     <div class="cv-personal-item">
-                        💻 <strong>GitHub:</strong> <a href="${cvData.personal_info.github}" target="_blank">Profil</a>
+                        <strong>GitHub:</strong> <a href="${cvData.personal_info.github}" target="_blank">Profil</a>
                     </div>
                 ` : ''}
                 ${cvData.personal_info.website ? `
                     <div class="cv-personal-item">
-                        🌐 <strong>Webbplats:</strong> <a href="${cvData.personal_info.website}" target="_blank">Besök</a>
+                        <strong>Webbplats:</strong> <a href="${cvData.personal_info.website}" target="_blank">Besök</a>
                     </div>
                 ` : ''}
             </div>
@@ -401,7 +400,6 @@ function buildCVDetailsHTML(cvData) {
         html += `
             <div class="cv-section">
                 <h3 class="cv-section-title">
-                    <span class="cv-section-icon">📝</span>
                     Sammanfattning
                 </h3>
                 <div class="cv-summary">${cvData.summary}</div>
@@ -414,7 +412,6 @@ function buildCVDetailsHTML(cvData) {
         html += `
             <div class="cv-section">
                 <h3 class="cv-section-title">
-                    <span class="cv-section-icon">💼</span>
                     Arbetslivserfarenhet
                 </h3>
         `;
@@ -462,7 +459,6 @@ function buildCVDetailsHTML(cvData) {
         html += `
             <div class="cv-section">
                 <h3 class="cv-section-title">
-                    <span class="cv-section-icon">🎓</span>
                     Utbildning
                 </h3>
         `;
@@ -482,7 +478,7 @@ function buildCVDetailsHTML(cvData) {
                         ${dateStr ? `<div class="cv-experience-date">${dateStr}</div>` : ''}
                     </div>
                     
-                    ${edu.gpa ? `<div class="cv-personal-item">📊 GPA: ${edu.gpa}</div>` : ''}
+                    ${edu.gpa ? `<div class="cv-personal-item">GPA: ${edu.gpa}</div>` : ''}
                     
                     ${edu.achievements && edu.achievements.length > 0 ? `
                         <div class="cv-achievements">
@@ -503,7 +499,6 @@ function buildCVDetailsHTML(cvData) {
         html += `
             <div class="cv-section">
                 <h3 class="cv-section-title">
-                    <span class="cv-section-icon">🎯</span>
                     Kompetenser
                 </h3>
                 <div class="cv-skills-grid">
@@ -518,7 +513,6 @@ function buildCVDetailsHTML(cvData) {
         html += `
             <div class="cv-section">
                 <h3 class="cv-section-title">
-                    <span class="cv-section-icon">🏆</span>
                     Certifieringar
                 </h3>
         `;
@@ -528,8 +522,8 @@ function buildCVDetailsHTML(cvData) {
                 <div class="cv-education-item">
                     <h3>${cert.name || 'Certifiering'}</h3>
                     ${cert.issuing_organization ? `<div class="cv-experience-company">${cert.issuing_organization}</div>` : ''}
-                    ${cert.issue_date ? `<div class="cv-personal-item">📅 Utfärdad: ${cert.issue_date}</div>` : ''}
-                    ${cert.credential_id ? `<div class="cv-personal-item">🆔 ID: ${cert.credential_id}</div>` : ''}
+                    ${cert.issue_date ? `<div class="cv-personal-item">Utfärdad: ${cert.issue_date}</div>` : ''}
+                    ${cert.credential_id ? `<div class="cv-personal-item">ID: ${cert.credential_id}</div>` : ''}
                 </div>
             `;
         });
@@ -542,7 +536,6 @@ function buildCVDetailsHTML(cvData) {
         html += `
             <div class="cv-section">
                 <h3 class="cv-section-title">
-                    <span class="cv-section-icon">🚀</span>
                     Projekt
                 </h3>
         `;
@@ -553,7 +546,7 @@ function buildCVDetailsHTML(cvData) {
                     <h3>${proj.name || 'Projekt'}</h3>
                     ${proj.role ? `<div class="cv-experience-company">Roll: ${proj.role}</div>` : ''}
                     ${proj.description ? `<div class="cv-experience-description">${proj.description}</div>` : ''}
-                    ${proj.url ? `<div class="cv-personal-item">🔗 <a href="${proj.url}" target="_blank">Projektlänk</a></div>` : ''}
+                    ${proj.url ? `<div class="cv-personal-item"><a href="${proj.url}" target="_blank">Projektlänk</a></div>` : ''}
                     
                     ${proj.technologies && proj.technologies.length > 0 ? `
                         <div class="cv-tags">
@@ -572,7 +565,6 @@ function buildCVDetailsHTML(cvData) {
         html += `
             <div class="cv-section">
                 <h3 class="cv-section-title">
-                    <span class="cv-section-icon">🌍</span>
                     Språk
                 </h3>
                 <div class="cv-languages-grid">

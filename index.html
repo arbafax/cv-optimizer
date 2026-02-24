@@ -11,8 +11,43 @@
 </head>
 <body>
 
+<!-- ════════════════════════════════ AUTH VIEW ════════════════════════════════ -->
+<div id="view-auth" class="view-auth hidden">
+    <div class="auth-card">
+        <div class="auth-brand">
+            <span class="brand-cv">CV</span><span class="brand-match">Match</span>
+            <p class="brand-sub">AI-driven karriärverktyg</p>
+        </div>
+        <h2 id="auth-heading">Logga in</h2>
+
+        <div id="auth-name-group" class="form-group hidden">
+            <label for="auth-name">Namn</label>
+            <input type="text" id="auth-name" class="form-input" placeholder="Ditt namn" autocomplete="name">
+        </div>
+        <div class="form-group">
+            <label for="auth-email">E-postadress</label>
+            <input type="email" id="auth-email" class="form-input" placeholder="din@epost.se" autocomplete="email"
+                   onkeydown="if(event.key==='Enter') handleAuthSubmit()">
+        </div>
+        <div class="form-group">
+            <label for="auth-password">Lösenord</label>
+            <input type="password" id="auth-password" class="form-input" placeholder="••••••••" autocomplete="current-password"
+                   onkeydown="if(event.key==='Enter') handleAuthSubmit()">
+        </div>
+
+        <div id="auth-error" class="auth-error hidden"></div>
+
+        <button class="btn btn-primary btn-full" id="auth-submit" onclick="handleAuthSubmit()">Logga in</button>
+
+        <p class="auth-toggle-text">
+            <span id="auth-toggle-msg">Inget konto?</span>
+            <a href="#" id="auth-toggle-link" onclick="toggleAuthMode(); return false;">Registrera dig</a>
+        </p>
+    </div>
+</div>
+
 <!-- ════════════════════════════════ SIDEBAR ════════════════════════════════ -->
-<aside class="sidebar">
+<aside class="sidebar" id="sidebar">
     <div class="sidebar-brand">
         <span class="brand-cv">CV</span><span class="brand-match">Match</span>
         <p class="brand-sub">AI-driven karriärverktyg</p>
@@ -39,9 +74,14 @@
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
             Matcha jobb
         </a>
+        <a href="#" class="nav-item" onclick="showView('profiles', this); loadProfiles()">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M22 19a2 2 0 01-2 2H4a2 2 0 01-2-2V5a2 2 0 012-2h5l2 3h9a2 2 0 012 2z"/></svg>
+            Sökprofiler
+        </a>
     </nav>
 
     <div class="sidebar-footer">
+        <div id="sidebar-user" class="sidebar-user"></div>
         <div class="sidebar-status" id="sidebar-status">
             <span class="status-dot"></span>
             <span>Backend ansluten</span>
@@ -50,7 +90,7 @@
 </aside>
 
 <!-- ════════════════════════════════ MAIN ════════════════════════════════ -->
-<main class="main">
+<main class="main" id="main-content">
 
     <!-- ── DASHBOARD VIEW ── -->
     <div id="view-dashboard" class="view active">
@@ -245,6 +285,32 @@
     </div>
 
 </main>
+
+    <!-- ── PROFILES VIEW ── -->
+    <div id="view-profiles" class="view">
+        <div class="view-header">
+            <div>
+                <h1>Sökprofiler</h1>
+                <p class="view-subtitle">Spara jobbsökningar med matchresultat och CV-utkast.</p>
+            </div>
+            <div class="view-header-actions">
+                <button class="btn btn-primary" onclick="showCreateProfileForm()">+ Ny profil</button>
+            </div>
+        </div>
+
+        <div class="profiles-layout">
+            <div class="profiles-list-panel">
+                <div id="profiles-list">
+                    <div class="empty-hint">Inga profiler ännu</div>
+                </div>
+            </div>
+            <div class="profiles-detail-panel" id="profiles-detail-panel">
+                <div class="profiles-empty-detail">
+                    <p>Välj en profil till vänster för att se detaljer</p>
+                </div>
+            </div>
+        </div>
+    </div>
 
 <!-- ════════════════════════════════ URL-BLOCKED POPUP ════════════════════════════════ -->
 <div id="url-blocked-popup" class="url-blocked-popup hidden">

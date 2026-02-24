@@ -11,6 +11,7 @@ from app.core.auth import get_current_user
 from app.models.cv import CV
 from app.models.competence import SkillEntry, ExperienceEntry
 from app.models.user import User
+from app.models.job_seeker_profile import JobSeekerProfile
 from app.services.competence_service import (
     merge_cv_into_bank, merge_experiences, clear_bank, rebuild_bank,
     add_skill, delete_skill, delete_experience,
@@ -491,12 +492,25 @@ async def match_job(
         for e in experiences
     ]
 
+    # Hämta sökprofil om den finns
+    sp = db.query(JobSeekerProfile).filter(JobSeekerProfile.user_id == uid).first()
+    seeker_profile = None
+    if sp:
+        seeker_profile = {
+            "roles":              sp.roles,
+            "desired_city":       sp.desired_city,
+            "desired_employment": sp.desired_employment.split(",") if sp.desired_employment else [],
+            "desired_workplace":  sp.desired_workplace.split(",")  if sp.desired_workplace  else [],
+            "willing_to_commute": sp.willing_to_commute,
+        }
+
     ai = AIService()
     result = ai.match_competences_to_job(
         skills=skills_data,
         experiences=experiences_data,
         job_title=body.job_title,
         job_description=body.job_description,
+        seeker_profile=seeker_profile,
     )
 
     # Berikar erfarenheterna med full data från DB

@@ -240,6 +240,7 @@ Optimera CV:t för denna jobbannons."""
         experiences: list[dict],
         job_title: str,
         job_description: str,
+        seeker_profile: dict | None = None,
     ) -> dict:
         """
         Matcha kompetensbanken (skills + erfarenheter) mot en jobbannons.
@@ -278,7 +279,24 @@ Svara ENDAST med JSON i exakt detta format:
 Regler:
 - Inkludera ENDAST skills och erfarenheter som är relevanta för jobbet (score >= 1). Utelämna sådant som inte alls berörs av annonsen.
 - Lägg till i missing_skills alla tekniker, verktyg, språk och kompetenser som annonsen efterfrågar men som INTE finns i personens kompetensbank.
-- Sortera skills och experiences med högst poäng först."""
+- Sortera skills och experiences med högst poäng först.
+- Om personens preferenser finns med (önskad roll, ort, anställningsform, arbetsplats), väg in hur väl jobbet passar preferenserna i summary och overall_score. Nämn eventuella avvikelser kort."""
+
+        seeker_section = ""
+        if seeker_profile:
+            parts = []
+            if seeker_profile.get("roles"):
+                parts.append(f"Önskade roller: {seeker_profile['roles']}")
+            if seeker_profile.get("desired_city"):
+                parts.append(f"Önskad ort: {seeker_profile['desired_city']}")
+            if seeker_profile.get("desired_employment"):
+                parts.append(f"Önskad anställningsform: {', '.join(seeker_profile['desired_employment'])}")
+            if seeker_profile.get("desired_workplace"):
+                parts.append(f"Önskad arbetsplats: {', '.join(seeker_profile['desired_workplace'])}")
+            if seeker_profile.get("willing_to_commute"):
+                parts.append("Resbar: Ja")
+            if parts:
+                seeker_section = "\n---\nPersonens preferenser:\n" + "\n".join(parts)
 
         user_prompt = f"""Jobbannons:
 Titel: {job_title}
@@ -290,7 +308,7 @@ Personens skills:
 {skills_list}
 
 Personens erfarenheter:
-{exp_list}
+{exp_list}{seeker_section}
 """
 
         logger.info(f"Matchar kompetensbank mot jobb: {job_title}")

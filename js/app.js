@@ -2148,8 +2148,14 @@ function loadAccountView() {
     document.getElementById('account-address').value = currentUser.address || '';
     document.getElementById('account-status').innerHTML    = '';
     document.getElementById('account-pw-status').innerHTML = '';
+    document.getElementById('account-roles-status').innerHTML = '';
     document.getElementById('account-curr-pw').value = '';
     document.getElementById('account-new-pw').value  = '';
+
+    const roles = currentUser.roles || [];
+    document.getElementById('role-kandidat').checked    = roles.includes('Kandidat');
+    document.getElementById('role-saljare').checked     = roles.includes('Säljare');
+    document.getElementById('role-rekryterare').checked = roles.includes('Rekryterare');
 }
 
 async function saveAccount() {
@@ -2204,6 +2210,29 @@ async function saveAccountPassword() {
         showAccountStatus('account-pw-status', 'Lösenordet ändrades', 'success');
     } catch (err) {
         showAccountStatus('account-pw-status', err.message, 'error');
+    }
+}
+
+async function saveAccountRoles() {
+    const roles = [];
+    if (document.getElementById('role-kandidat').checked)    roles.push('Kandidat');
+    if (document.getElementById('role-saljare').checked)     roles.push('Säljare');
+    if (document.getElementById('role-rekryterare').checked) roles.push('Rekryterare');
+
+    try {
+        const res = await apiFetch(`${API_BASE_URL}/auth/me`, {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ roles }),
+        });
+        if (!res.ok) {
+            const err = await res.json();
+            throw new Error(err.detail || 'Kunde inte spara roller');
+        }
+        currentUser = await res.json();
+        showAccountStatus('account-roles-status', 'Roller sparade', 'success');
+    } catch (err) {
+        showAccountStatus('account-roles-status', err.message, 'error');
     }
 }
 

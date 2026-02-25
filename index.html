@@ -284,6 +284,28 @@
                 <div id="account-pw-status"></div>
                 <button class="btn btn-secondary" onclick="saveAccountPassword()">Byt lösenord</button>
             </div>
+
+            <!-- Roller -->
+            <div class="card">
+                <h2 class="card-title">Roller</h2>
+                <p class="field-desc">Välj vilken eller vilka roller du har i systemet. Roller styr vilken funktionalitet som är tillgänglig.</p>
+                <div class="checkbox-group" style="flex-direction: column; gap: 12px; margin-top: 10px;">
+                    <label class="checkbox-label">
+                        <input type="checkbox" id="role-kandidat" value="Kandidat">
+                        <span><strong>Kandidat</strong> — letar efter jobb och hanterar sin kompetensbank</span>
+                    </label>
+                    <label class="checkbox-label">
+                        <input type="checkbox" id="role-saljare" value="Säljare">
+                        <span><strong>Säljare</strong> — hanterar en pool med kandidater</span>
+                    </label>
+                    <label class="checkbox-label">
+                        <input type="checkbox" id="role-rekryterare" value="Rekryterare">
+                        <span><strong>Rekryterare</strong> — söker kandidater för specifika tjänster</span>
+                    </label>
+                </div>
+                <div id="account-roles-status"></div>
+                <button class="btn btn-primary" onclick="saveAccountRoles()" style="margin-top: 16px;">Spara roller</button>
+            </div>
         </div>
     </div>
 

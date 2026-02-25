@@ -10,6 +10,7 @@ from app.core.database import get_db
 from app.core.config import settings
 from app.core.auth import get_current_user
 from app.models.candidate_profile import CandidateProfile
+from app.models.seller_candidates import SellerCandidate
 from app.models.candidate_bank import CandidateSkillEntry, CandidateExperienceEntry
 from app.models.user import User
 from app.services.pdf_parser import PDFParser
@@ -26,6 +27,7 @@ router = APIRouter(prefix="/kandidater", tags=["Kandidater"])
 
 class KandidatRequest(BaseModel):
     public_name:        str
+    email:              str | None  = None
     public_phone:       str | None  = None
     roles:              str | None  = None
     desired_city:       str | None  = None
@@ -39,6 +41,7 @@ class KandidatRequest(BaseModel):
 def _to_dict(p: CandidateProfile) -> dict:
     return {
         "id":                 p.id,
+        "email":              p.email,
         "public_name":        p.public_name,
         "public_phone":       p.public_phone,
         "roles":              p.roles,
@@ -53,6 +56,8 @@ def _to_dict(p: CandidateProfile) -> dict:
 
 def _apply_body(p: CandidateProfile, body: KandidatRequest) -> None:
     p.public_name        = body.public_name.strip()
+    if body.email is not None:
+        p.email = body.email.strip() or None
     p.public_phone       = body.public_phone.strip()       if body.public_phone       else None
     p.roles              = body.roles.strip()              if body.roles              else None
     p.desired_city       = body.desired_city.strip()       if body.desired_city       else None
@@ -63,6 +68,20 @@ def _apply_body(p: CandidateProfile, body: KandidatRequest) -> None:
     p.available_from     = body.available_from or None
 
 
+def _require_kandidat(kandidat_id: int, current_user: User, db: Session) -> CandidateProfile:
+    """Hämtar kandidatprofilen och verifierar att säljaren har koppling till den — eller kastar 404."""
+    link = db.query(SellerCandidate).filter(
+        SellerCandidate.seller_user_id == current_user.id,
+        SellerCandidate.candidate_profile_id == kandidat_id,
+    ).first()
+    if not link:
+        raise HTTPException(status_code=404, detail="Kandidat hittades inte")
+    p = db.query(CandidateProfile).filter(CandidateProfile.id == kandidat_id).first()
+    if not p:
+        raise HTTPException(status_code=404, detail="Kandidat hittades inte")
+    return p
+
+
 @router.get("/")
 async def list_kandidater(
     db: Session = Depends(get_db),
@@ -71,7 +90,8 @@ async def list_kandidater(
     """Lista alla kandidatprofiler som hanteras av inloggad säljare."""
     profiles = (
         db.query(CandidateProfile)
-        .filter(CandidateProfile.managed_by_user_id == current_user.id)
+        .join(SellerCandidate, SellerCandidate.candidate_profile_id == CandidateProfile.id)
+        .filter(SellerCandidate.seller_user_id == current_user.id)
         .order_by(CandidateProfile.id)
         .all()
     )
@@ -84,10 +104,17 @@ async def create_kandidat(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
-    """Skapa en ny kandidatprofil för inloggad säljare."""
-    p = CandidateProfile(managed_by_user_id=current_user.id)
+    """Skapa en ny kandidatprofil (user_id=null) och lägg till i säljarens lista."""
+    p = CandidateProfile(user_id=None)
     _apply_body(p, body)
     db.add(p)
+    db.flush()  # hämta p.id innan commit
+
+    link = SellerCandidate(
+        seller_user_id=current_user.id,
+        candidate_profile_id=p.id,
+    )
+    db.add(link)
     db.commit()
     db.refresh(p)
     return _to_dict(p)
@@ -100,12 +127,7 @@ async def get_kandidat(
     current_user: User = Depends(get_current_user),
 ):
     """Hämta en specifik kandidatprofil."""
-    p = db.query(CandidateProfile).filter(
-        CandidateProfile.id == kandidat_id,
-        CandidateProfile.managed_by_user_id == current_user.id,
-    ).first()
-    if not p:
-        raise HTTPException(status_code=404, detail="Kandidat hittades inte")
+    p = _require_kandidat(kandidat_id, current_user, db)
     return _to_dict(p)
 
 
@@ -117,12 +139,7 @@ async def update_kandidat(
     current_user: User = Depends(get_current_user),
 ):
     """Uppdatera en kandidatprofil."""
-    p = db.query(CandidateProfile).filter(
-        CandidateProfile.id == kandidat_id,
-        CandidateProfile.managed_by_user_id == current_user.id,
-    ).first()
-    if not p:
-        raise HTTPException(status_code=404, detail="Kandidat hittades inte")
+    p = _require_kandidat(kandidat_id, current_user, db)
     _apply_body(p, body)
     db.commit()
     db.refresh(p)
@@ -135,15 +152,24 @@ async def delete_kandidat(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
-    """Ta bort en kandidatprofil."""
-    p = db.query(CandidateProfile).filter(
-        CandidateProfile.id == kandidat_id,
-        CandidateProfile.managed_by_user_id == current_user.id,
-    ).first()
-    if not p:
-        raise HTTPException(status_code=404, detail="Kandidat hittades inte")
+    """Ta bort kandidaten från säljarens lista.
+    Om profilen saknar kopplat user-konto tas hela profilen bort.
+    Om profilen är kopplad till ett user-konto tas bara kopplingen bort."""
+    p = _require_kandidat(kandidat_id, current_user, db)
     name = p.public_name or "Kandidat"
-    db.delete(p)
+
+    if p.user_id is None:
+        # Säljar-skapad profil utan user_account — ta bort profilen (cascade hanterar resten)
+        db.delete(p)
+    else:
+        # Kandidaten har ett konto — behåll profilen, ta bara bort kopplingen
+        link = db.query(SellerCandidate).filter(
+            SellerCandidate.seller_user_id == current_user.id,
+            SellerCandidate.candidate_profile_id == kandidat_id,
+        ).first()
+        if link:
+            db.delete(link)
+
     db.commit()
     return {"message": f"'{name}' borttagen"}
 
@@ -154,17 +180,6 @@ class AddSkillRequest(BaseModel):
     skill_name: str
     category:   str | None = None
     skill_type: str | None = None
-
-
-def _require_kandidat(kandidat_id: int, current_user: User, db: Session) -> CandidateProfile:
-    """Hämtar kandidatprofilen och verifierar ägarskap — eller kastar 404."""
-    p = db.query(CandidateProfile).filter(
-        CandidateProfile.id == kandidat_id,
-        CandidateProfile.managed_by_user_id == current_user.id,
-    ).first()
-    if not p:
-        raise HTTPException(status_code=404, detail="Kandidat hittades inte")
-    return p
 
 
 @router.get("/{kandidat_id}/bank")
@@ -233,7 +248,7 @@ async def add_kandidat_skill(
 
     existing = db.query(CandidateSkillEntry).filter(
         CandidateSkillEntry.candidate_profile_id == kandidat_id,
-        CandidateSkillEntry.skill_name == name,
+        func.lower(CandidateSkillEntry.skill_name) == name.lower(),
     ).first()
     if existing:
         raise HTTPException(status_code=400, detail="Skill finns redan")
@@ -462,15 +477,13 @@ async def match_job_for_kandidat(
         for e in experiences
     ]
 
-    seeker_profile = None
-    if kandidat:
-        seeker_profile = {
-            "roles":              kandidat.roles,
-            "desired_city":       kandidat.desired_city,
-            "desired_employment": kandidat.desired_employment.split(",") if kandidat.desired_employment else [],
-            "desired_workplace":  kandidat.desired_workplace.split(",")  if kandidat.desired_workplace  else [],
-            "willing_to_commute": kandidat.willing_to_commute,
-        }
+    seeker_profile = {
+        "roles":              kandidat.roles,
+        "desired_city":       kandidat.desired_city,
+        "desired_employment": kandidat.desired_employment.split(",") if kandidat.desired_employment else [],
+        "desired_workplace":  kandidat.desired_workplace.split(",")  if kandidat.desired_workplace  else [],
+        "willing_to_commute": kandidat.willing_to_commute,
+    }
 
     result = _ai_service.match_competences_to_job(
         skills=skills_data,

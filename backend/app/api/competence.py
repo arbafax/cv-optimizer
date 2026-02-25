@@ -9,11 +9,11 @@ from bs4 import BeautifulSoup
 from app.core.database import get_db
 from app.core.auth import get_current_user
 from app.models.cv import CV
-from app.models.competence import SkillEntry, ExperienceEntry
+from app.models.candidate_bank import CandidateSkillEntry, CandidateExperienceEntry
 from app.models.user import User
 from app.models.candidate_profile import CandidateProfile
 from app.services.competence_service import (
-    merge_cv_into_bank, merge_experiences, clear_bank, rebuild_bank,
+    merge_cv_into_bank, clear_bank, rebuild_bank,
     add_skill, delete_skill, delete_experience,
     add_achievement, update_achievement, delete_achievement,
     add_experience_skill, remove_experience_skill, create_experience,
@@ -89,45 +89,27 @@ logger = logging.getLogger(__name__)
 router = APIRouter(prefix="/competence", tags=["Competence Bank"])
 
 
+# ── Helper ────────────────────────────────────────────────────────────────────
+
+def _get_or_create_profile(user_id: int, db: Session) -> CandidateProfile:
+    """Hämtar eller skapar en candidate_profile för användaren (lazy)."""
+    p = db.query(CandidateProfile).filter(
+        CandidateProfile.user_id == user_id
+    ).first()
+    if not p:
+        from app.models.user import User as UserModel
+        user = db.query(UserModel).filter(UserModel.id == user_id).first()
+        p = CandidateProfile(
+            user_id=user_id,
+            email=user.email if user else None,
+        )
+        db.add(p)
+        db.commit()
+        db.refresh(p)
+    return p
+
+
 # ── Endpoints ────────────────────────────────────────────────────────────────
-
-@router.post("/merge-all")
-async def merge_all_cvs(
-    db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user),
-):
-    """Merge alla CV:n i databasen till kompetensbanken."""
-    cvs = db.query(CV).filter(CV.user_id == current_user.id).all()
-    if not cvs:
-        raise HTTPException(status_code=404, detail="Inga CV:n hittades")
-
-    total_skills, total_experiences, results = 0, 0, []
-    for cv in cvs:
-        r = merge_cv_into_bank(cv, db)
-        total_skills      += r["skills_added"]
-        total_experiences += r["experiences_added"]
-        results.append(r)
-
-    return {
-        "total_cvs_processed"    : len(cvs),
-        "total_skills_added"     : total_skills,
-        "total_experiences_added": total_experiences,
-        "details"                : results,
-    }
-
-
-@router.post("/merge/{cv_id}")
-async def merge_cv(
-    cv_id: int,
-    db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user),
-):
-    """Merge ett enskilt CV till kompetensbanken."""
-    cv = db.query(CV).filter(CV.id == cv_id, CV.user_id == current_user.id).first()
-    if not cv:
-        raise HTTPException(status_code=404, detail="CV hittades inte")
-    return merge_cv_into_bank(cv, db)
-
 
 @router.get("/stats")
 async def get_bank_stats(
@@ -135,19 +117,29 @@ async def get_bank_stats(
     current_user: User = Depends(get_current_user),
 ):
     """Returnerar aggregerad statistik för kompetensbanken."""
-    uid = current_user.id
-    total_skills = db.query(SkillEntry).filter(SkillEntry.user_id == uid).count()
-    total_exp    = db.query(ExperienceEntry).filter(ExperienceEntry.user_id == uid).count()
+    profile = _get_or_create_profile(current_user.id, db)
+    pid = profile.id
+
+    total_skills = db.query(CandidateSkillEntry).filter(
+        CandidateSkillEntry.candidate_profile_id == pid
+    ).count()
+    total_exp = db.query(CandidateExperienceEntry).filter(
+        CandidateExperienceEntry.candidate_profile_id == pid
+    ).count()
 
     all_sources: set = set()
-    for row in db.query(SkillEntry.source_cv_ids).filter(SkillEntry.user_id == uid).all():
+    for row in db.query(CandidateSkillEntry.source_cv_ids).filter(
+        CandidateSkillEntry.candidate_profile_id == pid
+    ).all():
         if row[0]:
             all_sources.update(row[0])
 
     skills_by_category: dict = {}
     for row in db.query(
-        SkillEntry.category, func.count(SkillEntry.id)
-    ).filter(SkillEntry.user_id == uid).group_by(SkillEntry.category).all():
+        CandidateSkillEntry.category, func.count(CandidateSkillEntry.id)
+    ).filter(CandidateSkillEntry.candidate_profile_id == pid).group_by(
+        CandidateSkillEntry.category
+    ).all():
         skills_by_category[row[0]] = row[1]
 
     return {
@@ -164,9 +156,10 @@ async def get_bank_skills(
     current_user: User = Depends(get_current_user),
 ):
     """Returnerar alla skills i kompetensbanken, sorterade per kategori."""
-    skills = db.query(SkillEntry).filter(
-        SkillEntry.user_id == current_user.id
-    ).order_by(SkillEntry.category, SkillEntry.skill_name).all()
+    profile = _get_or_create_profile(current_user.id, db)
+    skills = db.query(CandidateSkillEntry).filter(
+        CandidateSkillEntry.candidate_profile_id == profile.id
+    ).order_by(CandidateSkillEntry.category, CandidateSkillEntry.skill_name).all()
     return {
         "skills": [
             {
@@ -187,11 +180,12 @@ async def get_bank_experiences(
     current_user: User = Depends(get_current_user),
 ):
     """Returnerar alla erfarenheter i kompetensbanken."""
-    experiences = db.query(ExperienceEntry).filter(
-        ExperienceEntry.user_id == current_user.id
+    profile = _get_or_create_profile(current_user.id, db)
+    experiences = db.query(CandidateExperienceEntry).filter(
+        CandidateExperienceEntry.candidate_profile_id == profile.id
     ).order_by(
-        ExperienceEntry.experience_type,
-        ExperienceEntry.start_date.desc()
+        CandidateExperienceEntry.experience_type,
+        CandidateExperienceEntry.start_date.desc()
     ).all()
     return {
         "experiences": [
@@ -213,25 +207,6 @@ async def get_bank_experiences(
     }
 
 
-@router.post("/experiences/merge")
-async def merge_experience_entries(
-    body: dict,
-    db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user),
-):
-    """Slå ihop flera erfarenhetsposter till en."""
-    experience_ids = body.get("experience_ids", [])
-    if len(experience_ids) < 2:
-        raise HTTPException(status_code=400, detail="Minst 2 erfarenhets-ID krävs")
-
-    try:
-        result = merge_experiences(experience_ids, db, current_user.id)
-    except ValueError as e:
-        raise HTTPException(status_code=400, detail=str(e))
-
-    return result
-
-
 @router.post("/skills")
 async def create_skill(
     body: AddSkillRequest,
@@ -239,8 +214,9 @@ async def create_skill(
     current_user: User = Depends(get_current_user),
 ):
     """Lägg till en enskild skill i kompetensbanken."""
+    profile = _get_or_create_profile(current_user.id, db)
     try:
-        result = add_skill(body.skill_name, body.category, body.skill_type, db, current_user.id)
+        result = add_skill(body.skill_name, body.category, body.skill_type, profile.id, db)
     except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e))
     return result
@@ -253,8 +229,9 @@ async def remove_skill(
     current_user: User = Depends(get_current_user),
 ):
     """Ta bort en enskild skill."""
+    profile = _get_or_create_profile(current_user.id, db)
     try:
-        delete_skill(skill_id, db, current_user.id)
+        delete_skill(skill_id, profile.id, db)
     except ValueError as e:
         raise HTTPException(status_code=404, detail=str(e))
     return {"message": "Skill borttagen"}
@@ -267,8 +244,9 @@ async def remove_experience(
     current_user: User = Depends(get_current_user),
 ):
     """Ta bort en enskild erfarenhetspost."""
+    profile = _get_or_create_profile(current_user.id, db)
     try:
-        delete_experience(experience_id, db, current_user.id)
+        delete_experience(experience_id, profile.id, db)
     except ValueError as e:
         raise HTTPException(status_code=404, detail=str(e))
     return {"message": "Erfarenhet borttagen"}
@@ -282,8 +260,9 @@ async def create_achievement(
     current_user: User = Depends(get_current_user),
 ):
     """Lägg till en prestation på en erfarenhetspost."""
+    profile = _get_or_create_profile(current_user.id, db)
     try:
-        achievements = add_achievement(experience_id, body.text, db, current_user.id)
+        achievements = add_achievement(experience_id, body.text, profile.id, db)
     except ValueError as e:
         raise HTTPException(status_code=404, detail=str(e))
     return {"achievements": achievements}
@@ -298,8 +277,9 @@ async def edit_achievement(
     current_user: User = Depends(get_current_user),
 ):
     """Uppdatera en prestation."""
+    profile = _get_or_create_profile(current_user.id, db)
     try:
-        achievements = update_achievement(experience_id, index, body.text, db, current_user.id)
+        achievements = update_achievement(experience_id, index, body.text, profile.id, db)
     except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e))
     return {"achievements": achievements}
@@ -313,8 +293,9 @@ async def remove_achievement(
     current_user: User = Depends(get_current_user),
 ):
     """Ta bort en prestation."""
+    profile = _get_or_create_profile(current_user.id, db)
     try:
-        achievements = delete_achievement(experience_id, index, db, current_user.id)
+        achievements = delete_achievement(experience_id, index, profile.id, db)
     except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e))
     return {"achievements": achievements}
@@ -328,9 +309,10 @@ async def replace_achievements(
     current_user: User = Depends(get_current_user),
 ):
     """Ersätt hela prestationslistan för en erfarenhetspost."""
-    exp = db.query(ExperienceEntry).filter(
-        ExperienceEntry.id == experience_id,
-        ExperienceEntry.user_id == current_user.id,
+    profile = _get_or_create_profile(current_user.id, db)
+    exp = db.query(CandidateExperienceEntry).filter(
+        CandidateExperienceEntry.id == experience_id,
+        CandidateExperienceEntry.candidate_profile_id == profile.id,
     ).first()
     if not exp:
         raise HTTPException(status_code=404, detail="Erfarenhet hittades inte")
@@ -349,9 +331,10 @@ async def improve_achievements(
 ):
     """Analysera och förbättra prestationslistan med AI."""
     from app.services.ai_service import AIService
-    exp = db.query(ExperienceEntry).filter(
-        ExperienceEntry.id == experience_id,
-        ExperienceEntry.user_id == current_user.id,
+    profile = _get_or_create_profile(current_user.id, db)
+    exp = db.query(CandidateExperienceEntry).filter(
+        CandidateExperienceEntry.id == experience_id,
+        CandidateExperienceEntry.candidate_profile_id == profile.id,
     ).first()
     if not exp:
         raise HTTPException(status_code=404, detail="Erfarenhet hittades inte")
@@ -375,8 +358,9 @@ async def update_exp_description(
     current_user: User = Depends(get_current_user),
 ):
     """Uppdatera beskrivningen på en erfarenhetspost."""
+    profile = _get_or_create_profile(current_user.id, db)
     try:
-        description = update_experience_description(experience_id, body.description, db, current_user.id)
+        description = update_experience_description(experience_id, body.description, profile.id, db)
     except ValueError as e:
         raise HTTPException(status_code=404, detail=str(e))
     return {"description": description}
@@ -390,9 +374,10 @@ async def update_exp_period(
     current_user: User = Depends(get_current_user),
 ):
     """Uppdatera tidsperiod på en erfarenhetspost."""
+    profile = _get_or_create_profile(current_user.id, db)
     try:
         result = update_experience_period(
-            experience_id, body.start_date, body.end_date, body.is_current, db, current_user.id
+            experience_id, body.start_date, body.end_date, body.is_current, profile.id, db
         )
     except ValueError as e:
         raise HTTPException(status_code=404, detail=str(e))
@@ -407,8 +392,9 @@ async def create_experience_skill(
     current_user: User = Depends(get_current_user),
 ):
     """Lägg till en skill på en erfarenhetspost."""
+    profile = _get_or_create_profile(current_user.id, db)
     try:
-        skills = add_experience_skill(experience_id, body.skill_name, db, current_user.id)
+        skills = add_experience_skill(experience_id, body.skill_name, profile.id, db)
     except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e))
     return {"related_skills": skills}
@@ -422,8 +408,9 @@ async def remove_exp_skill(
     current_user: User = Depends(get_current_user),
 ):
     """Ta bort en skill från en erfarenhetspost."""
+    profile = _get_or_create_profile(current_user.id, db)
     try:
-        skills = remove_experience_skill(experience_id, index, db, current_user.id)
+        skills = remove_experience_skill(experience_id, index, profile.id, db)
     except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e))
     return {"related_skills": skills}
@@ -436,6 +423,7 @@ async def create_new_experience(
     current_user: User = Depends(get_current_user),
 ):
     """Skapa en ny erfarenhetspost manuellt."""
+    profile = _get_or_create_profile(current_user.id, db)
     try:
         result = create_experience(
             title=body.title,
@@ -447,8 +435,8 @@ async def create_new_experience(
             description=body.description,
             related_skills=body.related_skills,
             achievements=body.achievements,
+            candidate_profile_id=profile.id,
             db=db,
-            user_id=current_user.id,
         )
     except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e))
@@ -463,14 +451,15 @@ async def match_job(
 ):
     """Matcha kompetensbanken mot en jobbannons med AI."""
     from app.services.ai_service import AIService
-    uid = current_user.id
+    profile = _get_or_create_profile(current_user.id, db)
+    pid = profile.id
 
-    skills = db.query(SkillEntry).filter(
-        SkillEntry.user_id == uid
-    ).order_by(SkillEntry.category, SkillEntry.skill_name).all()
-    experiences = db.query(ExperienceEntry).filter(
-        ExperienceEntry.user_id == uid
-    ).order_by(ExperienceEntry.start_date.desc()).all()
+    skills = db.query(CandidateSkillEntry).filter(
+        CandidateSkillEntry.candidate_profile_id == pid
+    ).order_by(CandidateSkillEntry.category, CandidateSkillEntry.skill_name).all()
+    experiences = db.query(CandidateExperienceEntry).filter(
+        CandidateExperienceEntry.candidate_profile_id == pid
+    ).order_by(CandidateExperienceEntry.start_date.desc()).all()
 
     if not skills and not experiences:
         raise HTTPException(status_code=400, detail="Kompetensbanken är tom")
@@ -492,20 +481,14 @@ async def match_job(
         for e in experiences
     ]
 
-    # Hämta kandidatprofil (sökprofil) om den finns
-    sp = db.query(CandidateProfile).filter(
-        CandidateProfile.user_id == uid,
-        CandidateProfile.managed_by_user_id == None,  # noqa: E711
-    ).first()
-    seeker_profile = None
-    if sp:
-        seeker_profile = {
-            "roles":              sp.roles,
-            "desired_city":       sp.desired_city,
-            "desired_employment": sp.desired_employment.split(",") if sp.desired_employment else [],
-            "desired_workplace":  sp.desired_workplace.split(",")  if sp.desired_workplace  else [],
-            "willing_to_commute": sp.willing_to_commute,
-        }
+    # Hämta kandidatprofil för sökpreferenser
+    seeker_profile = {
+        "roles":              profile.roles,
+        "desired_city":       profile.desired_city,
+        "desired_employment": profile.desired_employment.split(",") if profile.desired_employment else [],
+        "desired_workplace":  profile.desired_workplace.split(",")  if profile.desired_workplace  else [],
+        "willing_to_commute": profile.willing_to_commute,
+    }
 
     ai = AIService()
     result = ai.match_competences_to_job(
@@ -544,10 +527,11 @@ async def generate_cv(
 ):
     """Genererar ett anpassat CV-utkast för en jobbannons."""
     from app.services.ai_service import AIService
+    profile = _get_or_create_profile(current_user.id, db)
 
     # Hämta alla erfarenheter för komplett tidslinje
-    all_experiences = db.query(ExperienceEntry).filter(
-        ExperienceEntry.user_id == current_user.id
+    all_experiences = db.query(CandidateExperienceEntry).filter(
+        CandidateExperienceEntry.candidate_profile_id == profile.id
     ).all()
     if not all_experiences:
         raise HTTPException(status_code=400, detail="Inga erfarenheter i kompetensbanken")
@@ -629,10 +613,11 @@ async def get_improvement_tips(
 ):
     """Genererar förbättringstips och föreslagna skills för att öka matchningspoängen."""
     from app.services.ai_service import AIService
+    profile = _get_or_create_profile(current_user.id, db)
 
-    experiences = db.query(ExperienceEntry).filter(
-        ExperienceEntry.id.in_(body.matched_experience_ids),
-        ExperienceEntry.user_id == current_user.id,
+    experiences = db.query(CandidateExperienceEntry).filter(
+        CandidateExperienceEntry.id.in_(body.matched_experience_ids),
+        CandidateExperienceEntry.candidate_profile_id == profile.id,
     ).all() if body.matched_experience_ids else []
 
     experiences_data = [
@@ -721,5 +706,6 @@ async def reset_bank(
     current_user: User = Depends(get_current_user),
 ):
     """Rensa hela kompetensbanken."""
-    clear_bank(db, current_user.id)
+    profile = _get_or_create_profile(current_user.id, db)
+    clear_bank(profile.id, db)
     return {"message": "Kompetensbanken rensad"}

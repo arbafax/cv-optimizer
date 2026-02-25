@@ -1,4 +1,4 @@
-from sqlalchemy import Column, Integer, String, Boolean, Text, JSON, ForeignKey, DateTime
+from sqlalchemy import Column, Integer, String, Boolean, Text, JSON, ForeignKey, DateTime, UniqueConstraint
 from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.sql import func
 from app.core.database import Base
@@ -13,7 +13,12 @@ class CandidateSkillEntry(Base):
     skill_name           = Column(String(255), nullable=False)
     category             = Column(String(100), default="Övrigt")
     skill_type           = Column(String(50), default="technical")   # technical | soft | language | tool
+    source_cv_ids        = Column(JSON, default=list)
     created_at           = Column(DateTime(timezone=True), server_default=func.now())
+
+    __table_args__ = (
+        UniqueConstraint("candidate_profile_id", "skill_name", name="uq_candidate_skill"),
+    )
 
 
 class CandidateExperienceEntry(Base):

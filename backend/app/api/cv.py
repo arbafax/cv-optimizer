@@ -11,10 +11,12 @@ from app.core.config import settings
 from app.core.auth import get_current_user
 from app.models.cv import CV
 from app.models.user import User
-from app.models.competence import SkillEntry
+from app.models.candidate_bank import CandidateSkillEntry
+from app.models.candidate_profile import CandidateProfile
 from app.schemas.cv import CVResponse, CVStructure, CVUpdateTitle
 from app.services.pdf_parser import PDFParser
 from app.services.ai_service import AIService
+from app.services.competence_service import merge_cv_into_bank
 
 logger = logging.getLogger(__name__)
 
@@ -90,6 +92,21 @@ async def upload_cv(
 
         logger.info(f"Sparade CV till databasen med ID: {db_cv.id}")
 
+        # Auto-merge till kompetensbanken
+        profile = db.query(CandidateProfile).filter(
+            CandidateProfile.user_id == current_user.id
+        ).first()
+        if not profile:
+            profile = CandidateProfile(
+                user_id=current_user.id,
+                email=current_user.email,
+            )
+            db.add(profile)
+            db.commit()
+            db.refresh(profile)
+        merge_cv_into_bank(db_cv, profile.id, db)
+        logger.info(f"Auto-mergade CV {db_cv.id} till kompetensbanken (profil {profile.id})")
+
         if os.path.exists(temp_path):
             os.remove(temp_path)
 
@@ -124,11 +141,15 @@ async def list_cvs(
 
     # Bygg upp en mängd med alla CV-ID:n som finns i kompetensbanken
     merged_cv_ids: set[int] = set()
-    for (source_ids,) in db.query(SkillEntry.source_cv_ids).filter(
-        SkillEntry.user_id == current_user.id
-    ).all():
-        if source_ids:
-            merged_cv_ids.update(source_ids)
+    profile = db.query(CandidateProfile).filter(
+        CandidateProfile.user_id == current_user.id
+    ).first()
+    if profile:
+        for (source_ids,) in db.query(CandidateSkillEntry.source_cv_ids).filter(
+            CandidateSkillEntry.candidate_profile_id == profile.id
+        ).all():
+            if source_ids:
+                merged_cv_ids.update(source_ids)
 
     return [
         CVResponse(

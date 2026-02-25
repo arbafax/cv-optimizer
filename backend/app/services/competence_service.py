@@ -4,7 +4,7 @@ from sqlalchemy.orm.attributes import flag_modified
 import re
 import logging
 
-from app.models.competence import SkillEntry, ExperienceEntry
+from app.models.candidate_bank import CandidateSkillEntry, CandidateExperienceEntry
 
 logger = logging.getLogger(__name__)
 
@@ -130,12 +130,11 @@ def _merge_skill_list(existing: list, incoming: list) -> list:
 # Core merge logic
 # ──────────────────────────────────────────────────────────────────────────────
 
-def merge_cv_into_bank(cv, db: Session) -> dict:
+def merge_cv_into_bank(cv, candidate_profile_id: int, db: Session) -> dict:
     """
     Extrahera skills och erfarenheter från ett CV och upserta i kompetensbanken.
-    Filtrerar alltid på cv.user_id för att hålla data isolerad per användare.
+    Filtrerar alltid på candidate_profile_id för att hålla data isolerad per profil.
     """
-    user_id      = cv.user_id
     data         = cv.structured_data or {}
     skills_added = 0
     exp_added    = 0
@@ -155,9 +154,9 @@ def merge_cv_into_bank(cv, db: Session) -> dict:
             unique_skills.append(norm)
 
     for skill_name in unique_skills:
-        existing = db.query(SkillEntry).filter(
-            SkillEntry.user_id == user_id,
-            func.lower(SkillEntry.skill_name) == skill_name.lower(),
+        existing = db.query(CandidateSkillEntry).filter(
+            CandidateSkillEntry.candidate_profile_id == candidate_profile_id,
+            func.lower(CandidateSkillEntry.skill_name) == skill_name.lower(),
         ).first()
 
         if existing:
@@ -169,12 +168,12 @@ def merge_cv_into_bank(cv, db: Session) -> dict:
             duplicates += 1
         else:
             category, skill_type = categorise_skill(skill_name)
-            db.add(SkillEntry(
-                user_id       = user_id,
-                skill_name    = skill_name,
-                category      = category,
-                skill_type    = skill_type,
-                source_cv_ids = [cv.id],
+            db.add(CandidateSkillEntry(
+                candidate_profile_id = candidate_profile_id,
+                skill_name           = skill_name,
+                category             = category,
+                skill_type           = skill_type,
+                source_cv_ids        = [cv.id],
             ))
             skills_added += 1
 
@@ -193,15 +192,15 @@ def merge_cv_into_bank(cv, db: Session) -> dict:
     ):
         nonlocal exp_added, exp_merged
 
-        existing = db.query(ExperienceEntry).filter(
-            ExperienceEntry.user_id == user_id,
-            ExperienceEntry.experience_type == experience_type,
-            func.lower(func.regexp_replace(ExperienceEntry.title,       r'[^\w\s]', '', 'g'))
+        existing = db.query(CandidateExperienceEntry).filter(
+            CandidateExperienceEntry.candidate_profile_id == candidate_profile_id,
+            CandidateExperienceEntry.experience_type == experience_type,
+            func.lower(func.regexp_replace(CandidateExperienceEntry.title,       r'[^\w\s]', '', 'g'))
             == _normalise(title),
             func.lower(func.regexp_replace(
-                func.coalesce(ExperienceEntry.organization, ''), r'[^\w\s]', '', 'g'))
+                func.coalesce(CandidateExperienceEntry.organization, ''), r'[^\w\s]', '', 'g'))
             == _normalise(organization),
-            func.lower(func.coalesce(ExperienceEntry.start_date, ''))
+            func.lower(func.coalesce(CandidateExperienceEntry.start_date, ''))
             == _normalise(start_date),
         ).first()
 
@@ -240,19 +239,18 @@ def merge_cv_into_bank(cv, db: Session) -> dict:
             if changed:
                 exp_merged += 1
         else:
-            db.add(ExperienceEntry(
-                user_id         = user_id,
-                title           = title,
-                organization    = organization,
-                experience_type = experience_type,
-                start_date      = start_date,
-                end_date        = end_date,
-                is_current      = is_current,
-                description     = description,
-                achievements    = achievements or [],
-                related_skills  = related_skills,
-                source_cv_ids   = [cv.id],
-                source_cv_id    = cv.id,
+            db.add(CandidateExperienceEntry(
+                candidate_profile_id = candidate_profile_id,
+                title                = title,
+                organization         = organization,
+                experience_type      = experience_type,
+                start_date           = start_date,
+                end_date             = end_date,
+                is_current           = is_current,
+                description          = description,
+                achievements         = achievements or [],
+                related_skills       = related_skills,
+                source_cv_ids        = [cv.id],
             ))
             exp_added += 1
 
@@ -319,76 +317,23 @@ def merge_cv_into_bank(cv, db: Session) -> dict:
     }
 
 
-def merge_experiences(experience_ids: list[int], db: Session, user_id: int) -> dict:
-    """Slå ihop flera erfarenhetsposter till en (inom samma användare)."""
-    if len(experience_ids) < 2:
-        raise ValueError("Minst 2 erfarenheter krävs för sammanslagning")
-
-    experiences = db.query(ExperienceEntry).filter(
-        ExperienceEntry.id.in_(experience_ids),
-        ExperienceEntry.user_id == user_id,
-    ).all()
-
-    if len(experiences) < 2:
-        raise ValueError("Kunde inte hitta tillräckligt med erfarenheter")
-
-    id_order = {eid: i for i, eid in enumerate(experience_ids)}
-    experiences.sort(key=lambda e: id_order.get(e.id, 999))
-
-    base = experiences[0]
-
-    for other in experiences[1:]:
-        base.description = _merge_descriptions(base.description, other.description)
-
-        base.related_skills = _merge_skill_list(base.related_skills or [], other.related_skills or [])
-        flag_modified(base, "related_skills")
-
-        base.achievements = _merge_skill_list(base.achievements or [], other.achievements or [])
-        flag_modified(base, "achievements")
-
-        sources = set(base.source_cv_ids or [])
-        sources.update(other.source_cv_ids or [])
-        base.source_cv_ids = list(sources)
-        flag_modified(base, "source_cv_ids")
-
-        if other.title and len(other.title) > len(base.title or ""):
-            base.title = other.title
-        if other.organization and len(other.organization) > len(base.organization or ""):
-            base.organization = other.organization
-        if other.start_date and (not base.start_date or other.start_date < base.start_date):
-            base.start_date = other.start_date
-        if other.end_date and (not base.end_date or other.end_date > base.end_date):
-            base.end_date = other.end_date
-        if other.is_current:
-            base.is_current = True
-
-        db.delete(other)
-
-    db.commit()
-
-    return {
-        "id": base.id, "title": base.title, "organization": base.organization,
-        "experience_type": base.experience_type, "start_date": base.start_date,
-        "end_date": base.end_date, "is_current": base.is_current,
-        "description": base.description, "achievements": base.achievements or [],
-        "related_skills": base.related_skills or [], "source_cv_ids": base.source_cv_ids or [],
-        "merged_count": len(experiences),
-    }
-
-
-def clear_bank(db: Session, user_id: int) -> None:
-    """Rensa kompetensbanken för en specifik användare."""
-    db.query(ExperienceEntry).filter(ExperienceEntry.user_id == user_id).delete()
-    db.query(SkillEntry).filter(SkillEntry.user_id == user_id).delete()
+def clear_bank(candidate_profile_id: int, db: Session) -> None:
+    """Rensa kompetensbanken för en specifik profil."""
+    db.query(CandidateExperienceEntry).filter(
+        CandidateExperienceEntry.candidate_profile_id == candidate_profile_id
+    ).delete()
+    db.query(CandidateSkillEntry).filter(
+        CandidateSkillEntry.candidate_profile_id == candidate_profile_id
+    ).delete()
     db.commit()
 
 
-def rebuild_bank(cvs: list, db: Session, user_id: int) -> dict:
+def rebuild_bank(cvs: list, candidate_profile_id: int, db: Session) -> dict:
     """Rensa och bygg om kompetensbanken från en lista med CV-objekt."""
-    clear_bank(db, user_id)
+    clear_bank(candidate_profile_id, db)
     total_skills, total_experiences = 0, 0
     for cv in cvs:
-        result = merge_cv_into_bank(cv, db)
+        result = merge_cv_into_bank(cv, candidate_profile_id, db)
         total_skills      += result["skills_added"]
         total_experiences += result["experiences_added"]
     return {
@@ -402,7 +347,10 @@ def rebuild_bank(cvs: list, db: Session, user_id: int) -> dict:
 # Individual CRUD operations
 # ──────────────────────────────────────────────────────────────────────────────
 
-def add_skill(skill_name: str, category: str | None, skill_type: str | None, db: Session, user_id: int) -> dict:
+def add_skill(
+    skill_name: str, category: str | None, skill_type: str | None,
+    candidate_profile_id: int, db: Session,
+) -> dict:
     """Lägg till en eller flera skills (kommaseparerade) i kompetensbanken."""
     names = [n.strip() for n in skill_name.split(",") if n.strip()]
     if not names:
@@ -410,21 +358,21 @@ def add_skill(skill_name: str, category: str | None, skill_type: str | None, db:
 
     added, skipped = [], []
     for name in names:
-        existing = db.query(SkillEntry).filter(
-            SkillEntry.user_id == user_id,
-            func.lower(SkillEntry.skill_name) == name.lower(),
+        existing = db.query(CandidateSkillEntry).filter(
+            CandidateSkillEntry.candidate_profile_id == candidate_profile_id,
+            func.lower(CandidateSkillEntry.skill_name) == name.lower(),
         ).first()
         if existing:
             skipped.append(name)
             continue
 
         cat, stype = (category, skill_type or "technical") if category else categorise_skill(name)
-        db.add(SkillEntry(
-            user_id       = user_id,
-            skill_name    = name,
-            category      = cat,
-            skill_type    = stype,
-            source_cv_ids = [],
+        db.add(CandidateSkillEntry(
+            candidate_profile_id = candidate_profile_id,
+            skill_name           = name,
+            category             = cat,
+            skill_type           = stype,
+            source_cv_ids        = [],
         ))
         added.append(name)
 
@@ -435,10 +383,11 @@ def add_skill(skill_name: str, category: str | None, skill_type: str | None, db:
     return {"added": added, "skipped": skipped, "count": len(added)}
 
 
-def delete_skill(skill_id: int, db: Session, user_id: int) -> None:
-    """Ta bort en enskild skill (måste tillhöra användaren)."""
-    skill = db.query(SkillEntry).filter(
-        SkillEntry.id == skill_id, SkillEntry.user_id == user_id
+def delete_skill(skill_id: int, candidate_profile_id: int, db: Session) -> None:
+    """Ta bort en enskild skill (måste tillhöra profilen)."""
+    skill = db.query(CandidateSkillEntry).filter(
+        CandidateSkillEntry.id == skill_id,
+        CandidateSkillEntry.candidate_profile_id == candidate_profile_id,
     ).first()
     if not skill:
         raise ValueError("Skill hittades inte")
@@ -446,10 +395,11 @@ def delete_skill(skill_id: int, db: Session, user_id: int) -> None:
     db.commit()
 
 
-def delete_experience(experience_id: int, db: Session, user_id: int) -> None:
-    """Ta bort en enskild erfarenhetspost (måste tillhöra användaren)."""
-    exp = db.query(ExperienceEntry).filter(
-        ExperienceEntry.id == experience_id, ExperienceEntry.user_id == user_id
+def delete_experience(experience_id: int, candidate_profile_id: int, db: Session) -> None:
+    """Ta bort en enskild erfarenhetspost (måste tillhöra profilen)."""
+    exp = db.query(CandidateExperienceEntry).filter(
+        CandidateExperienceEntry.id == experience_id,
+        CandidateExperienceEntry.candidate_profile_id == candidate_profile_id,
     ).first()
     if not exp:
         raise ValueError("Erfarenhet hittades inte")
@@ -457,19 +407,20 @@ def delete_experience(experience_id: int, db: Session, user_id: int) -> None:
     db.commit()
 
 
-def _get_experience(experience_id: int, user_id: int, db: Session) -> ExperienceEntry:
+def _get_experience(experience_id: int, candidate_profile_id: int, db: Session) -> CandidateExperienceEntry:
     """Hämta en erfarenhetspost och verifiera ägarskap. Kastar ValueError om ej hittad."""
-    exp = db.query(ExperienceEntry).filter(
-        ExperienceEntry.id == experience_id, ExperienceEntry.user_id == user_id
+    exp = db.query(CandidateExperienceEntry).filter(
+        CandidateExperienceEntry.id == experience_id,
+        CandidateExperienceEntry.candidate_profile_id == candidate_profile_id,
     ).first()
     if not exp:
         raise ValueError("Erfarenhet hittades inte")
     return exp
 
 
-def add_achievement(experience_id: int, text: str, db: Session, user_id: int) -> list:
+def add_achievement(experience_id: int, text: str, candidate_profile_id: int, db: Session) -> list:
     """Lägg till en prestation på en erfarenhetspost."""
-    exp = _get_experience(experience_id, user_id, db)
+    exp = _get_experience(experience_id, candidate_profile_id, db)
     achievements = list(exp.achievements or [])
     achievements.append(text.strip())
     exp.achievements = achievements
@@ -478,9 +429,11 @@ def add_achievement(experience_id: int, text: str, db: Session, user_id: int) ->
     return exp.achievements
 
 
-def update_achievement(experience_id: int, index: int, new_text: str, db: Session, user_id: int) -> list:
+def update_achievement(
+    experience_id: int, index: int, new_text: str, candidate_profile_id: int, db: Session
+) -> list:
     """Uppdatera en prestation på en erfarenhetspost (via arrayindex)."""
-    exp = _get_experience(experience_id, user_id, db)
+    exp = _get_experience(experience_id, candidate_profile_id, db)
     achievements = list(exp.achievements or [])
     if index < 0 or index >= len(achievements):
         raise ValueError("Ogiltigt index")
@@ -491,9 +444,9 @@ def update_achievement(experience_id: int, index: int, new_text: str, db: Sessio
     return exp.achievements
 
 
-def delete_achievement(experience_id: int, index: int, db: Session, user_id: int) -> list:
+def delete_achievement(experience_id: int, index: int, candidate_profile_id: int, db: Session) -> list:
     """Ta bort en prestation från en erfarenhetspost (via arrayindex)."""
-    exp = _get_experience(experience_id, user_id, db)
+    exp = _get_experience(experience_id, candidate_profile_id, db)
     achievements = list(exp.achievements or [])
     if index < 0 or index >= len(achievements):
         raise ValueError("Ogiltigt index")
@@ -504,9 +457,11 @@ def delete_achievement(experience_id: int, index: int, db: Session, user_id: int
     return exp.achievements
 
 
-def add_experience_skill(experience_id: int, skill_name: str, db: Session, user_id: int) -> list:
+def add_experience_skill(
+    experience_id: int, skill_name: str, candidate_profile_id: int, db: Session
+) -> list:
     """Lägg till en eller flera skills (kommaseparerade) på en erfarenhetspost och i kompetensbanken."""
-    exp = _get_experience(experience_id, user_id, db)
+    exp = _get_experience(experience_id, candidate_profile_id, db)
 
     names = [n.strip() for n in skill_name.split(",") if n.strip()]
     if not names:
@@ -521,18 +476,18 @@ def add_experience_skill(experience_id: int, skill_name: str, db: Session, user_
         skills.append(name)
         existing_lower.add(name.lower())
 
-        existing_skill = db.query(SkillEntry).filter(
-            SkillEntry.user_id == user_id,
-            func.lower(SkillEntry.skill_name) == name.lower(),
+        existing_skill = db.query(CandidateSkillEntry).filter(
+            CandidateSkillEntry.candidate_profile_id == candidate_profile_id,
+            func.lower(CandidateSkillEntry.skill_name) == name.lower(),
         ).first()
         if not existing_skill:
             category, stype = categorise_skill(name)
-            db.add(SkillEntry(
-                user_id       = user_id,
-                skill_name    = name,
-                category      = category,
-                skill_type    = stype,
-                source_cv_ids = [],
+            db.add(CandidateSkillEntry(
+                candidate_profile_id = candidate_profile_id,
+                skill_name           = name,
+                category             = category,
+                skill_type           = stype,
+                source_cv_ids        = [],
             ))
 
     exp.related_skills = skills
@@ -541,9 +496,9 @@ def add_experience_skill(experience_id: int, skill_name: str, db: Session, user_
     return exp.related_skills
 
 
-def remove_experience_skill(experience_id: int, index: int, db: Session, user_id: int) -> list:
+def remove_experience_skill(experience_id: int, index: int, candidate_profile_id: int, db: Session) -> list:
     """Ta bort en skill från en erfarenhetspost (via arrayindex)."""
-    exp = _get_experience(experience_id, user_id, db)
+    exp = _get_experience(experience_id, candidate_profile_id, db)
     skills = list(exp.related_skills or [])
     if index < 0 or index >= len(skills):
         raise ValueError("Ogiltigt index")
@@ -554,9 +509,11 @@ def remove_experience_skill(experience_id: int, index: int, db: Session, user_id
     return exp.related_skills
 
 
-def update_experience_description(experience_id: int, description: str, db: Session, user_id: int) -> str | None:
+def update_experience_description(
+    experience_id: int, description: str, candidate_profile_id: int, db: Session
+) -> str | None:
     """Uppdatera beskrivningen på en erfarenhetspost."""
-    exp = _get_experience(experience_id, user_id, db)
+    exp = _get_experience(experience_id, candidate_profile_id, db)
     exp.description = description.strip() or None
     db.commit()
     return exp.description
@@ -567,11 +524,11 @@ def update_experience_period(
     start_date: str | None,
     end_date: str | None,
     is_current: bool,
+    candidate_profile_id: int,
     db: Session,
-    user_id: int,
 ) -> dict:
     """Uppdatera tidsperiod på en erfarenhetspost."""
-    exp = _get_experience(experience_id, user_id, db)
+    exp = _get_experience(experience_id, candidate_profile_id, db)
     exp.start_date = start_date.strip() if start_date else None
     exp.end_date   = None if is_current else (end_date.strip() if end_date else None)
     exp.is_current = is_current
@@ -589,25 +546,25 @@ def create_experience(
     description: str | None,
     related_skills: list[str] | None,
     achievements: list[str] | None,
+    candidate_profile_id: int,
     db: Session,
-    user_id: int,
 ) -> dict:
     """Skapa en ny erfarenhetspost manuellt."""
     if not title or not title.strip():
         raise ValueError("Titel krävs")
 
-    entry = ExperienceEntry(
-        user_id         = user_id,
-        title           = title.strip(),
-        organization    = (organization or "").strip() or None,
-        experience_type = experience_type or "work",
-        start_date      = (start_date or "").strip() or None,
-        end_date        = (end_date or "").strip() or None,
-        is_current      = bool(is_current),
-        description     = (description or "").strip() or None,
-        related_skills  = related_skills or [],
-        achievements    = achievements or [],
-        source_cv_ids   = [],
+    entry = CandidateExperienceEntry(
+        candidate_profile_id = candidate_profile_id,
+        title                = title.strip(),
+        organization         = (organization or "").strip() or None,
+        experience_type      = experience_type or "work",
+        start_date           = (start_date or "").strip() or None,
+        end_date             = (end_date or "").strip() or None,
+        is_current           = bool(is_current),
+        description          = (description or "").strip() or None,
+        related_skills       = related_skills or [],
+        achievements         = achievements or [],
+        source_cv_ids        = [],
     )
     db.add(entry)
     db.commit()

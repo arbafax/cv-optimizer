@@ -2315,6 +2315,7 @@ async function loadSokprofil() {
         if (!res.ok) return;
         const data = await res.json();
 
+        document.getElementById('sp-email').value        = data.email        || '';
         document.getElementById('sp-public-name').value  = data.public_name  || '';
         document.getElementById('sp-public-phone').value = data.public_phone || '';
         document.getElementById('sp-roles').value        = data.roles        || '';
@@ -2352,6 +2353,7 @@ async function saveSokprofil() {
             method: 'PUT',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
+                email:              document.getElementById('sp-email').value.trim()         || null,
                 public_name:        document.getElementById('sp-public-name').value.trim()  || null,
                 public_phone:       document.getElementById('sp-public-phone').value.trim() || null,
                 roles:              document.getElementById('sp-roles').value.trim()         || null,
@@ -2443,6 +2445,7 @@ function showKandidatForm(kandidat) {
         kandidat ? `Redigera: ${kandidat.public_name}` : 'Lägg till kandidat';
 
     document.getElementById('kand-public-name').value  = kandidat?.public_name  || '';
+    document.getElementById('kand-email').value        = kandidat?.email        || '';
     document.getElementById('kand-public-phone').value = kandidat?.public_phone || '';
     document.getElementById('kand-roles').value        = kandidat?.roles        || '';
     document.getElementById('kand-city').value         = kandidat?.desired_city || '';
@@ -2568,6 +2571,7 @@ async function saveKandidat() {
 
     const body = {
         public_name,
+        email:              document.getElementById('kand-email').value.trim()         || null,
         public_phone:       document.getElementById('kand-public-phone').value.trim() || null,
         roles:              document.getElementById('kand-roles').value.trim()         || null,
         desired_city:       document.getElementById('kand-city').value.trim()          || null,

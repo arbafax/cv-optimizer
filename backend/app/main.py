@@ -12,12 +12,13 @@ from app.api.candidate_profile import router as sokprofil_router
 from app.api.kandidater import router as kandidater_router
 
 # Import all models so Base.metadata knows about them
+# NOTE: competence_models (SkillEntry/ExperienceEntry) NOT imported — those tables are dropped
 from app.models import cv as cv_models                   # noqa: F401
-from app.models import competence as competence_models   # noqa: F401
 from app.models import user as user_models               # noqa: F401
 from app.models import search_profile as sp_models       # noqa: F401
-from app.models import candidate_profile as cp_models   # noqa: F401
-from app.models import candidate_bank as cb_models      # noqa: F401
+from app.models import candidate_profile as cp_models    # noqa: F401
+from app.models import candidate_bank as cb_models       # noqa: F401
+from app.models import seller_candidates as sc_models    # noqa: F401
 
 # Configure logging
 logging.basicConfig(
@@ -25,10 +26,10 @@ logging.basicConfig(
     format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
 )
 
-# Tabellmigrationer som måste köras FÖRE create_all (hanterar befintliga installationer)
+# ── Pre-create_all migrations ─────────────────────────────────────────────────
 from sqlalchemy import text  # noqa: E402
 with engine.connect() as _conn:
-    # Döp om job_seeker_profiles → candidate_profiles
+    # Döp om job_seeker_profiles → candidate_profiles (historisk migration)
     _conn.execute(text("""
         DO $$ BEGIN
             IF EXISTS (
@@ -42,28 +43,57 @@ with engine.connect() as _conn:
             END IF;
         END $$;
     """))
+
+    # Ta bort gamla kompetenstabeller (ersätts av candidate_skills/candidate_experiences)
+    _conn.execute(text("DROP TABLE IF EXISTS skills_collection CASCADE"))
+    _conn.execute(text("DROP TABLE IF EXISTS experiences_pool CASCADE"))
+
+    # Ta bort managed_by_user_id (ersätts av seller_candidates-tabellen)
+    _conn.execute(text("""
+        ALTER TABLE candidate_profiles
+        DROP COLUMN IF EXISTS managed_by_user_id
+    """))
+
     _conn.commit()
 
-# Create all database tables
+# ── Skapa saknade tabeller ────────────────────────────────────────────────────
 Base.metadata.create_all(bind=engine)
 
-# Idempotenta kolumnmigrationer (hanterar befintliga installationer)
+# ── Post-create_all idempotenta kolumnmigrationer ─────────────────────────────
 with engine.connect() as _conn:
+    # users
     _conn.execute(text("ALTER TABLE users ADD COLUMN IF NOT EXISTS roles VARCHAR(500)"))
-    _conn.execute(text(
-        "ALTER TABLE candidate_profiles ADD COLUMN IF NOT EXISTS "
-        "managed_by_user_id INTEGER REFERENCES users(id) ON DELETE SET NULL"
-    ))
-    # Tillåt NULL i user_id (för säljar-hanterade kandidatprofiler)
+
+    # candidate_profiles
     _conn.execute(text(
         "ALTER TABLE candidate_profiles ALTER COLUMN user_id DROP NOT NULL"
     ))
     _conn.execute(text(
         "ALTER TABLE candidate_profiles ADD COLUMN IF NOT EXISTS available_from VARCHAR(20)"
     ))
+    _conn.execute(text(
+        "ALTER TABLE candidate_profiles ADD COLUMN IF NOT EXISTS email VARCHAR(255)"
+    ))
+
+    # candidate_skills — ny kolumn + unique constraint
+    _conn.execute(text(
+        "ALTER TABLE candidate_skills ADD COLUMN IF NOT EXISTS source_cv_ids JSON"
+    ))
+    _conn.execute(text("""
+        DO $$ BEGIN
+            IF NOT EXISTS (
+                SELECT 1 FROM pg_constraint WHERE conname = 'uq_candidate_skill'
+            ) THEN
+                ALTER TABLE candidate_skills
+                ADD CONSTRAINT uq_candidate_skill
+                UNIQUE (candidate_profile_id, skill_name);
+            END IF;
+        END $$;
+    """))
+
     _conn.commit()
 
-# Initialize FastAPI app
+# ── FastAPI app ───────────────────────────────────────────────────────────────
 app = FastAPI(
     title=settings.APP_NAME,
     version=settings.APP_VERSION,

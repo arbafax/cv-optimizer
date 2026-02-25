@@ -9,8 +9,7 @@ class CandidateProfile(Base):
     id                 = Column(Integer, primary_key=True, index=True)
     user_id            = Column(Integer, ForeignKey("users.id", ondelete="CASCADE"),
                                 nullable=True, index=True)
-    managed_by_user_id = Column(Integer, ForeignKey("users.id", ondelete="SET NULL"),
-                                nullable=True, index=True)
+    email              = Column(String(255), nullable=True)
     public_name        = Column(String(255), nullable=True)
     public_phone       = Column(String(50), nullable=True)
     roles              = Column(String(1000), nullable=True)   # kommaseparerad
@@ -23,4 +22,4 @@ class CandidateProfile(Base):
     updated_at         = Column(DateTime(timezone=True), onupdate=func.now())
 
     def __repr__(self):
-        return f"<CandidateProfile(user_id={self.user_id}, managed_by={self.managed_by_user_id})>"
+        return f"<CandidateProfile(id={self.id}, user_id={self.user_id})>"

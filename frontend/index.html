@@ -247,6 +247,11 @@
                         <input type="text" id="kand-public-name" class="form-input" placeholder="Kandidatens namn">
                     </div>
                     <div class="form-group">
+                        <label for="kand-email">E-postadress</label>
+                        <p class="field-desc">Kandidatens e-postadress. Används för framtida inbjudan att koppla ett konto.</p>
+                        <input type="email" id="kand-email" class="form-input" placeholder="kandidat@epost.se">
+                    </div>
+                    <div class="form-group">
                         <label for="kand-public-phone">Telefonnummer</label>
                         <p class="field-desc">Kandidatens telefonnummer.</p>
                         <input type="tel" id="kand-public-phone" class="form-input" placeholder="+46 70 000 00 00">
@@ -580,6 +585,11 @@
         </div>
 
         <div class="card sokprofil-card">
+            <div class="form-group">
+                <label for="sp-email">E-postadress</label>
+                <p class="field-desc">Den e-postadress som visas för rekryterare och arbetsgivare. Fylls i automatiskt från ditt konto.</p>
+                <input type="email" id="sp-email" class="form-input" placeholder="din@epost.se">
+            </div>
             <div class="form-group">
                 <label for="sp-public-name">Publikt namn</label>
                 <p class="field-desc">Det namn som visas för arbetsgivare och rekryterare. Kan skilja sig från ditt kontonamn om du föredrar ett kortare eller mer professionellt namn.</p>

@@ -11,6 +11,7 @@ router = APIRouter(prefix="/sokprofil", tags=["Sökprofil"])
 
 
 class SokprofilRequest(BaseModel):
+    email:              str | None  = None
     public_name:        str | None  = None
     public_phone:       str | None  = None
     roles:              str | None  = None
@@ -24,6 +25,7 @@ class SokprofilRequest(BaseModel):
 
 def _to_dict(p: CandidateProfile) -> dict:
     return {
+        "email":              p.email,
         "public_name":        p.public_name,
         "public_phone":       p.public_phone,
         "roles":              p.roles,
@@ -44,10 +46,10 @@ async def get_sokprofil(
     """Hämta inloggad användares kandidatprofil (sökprofil). Returnerar defaults om ingen finns."""
     p = db.query(CandidateProfile).filter(
         CandidateProfile.user_id == current_user.id,
-        CandidateProfile.managed_by_user_id == None,  # noqa: E711
     ).first()
     if not p:
         return {
+            "email":              current_user.email,
             "public_name":        current_user.name,
             "public_phone":       current_user.phone,
             "roles":              None,
@@ -70,12 +72,16 @@ async def save_sokprofil(
     """Spara (upsert) kandidatprofil (sökprofil) för inloggad användare."""
     p = db.query(CandidateProfile).filter(
         CandidateProfile.user_id == current_user.id,
-        CandidateProfile.managed_by_user_id == None,  # noqa: E711
     ).first()
     if not p:
-        p = CandidateProfile(user_id=current_user.id)
+        p = CandidateProfile(
+            user_id=current_user.id,
+            email=current_user.email,
+        )
         db.add(p)
 
+    if body.email is not None:
+        p.email = body.email.strip() or None
     p.public_name        = body.public_name.strip()        if body.public_name        else None
     p.public_phone       = body.public_phone.strip()       if body.public_phone       else None
     p.roles              = body.roles.strip()              if body.roles              else None

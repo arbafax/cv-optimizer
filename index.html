@@ -234,12 +234,13 @@
 
             <!-- Tab navigation -->
             <div class="kand-tabs">
-                <button id="kand-tab-btn-profil" class="kand-tab-btn active" onclick="switchKandidatTab('profil')">Profil</button>
-                <button id="kand-tab-btn-bank" class="kand-tab-btn" onclick="switchKandidatTab('bank')" disabled>Kompetensbank</button>
+                <button id="kand-tab-btn-basinfo" class="kand-tab-btn active" onclick="switchKandidatTab('basinfo')">Basinfo</button>
+                <button id="kand-tab-btn-kompetenser" class="kand-tab-btn" onclick="switchKandidatTab('kompetenser')" disabled>Kompetenser</button>
+                <button id="kand-tab-btn-erfarenheter" class="kand-tab-btn" onclick="switchKandidatTab('erfarenheter')" disabled>Erfarenheter</button>
             </div>
 
-            <!-- ── TAB: Profil ── -->
-            <div id="kand-tab-profil">
+            <!-- ── TAB: Basinfo ── -->
+            <div id="kand-tab-basinfo">
                 <div class="card sokprofil-card">
                     <div class="form-group">
                         <label for="kand-public-name">Namn <span style="color:var(--danger)">*</span></label>
@@ -346,8 +347,8 @@
                 </div>
             </div>
 
-            <!-- ── TAB: Kompetensbank ── -->
-            <div id="kand-tab-bank" style="display:none">
+            <!-- ── TAB: Kompetenser ── -->
+            <div id="kand-tab-kompetenser" style="display:none">
 
                 <!-- Upload zone -->
                 <div class="card" style="margin-bottom:1.25rem">
@@ -382,16 +383,18 @@
                 </div>
 
                 <!-- Kompetenser -->
-                <div class="card" style="margin-bottom:1.25rem">
-                    <h3 style="margin:0 0 1rem">Kompetenser</h3>
+                <div class="card">
                     <div id="kand-skills-list">
                         <div class="empty-hint">Inga kompetenser tillagda ännu.</div>
                     </div>
                 </div>
 
-                <!-- Erfarenheter -->
+            </div>
+
+            <!-- ── TAB: Erfarenheter ── -->
+            <div id="kand-tab-erfarenheter" style="display:none">
+
                 <div class="card">
-                    <h3 style="margin:0 0 1rem">Erfarenheter</h3>
                     <div id="kand-experiences-list">
                         <div class="empty-hint">Inga erfarenheter tillagda ännu.</div>
                     </div>
@@ -579,11 +582,20 @@
     <div id="view-sokprofil" class="view">
         <div class="view-header">
             <div>
-                <h1>Min sökprofil</h1>
+                <h1>Min profil</h1>
                 <p class="view-subtitle">Hur du presenterar dig och vad du söker.</p>
             </div>
         </div>
 
+        <!-- Tab navigation -->
+        <div class="kand-tabs">
+            <button id="sp-tab-btn-basinfo" class="kand-tab-btn active" onclick="switchSokprofilTab('basinfo')">Basinfo</button>
+            <button id="sp-tab-btn-kompetenser" class="kand-tab-btn" onclick="switchSokprofilTab('kompetenser')">Kompetenser</button>
+            <button id="sp-tab-btn-erfarenheter" class="kand-tab-btn" onclick="switchSokprofilTab('erfarenheter')">Erfarenheter</button>
+        </div>
+
+        <!-- ── TAB: Basinfo ── -->
+        <div id="sp-tab-basinfo">
         <div class="card sokprofil-card">
             <div class="form-group">
                 <label for="sp-email">E-postadress</label>
@@ -683,8 +695,28 @@
             </div>
 
             <div id="sp-status"></div>
-            <button class="btn btn-primary" onclick="saveSokprofil()">Spara sökprofil</button>
+            <button class="btn btn-primary" onclick="saveSokprofil()">Spara profil</button>
         </div>
+        </div><!-- /sp-tab-basinfo -->
+
+        <!-- ── TAB: Kompetenser ── -->
+        <div id="sp-tab-kompetenser" style="display:none">
+            <div class="card">
+                <div id="sp-skills-list">
+                    <div class="empty-hint">Laddar kompetenser...</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- ── TAB: Erfarenheter ── -->
+        <div id="sp-tab-erfarenheter" style="display:none">
+            <div class="card">
+                <div id="sp-experiences-list">
+                    <div class="empty-hint">Laddar erfarenheter...</div>
+                </div>
+            </div>
+        </div>
+
     </div>
 
 </main>

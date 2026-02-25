@@ -410,3 +410,90 @@ async def upload_cv_to_kandidat_bank(
     finally:
         if os.path.exists(temp_path):
             os.remove(temp_path)
+
+
+# ── Matcha mot jobbannons ─────────────────────────────────────────────────────
+
+class MatchJobRequest(BaseModel):
+    job_title:       str | None = None
+    job_description: str
+
+
+@router.post("/{kandidat_id}/match-job")
+async def match_job_for_kandidat(
+    kandidat_id: int,
+    body: MatchJobRequest,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    """Matcha en kandidats kompetensbank mot en jobbannons."""
+    kandidat = _require_kandidat(kandidat_id, current_user, db)
+
+    skills = (
+        db.query(CandidateSkillEntry)
+        .filter(CandidateSkillEntry.candidate_profile_id == kandidat_id)
+        .order_by(CandidateSkillEntry.category, CandidateSkillEntry.skill_name)
+        .all()
+    )
+    experiences = (
+        db.query(CandidateExperienceEntry)
+        .filter(CandidateExperienceEntry.candidate_profile_id == kandidat_id)
+        .order_by(CandidateExperienceEntry.start_date.desc())
+        .all()
+    )
+
+    if not skills and not experiences:
+        raise HTTPException(status_code=400, detail="Kandidatens kompetensbank är tom")
+
+    skills_data = [
+        {"skill_name": s.skill_name, "category": s.category or "Övrigt"}
+        for s in skills
+    ]
+    experiences_data = [
+        {
+            "id":           e.id,
+            "title":        e.title,
+            "organization": e.organization,
+            "start_date":   e.start_date,
+            "end_date":     e.end_date,
+            "description":  e.description,
+            "achievements": e.achievements or [],
+        }
+        for e in experiences
+    ]
+
+    seeker_profile = None
+    if kandidat:
+        seeker_profile = {
+            "roles":              kandidat.roles,
+            "desired_city":       kandidat.desired_city,
+            "desired_employment": kandidat.desired_employment.split(",") if kandidat.desired_employment else [],
+            "desired_workplace":  kandidat.desired_workplace.split(",")  if kandidat.desired_workplace  else [],
+            "willing_to_commute": kandidat.willing_to_commute,
+        }
+
+    result = _ai_service.match_competences_to_job(
+        skills=skills_data,
+        experiences=experiences_data,
+        job_title=body.job_title or "",
+        job_description=body.job_description,
+        seeker_profile=seeker_profile,
+    )
+
+    exp_by_id = {e.id: e for e in experiences}
+    enriched = []
+    for item in result.get("experiences", []):
+        exp = exp_by_id.get(item["id"])
+        if exp:
+            enriched.append({
+                **item,
+                "title":           exp.title,
+                "organization":    exp.organization,
+                "start_date":      exp.start_date,
+                "end_date":        exp.end_date,
+                "is_current":      exp.is_current,
+                "experience_type": exp.experience_type,
+            })
+
+    result["experiences"] = enriched
+    return result

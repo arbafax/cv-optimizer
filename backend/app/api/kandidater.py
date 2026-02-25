@@ -497,3 +497,91 @@ async def match_job_for_kandidat(
 
     result["experiences"] = enriched
     return result
+
+
+# ── Generera CV-utkast ────────────────────────────────────────────────────────
+
+class GenerateCVRequest(BaseModel):
+    job_description:        str
+    matched_experience_ids: list[int]
+    skills:                 list[str] = []
+
+
+@router.post("/{kandidat_id}/generate-cv")
+async def generate_cv_for_kandidat(
+    kandidat_id: int,
+    body: GenerateCVRequest,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    """Generera ett anpassat CV-utkast baserat på en kandidats kompetensbank."""
+    _require_kandidat(kandidat_id, current_user, db)
+
+    all_experiences = (
+        db.query(CandidateExperienceEntry)
+        .filter(CandidateExperienceEntry.candidate_profile_id == kandidat_id)
+        .all()
+    )
+    if not all_experiences:
+        raise HTTPException(status_code=400, detail="Kandidaten har inga erfarenheter i kompetensbanken")
+
+    matched_ids = set(body.matched_experience_ids)
+    exp_by_id   = {e.id: e for e in all_experiences}
+
+    matched_data = [
+        {
+            "id":              exp.id,
+            "title":           exp.title,
+            "organization":    exp.organization,
+            "start_date":      exp.start_date,
+            "end_date":        exp.end_date,
+            "is_current":      exp.is_current,
+            "experience_type": exp.experience_type,
+            "description":     exp.description,
+            "achievements":    exp.achievements or [],
+        }
+        for eid in body.matched_experience_ids
+        if (exp := exp_by_id.get(eid))
+    ]
+
+    ai_result = _ai_service.generate_cv_for_job(
+        job_description=body.job_description,
+        experiences_data=matched_data,
+        skills=body.skills,
+    )
+
+    ai_highlights = {
+        item["id"]: item.get("highlighted_achievements", [])
+        for item in ai_result.get("experiences", [])
+    }
+
+    def sort_key(e):
+        if e.is_current:
+            return "9999-99"
+        return e.start_date or "0000-00"
+
+    timeline = []
+    for exp in sorted(all_experiences, key=sort_key, reverse=True):
+        is_matched = exp.id in matched_ids
+        achievements = (
+            ai_highlights.get(exp.id) or exp.achievements or []
+            if is_matched
+            else exp.achievements or []
+        )
+        timeline.append({
+            "id":                       exp.id,
+            "title":                    exp.title,
+            "organization":             exp.organization,
+            "start_date":               exp.start_date,
+            "end_date":                 exp.end_date,
+            "is_current":               exp.is_current,
+            "experience_type":          exp.experience_type,
+            "is_matched":               is_matched,
+            "highlighted_achievements": achievements,
+        })
+
+    return {
+        "pitch":       ai_result.get("pitch", ""),
+        "experiences": timeline,
+        "skills":      body.skills,
+    }

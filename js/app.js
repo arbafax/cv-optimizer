@@ -16,9 +16,10 @@ const optimizeResult = document.getElementById('optimize-result');
 // State
 let selectedCV      = null;
 let allCVs          = [];
-let lastMatchResult  = null;
-let lastJobDesc      = '';
-let lastGeneratedCV  = null;
+let lastMatchResult     = null;
+let lastJobDesc         = '';
+let lastGeneratedCV     = null;
+let lastMatchKandidatId = null;  // null = egen bank, number = kandidat-id
 
 // Auth state
 let currentUser = null;
@@ -723,8 +724,9 @@ async function handleOptimize() {
         }
 
         const result = await response.json();
-        lastMatchResult = result;
-        lastJobDesc = jobDescription.value.trim();
+        lastMatchResult     = result;
+        lastJobDesc         = jobDescription.value.trim();
+        lastMatchKandidatId = null;
         displayMatchResult(result);
 
         setTimeout(() => {
@@ -835,6 +837,7 @@ function displayMatchResult(result, container) {
 }
 
 async function handleGenerateCV() {
+    if (!lastMatchResult) return;
     const genBtn = document.getElementById('gen-cv-btn');
     genBtn.disabled = true;
     genBtn.innerHTML = '<span class="spinner-small"></span> Genererar...';
@@ -846,8 +849,12 @@ async function handleGenerateCV() {
         .filter(s => s.score > 0)
         .map(s => s.skill_name);
 
+    const url = lastMatchKandidatId
+        ? `${API_BASE_URL}/kandidater/${lastMatchKandidatId}/generate-cv`
+        : `${API_BASE_URL}/competence/generate-cv`;
+
     try {
-        const response = await apiFetch(`${API_BASE_URL}/competence/generate-cv`, {
+        const response = await apiFetch(url, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
@@ -1177,7 +1184,7 @@ function renderBankContent() {
         <div class="bank-tabs">
             <button class="bank-tab ${activeBankTab === 'skills' ? 'active' : ''}"
                     onclick="switchBankTab('skills', this)">
-                🎯 Skills (${bankSkills.length})
+                🎯 Kompetenser (${bankSkills.length})
             </button>
             <button class="bank-tab ${activeBankTab === 'experiences' ? 'active' : ''}"
                     onclick="switchBankTab('experiences', this)">
@@ -2143,7 +2150,7 @@ async function handleLogout() {
     currentUser = null;
     // Reset app state
     allCVs = []; bankSkills = []; bankExperiences = [];
-    lastMatchResult = null; lastJobDesc = ''; lastGeneratedCV = null;
+    lastMatchResult = null; lastJobDesc = ''; lastGeneratedCV = null; lastMatchKandidatId = null;
     showAuthView();
 }
 
@@ -2486,6 +2493,9 @@ async function matchKandidatJob() {
         }
 
         const result = await response.json();
+        lastMatchResult     = result;
+        lastJobDesc         = jobDesc;
+        lastMatchKandidatId = Number(kandidatId);
         displayMatchResult(result, res);
         setTimeout(() => res.scrollIntoView({ behavior: 'smooth', block: 'start' }), 100);
 

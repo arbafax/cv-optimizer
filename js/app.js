@@ -1454,19 +1454,19 @@ async function mergeSelectedExperiences() {
 
 function categoryIcon(cat) {
     const icons = {
-        'Mjukvaruutveckling': '💻',
-        'Frameworks & APIs': '⚙️',
-        'Databases': '🗄️',
-        'Cloud & DevOps': '☁️',
-        'AI & Machine Learning': '🤖',
-        'Frontend': '🎨',
-        'Technical Skills': '🔧',
-        'Tools': '🛠️',
-        'Soft Skills': '🤝',
-        'Languages': '🌍',
-        'Domain Knowledge': '📚',
+        'Mjukvaruutveckling': '',
+        'Frameworks & APIs': '',
+        'Databases': '',
+        'Cloud & DevOps': '',
+        'AI & Machine Learning': '',
+        'Frontend': '',
+        'Technical Skills': '',
+        'Tools': '',
+        'Soft Skills': '',
+        'Languages': '',
+        'Domain Knowledge': '',
     };
-    return icons[cat] || '📌';
+    return icons[cat] || '●';
 }
 
 // Show merge status inside bank section
@@ -2035,7 +2035,7 @@ function showApp() {
     // Update dashboard greeting
     const h1 = document.querySelector('#view-dashboard .view-header h1');
     if (h1 && currentUser) {
-        h1.textContent = `Välkommen tillbaka, ${currentUser.name.split(' ')[0]}! 👋`;
+        h1.textContent = `Välkommen tillbaka, ${currentUser.name.split(' ')[0]}!`;
     }
     loadCVs();
     loadBankData();

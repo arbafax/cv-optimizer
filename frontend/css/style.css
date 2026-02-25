@@ -2381,6 +2381,43 @@ body {
     background: rgba(255,255,255,.06);
 }
 
+/* ══════════════ KANDIDAT TABS ══════════════ */
+
+.kand-tabs {
+    display: flex;
+    gap: 0;
+    border-bottom: 2px solid var(--border);
+    margin-bottom: 1.5rem;
+}
+
+.kand-tab-btn {
+    padding: 0.625rem 1.375rem;
+    border: none;
+    border-bottom: 2px solid transparent;
+    margin-bottom: -2px;
+    background: none;
+    cursor: pointer;
+    font-size: 0.9375rem;
+    font-family: inherit;
+    color: var(--text-muted);
+    transition: color 0.15s, border-color 0.15s;
+}
+
+.kand-tab-btn:hover:not(:disabled) {
+    color: var(--text);
+}
+
+.kand-tab-btn.active {
+    color: var(--primary);
+    border-bottom-color: var(--primary);
+    font-weight: 600;
+}
+
+.kand-tab-btn:disabled {
+    opacity: 0.38;
+    cursor: not-allowed;
+}
+
 /* ══════════════ HIDDEN ══════════════ */
 
 .hidden { display: none !important; }

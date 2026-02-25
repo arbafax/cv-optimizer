@@ -16,7 +16,8 @@ from app.models import cv as cv_models                   # noqa: F401
 from app.models import competence as competence_models   # noqa: F401
 from app.models import user as user_models               # noqa: F401
 from app.models import search_profile as sp_models       # noqa: F401
-from app.models import candidate_profile as cp_models  # noqa: F401
+from app.models import candidate_profile as cp_models   # noqa: F401
+from app.models import candidate_bank as cb_models      # noqa: F401
 
 # Configure logging
 logging.basicConfig(

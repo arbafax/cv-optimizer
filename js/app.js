@@ -68,6 +68,12 @@ function setupEventListeners() {
     optimizeBtn.addEventListener('click', handleOptimize);
     jobDescription.addEventListener('input', updateCharCount);
     jobDescription.addEventListener('input', updateOptimizeButton);
+
+    cvList.addEventListener('click', (e) => {
+        if (!e.target.closest('.cv-item')) {
+            deselectCV();
+        }
+    });
 }
 
 // Drag and Drop Handlers
@@ -151,7 +157,10 @@ function displayCVPreview(cvData) {
     const education = cvData.education.length;
     
     cvPreview.innerHTML = `
-        <h3>✅ CV strukturerat framgångsrikt!</h3>
+        <div class="cv-preview-header">
+            <h3>✅ CV strukturerat framgångsrikt!</h3>
+            <button class="cv-preview-close" onclick="closePreview()" title="Stäng">&times;</button>
+        </div>
         <div class="cv-preview-section">
             <h4>Personlig information</h4>
             <p><strong>${name}</strong> • ${email}</p>
@@ -169,6 +178,11 @@ function displayCVPreview(cvData) {
             <p>${skills}</p>
         </div>
     `;
+}
+
+function closePreview() {
+    cvPreview.classList.add('hidden');
+    cvPreview.innerHTML = '';
 }
 
 // Load all CVs
@@ -256,6 +270,10 @@ function displayCVs(cvs) {
         const exps   = cv.structured_data.work_experience.length;
         const selected = selectedCV?.id === cv.id;
 
+        const mergeIndicator = cv.is_merged
+            ? `<span class="cv-merged-badge">✓ Behandlad</span>`
+            : `<button class="btn btn-small btn-merge" onclick="mergeCV(${cv.id}, event)">⚡ Behandla</button>`;
+
         return `
             <div class="cv-item ${selected ? 'selected' : ''}" onclick="selectCV(${cv.id})">
                 <div class="cv-item-header">
@@ -263,7 +281,10 @@ function displayCVs(cvs) {
                         <h3>${displayName}</h3>
                         <p>${cv.filename}</p>
                     </div>
-                    ${selected ? '<span class="cv-item-badge">Vald</span>' : ''}
+                    <div class="cv-item-header-right">
+                        ${mergeIndicator}
+                        ${selected ? '<button class="cv-item-badge" onclick="deselectCV(); event.stopPropagation()">Vald ×</button>' : ''}
+                    </div>
                 </div>
                 <div class="cv-item-details">
                     <div class="cv-item-detail">📅 ${date}</div>
@@ -278,6 +299,26 @@ function displayCVs(cvs) {
             </div>
         `;
     }).join('');
+}
+
+async function mergeCV(cvId, event) {
+    event.stopPropagation();
+    const btn = event.target;
+    btn.disabled = true;
+    btn.textContent = '⏳ Behandlar...';
+
+    try {
+        const res = await apiFetch(`${API_BASE_URL}/competence/merge/${cvId}`, { method: 'POST' });
+        if (!res.ok) {
+            const err = await res.json();
+            throw new Error(err.detail || 'Behandling misslyckades');
+        }
+        await loadCVs();
+    } catch (err) {
+        btn.disabled = false;
+        btn.textContent = '⚡ Behandla';
+        showStatus(`❌ ${err.message}`, 'error');
+    }
 }
 
 // Edit title inline
@@ -329,6 +370,17 @@ function selectCV(id) {
 
     const mergeBtn = document.getElementById('merge-selected-btn');
     if (mergeBtn) mergeBtn.disabled = false;
+}
+
+function deselectCV() {
+    if (!selectedCV) return;
+    selectedCV = null;
+    displayCVs(allCVs);
+    renderCVSelectList(allCVs);
+    updateOptimizeButton();
+
+    const mergeBtn = document.getElementById('merge-selected-btn');
+    if (mergeBtn) mergeBtn.disabled = true;
 }
 
 // View CV details
@@ -597,11 +649,13 @@ function buildCVDetailsHTML(cvData) {
 async function deleteCV(id, event) {
     event.stopPropagation();
 
-    if (!confirm('Radera detta CV?\n\nKompetensbanken byggs om automatiskt från kvarvarande CV:n.')) {
+    const cv = allCVs.find(c => c.id === id);
+    const name = cv?.title || cv?.structured_data?.personal_info?.full_name || 'detta CV';
+    if (!confirm(`Vill du verkligen ta bort "${name}"?`)) {
         return;
     }
 
-    showStatus('⏳ Raderar CV och bygger om kompetensbanken...', 'loading');
+    showStatus('⏳ Raderar CV...', 'loading');
 
     try {
         const response = await apiFetch(`${API_BASE_URL}/cv/${id}`, {
@@ -613,8 +667,6 @@ async function deleteCV(id, event) {
             throw new Error(err.detail || 'Kunde inte ta bort CV');
         }
 
-        const data = await response.json();
-
         // Om det raderade CV:t var valt, nollställ valet
         if (selectedCV?.id === id) {
             selectedCV = null;
@@ -624,12 +676,8 @@ async function deleteCV(id, event) {
         }
 
         await loadCVs();
-        await loadBankData();
 
-        showStatus(
-            `✅ ${data.message} — ${data.total_skills} skills från ${data.remaining_cvs} CV:n`,
-            'success'
-        );
+        showStatus('✅ CV borttaget.', 'success');
 
     } catch (error) {
         showStatus(`❌ ${error.message}`, 'error');
@@ -1172,16 +1220,22 @@ function renderSkillsTab() {
         return addRow + '<div class="bank-empty"><p>Inga skills ännu</p></div>';
     }
 
+    // Normalize legacy category names
+    const CATEGORY_ALIASES = {
+        'Programming Languages': 'Mjukvaruutveckling',
+    };
+
     // Group by category
     const groups = {};
     bankSkills.forEach(s => {
-        const cat = s.category || 'Övrigt';
+        const raw = s.category || 'Övrigt';
+        const cat = CATEGORY_ALIASES[raw] || raw;
         if (!groups[cat]) groups[cat] = [];
         groups[cat].push(s);
     });
 
     const categoryOrder = [
-        'Programming Languages', 'Frameworks & APIs', 'Databases',
+        'Mjukvaruutveckling', 'Frameworks & APIs', 'Databases',
         'Cloud & DevOps', 'AI & Machine Learning', 'Frontend',
         'Technical Skills', 'Tools', 'Soft Skills', 'Languages',
         'Domain Knowledge', 'Övrigt'
@@ -1400,7 +1454,7 @@ async function mergeSelectedExperiences() {
 
 function categoryIcon(cat) {
     const icons = {
-        'Programming Languages': '💻',
+        'Mjukvaruutveckling': '💻',
         'Frameworks & APIs': '⚙️',
         'Databases': '🗄️',
         'Cloud & DevOps': '☁️',
@@ -1469,7 +1523,7 @@ function showAddSkillForm() {
             <input type="text" id="new-skill-name" placeholder="Skill-namn (separera med komma)" class="form-input" />
             <select id="new-skill-category" class="form-input">
                 <option value="">Auto-kategorisera</option>
-                <option value="Programming Languages">Programming Languages</option>
+                <option value="Mjukvaruutveckling">Mjukvaruutveckling</option>
                 <option value="Frameworks & APIs">Frameworks & APIs</option>
                 <option value="Databases">Databases</option>
                 <option value="Cloud & DevOps">Cloud & DevOps</option>

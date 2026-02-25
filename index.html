@@ -58,10 +58,6 @@
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="3" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="3" width="7" height="7" rx="1.5"/><rect x="3" y="14" width="7" height="7" rx="1.5"/><rect x="14" y="14" width="7" height="7" rx="1.5"/></svg>
             Dashboard
         </a>
-        <a href="#" class="nav-item" onclick="showView('upload', this)">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
-            Ladda upp CV
-        </a>
         <a href="#" class="nav-item" onclick="showView('mycvs', this)">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>
             Mina CV:n
@@ -138,7 +134,7 @@
 
         <!-- Action cards -->
         <div class="action-cards">
-            <div class="action-card action-card--primary" onclick="showView('upload', document.querySelector('[onclick*=upload]'))">
+            <div class="action-card action-card--primary" onclick="showView('mycvs', document.querySelector('[onclick*=mycvs]'))">
                 <div class="action-card-icon">
                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
                 </div>
@@ -172,12 +168,12 @@
         </div>
     </div>
 
-    <!-- ── UPLOAD VIEW ── -->
-    <div id="view-upload" class="view">
+    <!-- ── MY CVS VIEW ── -->
+    <div id="view-mycvs" class="view">
         <div class="view-header">
             <div>
-                <h1>Ladda upp CV</h1>
-                <p class="view-subtitle">AI analyserar och strukturerar ditt CV automatiskt.</p>
+                <h1>Mina CV:n</h1>
+                <p class="view-subtitle">Ladda upp och hantera dina CV:n.</p>
             </div>
         </div>
 
@@ -195,16 +191,7 @@
             <div id="upload-status"></div>
             <div id="cv-preview" class="cv-preview hidden"></div>
         </div>
-    </div>
 
-    <!-- ── MY CVS VIEW ── -->
-    <div id="view-mycvs" class="view">
-        <div class="view-header">
-            <div>
-                <h1>Mina CV:n</h1>
-                <p class="view-subtitle">Välj ett CV för att optimera eller merga till kompetensbanken.</p>
-            </div>
-        </div>
         <div id="cv-list" class="cv-grid">
             <div class="empty-hint">Inga CV:n uppladdade än</div>
         </div>

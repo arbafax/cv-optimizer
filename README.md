@@ -1,14 +1,15 @@
-# CV Optimizer (CVMatch)
+# CVMatch — AI-driven karriärverktyg
 
-En AI-driven webbapplikation som hjälper användare att **ladda upp, strukturera, sammanställa och optimera CV:n** för specifika jobbannonser. Applikationen kombinerar PDF-parsning, AI-driven innehållsextraktion, semantisk sökning och smart matchning.
+En AI-driven webbapplikation som hjälper användare att **ladda upp, strukturera, sammanställa och matcha CV:n mot jobbannonser**. Applikationen kombinerar PDF-parsning, AI-driven innehållsextraktion och smart matchning mot jobbannonser.
 
 ## Teknikstack
 
 **Backend:**
 - Python 3.11+ / FastAPI
-- PostgreSQL med pgvector (vektorembeddings)
+- PostgreSQL med pgvector
 - SQLAlchemy 2.0
-- OpenAI API (GPT-4o för strukturering/optimering, text-embedding-3-small för embeddings)
+- OpenAI API (GPT-4o för strukturering och matchning)
+- JWT-autentisering (python-jose + passlib)
 
 **Frontend:**
 - Vanilla JavaScript (SPA)
@@ -18,132 +19,99 @@ En AI-driven webbapplikation som hjälper användare att **ladda upp, strukturer
 
 ### Huvudflöde
 
-1. **CV-uppladdning & strukturering** — Ladda upp PDF-CV:n som parsas med pdfplumber. GPT-4o strukturerar texten till JSON och vektorembeddings genereras automatiskt.
+1. **Registrering & inloggning** — Konto per användare med JWT-cookies. All data är isolerad per användare.
 
-2. **Kompetensbank** — Alla uppladdade CV:n kan slås samman till en central kompetensbank med dedupliserade färdigheter och erfarenheter, grupperade per kategori (t.ex. "Programming Languages", "Databases", "Cloud & DevOps").
+2. **CV-uppladdning & strukturering** — Ladda upp PDF-CV:n via drag-and-drop. AI (GPT-4o) strukturerar texten till JSON med personuppgifter, erfarenheter, utbildning, skills m.m.
 
-3. **CV-optimering mot jobbannons** — Välj ett CV och klistra in en jobbeskrivning. GPT-4o omformulerar och prioriterar om CV-innehållet för att matcha jobbet, utan att hitta på eller ljuga.
+3. **Kompetensbank** — Behandla enskilda CV:n eller alla på en gång för att bygga upp en central kompetensbank med dedupliserade färdigheter och erfarenheter, grupperade per kategori (t.ex. "Mjukvaruutveckling", "Databases", "Cloud & DevOps"). Kan redigeras manuellt med CRUD.
+
+4. **Matchning mot jobbannons** — Klistra in en jobbannons. AI matchar hela kompetensbanken mot jobbet och tar hänsyn till användarens sökprofil (önskade roller, ort, anställningsform m.m.).
+
+5. **Sökprofil** — Ange vilka roller, orter och anställningsformer du söker. Används som komplement vid AI-matchningen.
 
 ### Frontend-vyer
 
 | Vy | Funktion |
 |---|---|
 | **Dashboard** | Statistik, snabbåtgärder, senaste CV:n |
-| **Ladda upp** | Drag-and-drop PDF-uppladdning |
-| **Mina CV:n** | Lista, visa, redigera titel, ta bort |
-| **Kompetensbank** | Samlade färdigheter & erfarenheter från alla CV:n |
-| **Matcha jobb** | Optimera valt CV mot en jobbannons |
+| **Mina CV:n** | Ladda upp PDF (drag-and-drop), lista, visa, redigera titel, ta bort, behandla till kompetensbank |
+| **Kompetensbank** | Samlade färdigheter och erfarenheter från alla CV:n, full CRUD |
+| **Matcha jobb** | Klistra in jobbannons — AI matchar kompetensbank och sökprofil mot jobbet |
+| **Sökprofil** | Önskade roller, ort, anställningsform, arbetsplats, pendling, sökbarhet |
+| **Mitt konto** | Namn, e-post, telefon, adress, byt lösenord |
 
 ## API-endpoints
+
+### Autentisering (`/api/v1/auth`)
+
+| Metod | Endpoint | Beskrivning |
+|---|---|---|
+| `POST` | `/auth/register` | Skapa nytt konto |
+| `POST` | `/auth/login` | Logga in, sätter httpOnly JWT-cookie |
+| `POST` | `/auth/logout` | Logga ut, rensar cookie |
+| `GET` | `/auth/me` | Hämta inloggad användares profil |
 
 ### CV-hantering (`/api/v1/cv`)
 
 | Metod | Endpoint | Beskrivning |
 |---|---|---|
 | `POST` | `/cv/upload` | Ladda upp och strukturera PDF-CV |
-| `GET` | `/cv/` | Lista alla CV:n (stödjer paginering) |
-| `GET` | `/cv/{cv_id}` | Hämta specifikt CV |
-| `PATCH` | `/cv/{cv_id}/title` | Uppdatera CV-titel |
-| `DELETE` | `/cv/{cv_id}` | Ta bort CV (kompetensbanken byggs om automatiskt) |
+| `GET` | `/cv/` | Lista alla CV:n |
+| `GET` | `/cv/{id}` | Hämta specifikt CV |
+| `PATCH` | `/cv/{id}/title` | Uppdatera CV-titel |
+| `DELETE` | `/cv/{id}` | Ta bort CV |
 
 ### Kompetensbank (`/api/v1/competence`)
 
 | Metod | Endpoint | Beskrivning |
 |---|---|---|
-| `POST` | `/competence/merge-all` | Slå samman alla CV:n till kompetensbanken |
-| `POST` | `/competence/merge/{cv_id}` | Slå samman enskilt CV |
-| `GET` | `/competence/stats` | Statistik (antal färdigheter, erfarenheter, källor) |
+| `POST` | `/competence/merge-all` | Behandla alla CV:n till kompetensbanken |
+| `POST` | `/competence/merge/{cv_id}` | Behandla enskilt CV |
+| `GET` | `/competence/stats` | Statistik (skills, erfarenheter, källor) |
 | `GET` | `/competence/skills` | Lista alla färdigheter med kategorier |
 | `GET` | `/competence/experiences` | Lista alla erfarenheter |
+| `POST` | `/competence/skills` | Lägg till skill manuellt |
+| `DELETE` | `/competence/skills/{id}` | Ta bort skill |
+| `DELETE` | `/competence/experiences/{id}` | Ta bort erfarenhet |
+| `POST` | `/competence/experiences/{id}/achievements` | Lägg till prestation |
+| `PUT` | `/competence/experiences/{id}/achievements/{index}` | Redigera prestation |
+| `DELETE` | `/competence/experiences/{id}/achievements/{index}` | Ta bort prestation |
+| `POST` | `/competence/match-job` | Matcha kompetensbank mot jobbannons |
 | `DELETE` | `/competence/reset` | Rensa hela kompetensbanken |
 
-### CV-optimering (`/api/v1/optimize`)
+### Sökprofil (`/api/v1/sokprofil`)
 
 | Metod | Endpoint | Beskrivning |
 |---|---|---|
-| `POST` | `/optimize` | Optimera CV för jobbannons (kräver cv_id + job_posting) |
-| `GET` | `/optimize/{id}` | Hämta optimerat CV |
-| `GET` | `/optimize/by-cv/{cv_id}` | Lista alla optimeringar för ett CV |
+| `GET` | `/sokprofil/` | Hämta sökprofil |
+| `PUT` | `/sokprofil/` | Spara/uppdatera sökprofil |
 
 Fullständig API-dokumentation (Swagger): `http://localhost:8000/docs`
 
 ## Installation
 
+Se [QUICKSTART.md](QUICKSTART.md) för steg-för-steg-instruktioner.
+
 ### Förutsättningar
 
 - Python 3.11+
-- Docker & Docker Compose (för PostgreSQL)
-- En OpenAI API-nyckel
+- Docker & Docker Compose
+- OpenAI API-nyckel
 
-### 1. Klona projektet
+### Snabbversion
 
 ```bash
-git clone <your-repo-url>
+git clone <repo-url>
 cd cv-optimizer
-```
-
-### 2. Starta databasen med Docker
-
-Projektet inkluderar en `docker-compose.yml` som startar PostgreSQL 15 med pgvector-tillägget:
-
-```bash
 docker compose up -d
-```
-
-Detta startar en PostgreSQL-instans med:
-- Användare: `cv_user`
-- Lösenord: `cv_password`
-- Databas: `cv_optimizer`
-- Port: `5432`
-
-### 3. Sätt upp Python virtual environment
-
-```bash
-python -m venv venv
-source venv/bin/activate  # På Windows: venv\Scripts\activate
-```
-
-### 4. Installera dependencies
-
-```bash
+python3 -m venv venv && source venv/bin/activate
 pip install -r requirements.txt
-```
-
-### 5. Konfigurera miljövariabler
-
-Kopiera exempelfilen och fyll i din OpenAI API-nyckel:
-
-```bash
 cp backend/.env.example backend/.env
+# Redigera backend/.env — fyll i OPENAI_API_KEY och SECRET_KEY
+./start-backend.sh
 ```
 
-Redigera `backend/.env` — det viktigaste är att sätta `OPENAI_API_KEY`:
-
-```env
-OPENAI_API_KEY=sk-din-nyckel-här
-```
-
-Övriga värden fungerar som de är om du använder Docker-uppsättningen ovan.
-
-### 6. Starta applikationen
-
-**Backend** (från projektets rot):
-
-```bash
-cd backend
-uvicorn app.main:app --reload --host 0.0.0.0 --port 8000
-```
-
-Databastabeller skapas automatiskt vid första körning.
-
-**Frontend** (i ett nytt terminalfönster):
-
-```bash
-cd frontend
-python -m http.server 3000
-```
-
-Öppna sedan `http://localhost:3000` i webbläsaren.
+Frontend: öppna `frontend/index.html` direkt, eller servera med `python3 -m http.server 3000` från `frontend/`-mappen.
 
 ## Projektstruktur
 
@@ -151,48 +119,53 @@ python -m http.server 3000
 cv-optimizer/
 ├── backend/
 │   ├── app/
-│   │   ├── api/                # API-endpoints
-│   │   │   ├── cv.py           #   CV-hantering
-│   │   │   ├── competence.py   #   Kompetensbank
-│   │   │   └── optimize.py     #   CV-optimering
+│   │   ├── api/
+│   │   │   ├── auth.py               # Registrering, inloggning, JWT
+│   │   │   ├── cv.py                 # CV-uppladdning och hantering
+│   │   │   ├── competence.py         # Kompetensbank + matchning
+│   │   │   ├── optimize.py           # CV-optimering (legacy)
+│   │   │   └── job_seeker_profile.py # Sökprofil
 │   │   ├── core/
-│   │   │   ├── config.py       #   Miljövariabler & inställningar
-│   │   │   └── database.py     #   Databasanslutning
+│   │   │   ├── auth.py               # JWT-hjälpfunktioner
+│   │   │   ├── config.py             # Miljövariabler & inställningar
+│   │   │   └── database.py           # Databasanslutning (SQLAlchemy)
 │   │   ├── models/
-│   │   │   ├── cv.py           #   CV & OptimizedCV (SQLAlchemy)
-│   │   │   └── competence.py   #   SkillEntry & ExperienceEntry
+│   │   │   ├── cv.py                 # CV & OptimizedCV
+│   │   │   ├── competence.py         # SkillEntry & ExperienceEntry
+│   │   │   ├── user.py               # User
+│   │   │   └── job_seeker_profile.py # JobSeekerProfile
 │   │   ├── schemas/
-│   │   │   └── cv.py           #   Pydantic-valideringsscheman
+│   │   │   └── cv.py                 # Pydantic-valideringsscheman
 │   │   ├── services/
-│   │   │   ├── ai_service.py   #   OpenAI-integration (GPT-4o + embeddings)
-│   │   │   ├── pdf_parser.py   #   PDF-textextraktion (pdfplumber)
-│   │   │   └── competence_service.py  # Sammanslagning & deduplicering
-│   │   └── main.py             # FastAPI-applikation
-│   ├── tests/
-│   ├── .env.example
-│   └── .env                    # (ignoreras av git)
+│   │   │   ├── ai_service.py         # OpenAI-integration (GPT-4o)
+│   │   │   ├── pdf_parser.py         # PDF-textextraktion (pdfplumber)
+│   │   │   └── competence_service.py # Sammanslagning & deduplicering
+│   │   └── main.py                   # FastAPI-applikation
+│   ├── .env.example                  # Mallkonfiguration
+│   └── .env                          # (ignoreras av git)
 ├── frontend/
-│   ├── index.html              # SPA (single page application)
-│   ├── js/app.js               # All frontend-logik
-│   └── css/style.css           # Design system
-├── docker-compose.yml          # PostgreSQL med pgvector
-├── requirements.txt
+│   ├── index.html                    # SPA (single page application)
+│   ├── js/
+│   │   ├── app.js                    # All frontend-logik
+│   │   └── cv-template.js            # CV-renderingsmallar
+│   └── css/
+│       └── style.css                 # Design system
+├── database/
+│   └── init.sql                      # Initialt SQL-schema
+├── docker-compose.yml                # PostgreSQL 15 med pgvector
+├── start-backend.sh                  # Startskript för backend
+├── requirements.txt                  # Python-dependencies
+├── QUICKSTART.md                     # Snabbstart-guide
 └── README.md
 ```
 
 ## Databasmodeller
 
-- **CVs** — Uppladdade CV:n med originaltext, strukturerad JSON-data och vektorembeddings
-- **OptimizedCVs** — Optimerade versioner kopplade till original-CV + jobbannons
-- **SkillsCollection** — Kompetensbanken: unika färdigheter med kategori, typ och källhänvisning
-- **ExperiencesPool** — Kompetensbanken: erfarenheter (arbete, utbildning, certifiering, projekt) med källhänvisning
-
-## Kända begränsningar
-
-- Match-score vid optimering är hårdkodad till 85 (placeholder)
-- Ingen autentisering/användarkonton (enkel-användare)
-- PDF-export av optimerade CV:n är ej implementerad
-- Semantisk sökning (vektorinfrastrukturen finns men används inte aktivt ännu)
+- **users** — Användarkonton med namn, e-post och hashat lösenord
+- **cvs** — Uppladdade CV:n med originaltext och strukturerad JSON-data
+- **skill_entries** — Kompetensbanken: unika färdigheter med kategori, typ och källhänvisning (source_cv_ids)
+- **experience_entries** — Kompetensbanken: erfarenheter med prestationer och källhänvisning
+- **job_seeker_profiles** — Sökprofil per användare (roller, ort, anställningsform m.m.)
 
 ## Licens
 

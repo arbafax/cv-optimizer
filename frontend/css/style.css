@@ -2253,6 +2253,7 @@ body {
 
 .field-desc {
     font-size: 13px;
+    font-style: italic;
     color: var(--text-secondary);
     line-height: 1.5;
     margin: 3px 0 8px;

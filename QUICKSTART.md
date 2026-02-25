@@ -1,32 +1,32 @@
-# Snabbstart-guide
+# Snabbstart
 
-## 1. Förutsättningar
+## Förutsättningar
+
 - Python 3.11 eller högre
-- Docker och Docker Compose (för databas)
-- Git
+- Docker och Docker Compose (för PostgreSQL-databasen)
+- En OpenAI API-nyckel (krävs för AI-funktioner)
 
-## 2. Klona och navigera till projektet
+## 1. Klona projektet
 
 ```bash
-git clone <your-repo-url>
+git clone <repo-url>
 cd cv-optimizer
 ```
 
-## 3. Starta PostgreSQL med Docker
+## 2. Starta databasen med Docker
 
 ```bash
-docker-compose up -d
+docker compose up -d
 ```
 
-Detta startar PostgreSQL med pgvector-extension redan installerad.
+Detta startar PostgreSQL 15 med pgvector-tillägget installerat. Databasen är tillgänglig på port 5432.
 
-## 4. Sätt upp Python-miljön
+## 3. Skapa Python virtual environment
 
 ```bash
-# Skapa virtual environment
-python -m venv venv
+python3 -m venv venv
 
-# Aktivera (Linux/Mac)
+# Aktivera (macOS/Linux)
 source venv/bin/activate
 
 # Aktivera (Windows)
@@ -36,69 +36,80 @@ venv\Scripts\activate
 pip install -r requirements.txt
 ```
 
-## 5. Konfigurera miljövariabler
+## 4. Konfigurera miljövariabler
 
 ```bash
-# Kopiera exempel-filen
-cp .env.example .env
-
-# Redigera .env och lägg till dina API-nycklar
-# Minst behöver du:
-# - OPENAI_API_KEY
-# - SECRET_KEY (generera en: openssl rand -hex 32)
+cp backend/.env.example backend/.env
 ```
 
-Med Docker-setup är databasen redan konfigurerad:
-- DATABASE_URL=postgresql://cv_user:cv_password@localhost:5432/cv_optimizer
+Öppna `backend/.env` och fyll i minst dessa värden:
 
-## 6. Starta backend
+```env
+OPENAI_API_KEY=sk-din-nyckel-här
+SECRET_KEY=<generera med: openssl rand -hex 32>
+```
+
+Övriga värden (databas, portar m.m.) fungerar som de är med Docker-uppsättningen ovan.
+
+## 5. Starta backend
 
 ```bash
-cd backend
-python -m app.main
+./start-backend.sh
 ```
 
-Backend körs nu på: http://localhost:8000
-API-dokumentation: http://localhost:8000/docs
+Skriptet:
+- Kontrollerar att venv och `backend/.env` finns
+- Startar Docker-databasen automatiskt om den inte redan körs
+- Aktiverar venv och startar FastAPI-servern
 
-## 7. Öppna frontend
+Backend körs på: `http://localhost:8000`
+API-dokumentation: `http://localhost:8000/docs`
 
-Öppna `frontend/index.html` direkt i webbläsaren, eller starta en lokal server:
+## 6. Öppna frontend
 
 ```bash
 cd frontend
-python -m http.server 3000
+python3 -m http.server 3000
 ```
 
-Frontend: http://localhost:3000
+Öppna sedan `http://localhost:3000` i webbläsaren.
 
-## Testa att det fungerar
+## Verifiera att allt fungerar
 
-1. Öppna http://localhost:8000/health - ska svara `{"status": "healthy"}`
-2. Öppna http://localhost:8000/docs - ska visa API-dokumentationen
-3. Öppna frontend och testa att ladda upp ett CV
+1. `http://localhost:8000/health` — ska svara `{"status": "healthy"}`
+2. `http://localhost:8000/docs` — ska visa Swagger UI med alla API-endpoints
+3. `http://localhost:3000` — ska visa inloggningssidan
 
 ## Felsökning
 
-**Databas-anslutning misslyckades:**
+**Backend startar inte — "venv hittades inte":**
 ```bash
-# Kontrollera att PostgreSQL körs
-docker ps
-
-# Kolla loggar
-docker logs cv_optimizer_db
+python3 -m venv venv
+source venv/bin/activate
+pip install -r requirements.txt
 ```
 
-**Python-paket saknas:**
+**Backend startar inte — "backend/.env saknas":**
 ```bash
-pip install -r requirements.txt --upgrade
+cp backend/.env.example backend/.env
+# Redigera och fyll i OPENAI_API_KEY och SECRET_KEY
 ```
 
-**Port redan i bruk:**
+**Databasfel — PostgreSQL svarar inte:**
 ```bash
-# Ändra port i docker-compose.yml eller main.py
+docker ps                        # Kontrollera att cv_optimizer_db körs
+docker logs cv_optimizer_db      # Läs loggar för mer info
+docker compose up -d             # Starta om om den inte körs
 ```
 
-## Nästa steg
+**Port 8000 redan i bruk:**
+```bash
+lsof -ti :8000 | xargs kill -9
+./start-backend.sh
+```
 
-Se README.md för fullständig dokumentation och utvecklingsguide.
+**Paket saknas:**
+```bash
+source venv/bin/activate
+pip install -r requirements.txt
+```

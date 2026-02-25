@@ -1,158 +1,163 @@
-# Steg 5 - PDF-parsing med AI - Färdig! ✅
+# Arkitektur & systemöversikt
 
-## Vad som har skapats:
+En genomgång av hur applikationens olika delar hänger ihop, var logiken finns och hur dataflödet ser ut.
 
-### 1. **PDF Parser Service** (`services/pdf_parser.py`)
-- Extraherar text från PDF-filer
-- Validerar PDF:er
-- Använder pdfplumber
+## Översikt
 
-### 2. **AI Service** (`services/ai_service.py`)
-- Strukturerar CV-text till JSON med OpenAI
-- Genererar embeddings för semantisk sökning
-- Optimerar CV:n för specifika jobbannonser
-
-### 3. **CV API** (`api/cv.py`)
-- `POST /api/v1/cv/upload` - Ladda upp PDF och strukturera
-- `GET /api/v1/cv/` - Lista alla CV:n
-- `GET /api/v1/cv/{id}` - Hämta specifikt CV
-- `DELETE /api/v1/cv/{id}` - Ta bort CV
-
-### 4. **Optimize API** (`api/optimize.py`)
-- `POST /api/v1/optimize` - Optimera CV för jobbannons
-- `GET /api/v1/optimize/{id}` - Hämta optimerat CV
-- `GET /api/v1/optimize/by-cv/{cv_id}` - Lista alla optimeringar av ett CV
-
-## Installation av nya filer:
-
-Kopiera dessa filer till ditt projekt:
-
-```bash
-# Från cv-optimizer root
-cd backend/app
-
-# Skapa services-mappen om den inte finns
-mkdir -p services api
-
-# Kopiera filerna (från downloads):
-# pdf_parser.py → backend/app/services/
-# ai_service.py → backend/app/services/
-# cv.py → backend/app/api/
-# optimize.py → backend/app/api/
-# main.py → backend/app/  (ersätt befintlig)
+```
+Webbläsare (frontend/index.html)
+        │  HTTP + JWT-cookie
+        ▼
+FastAPI (backend/app/main.py) — port 8000
+        │
+        ├── auth.py          JWT-utfärdning & validering
+        ├── cv.py            CV-uppladdning & hantering
+        ├── competence.py    Kompetensbank & AI-matchning
+        ├── optimize.py      (Legacy CV-optimering)
+        └── job_seeker_profile.py  Sökprofil
+        │
+        ├── OpenAI API       GPT-4o — strukturering & matchning
+        └── PostgreSQL       Persistent lagring (Docker)
 ```
 
-## Starta servern:
+## Autentisering
 
-```bash
-# Från cv-optimizer/backend
-python -m app.main
+**Fil:** `backend/app/core/auth.py` + `backend/app/api/auth.py`
+
+- JWT-token skickas som httpOnly-cookie (`access_token`) vid inloggning
+- Alla skyddade endpoints använder `Depends(get_current_user)` som hämtar token ur cookien
+- Lösenord hashas med bcrypt via passlib
+- Varje användares data är helt isolerad — queries filtreras alltid på `user_id`
+
+```
+POST /auth/register  →  skapar User i DB, returnerar token
+POST /auth/login     →  verifierar lösenord, sätter cookie
+POST /auth/logout    →  rensar cookie
+GET  /auth/me        →  hämtar inloggad användare
 ```
 
-## Testa API:et:
+## CV-uppladdning och strukturering
 
-### 1. Öppna API-dokumentationen:
-http://localhost:8000/docs
+**Fil:** `backend/app/api/cv.py`
 
-### 2. Testa CV-uppladdning:
+Flöde vid `POST /cv/upload`:
+1. PDF valideras och sparas temporärt
+2. `pdf_parser.py` extraherar text med pdfplumber/pypdfium2
+3. `ai_service.structure_cv_text()` skickar texten till GPT-4o
+4. GPT-4o returnerar strukturerad JSON (`CVStructure`-schema)
+5. CV sparas i `cvs`-tabellen med `structured_data` som JSONB
+6. Temporär PDF-fil raderas
 
-**Via Swagger UI (http://localhost:8000/docs):**
-- Hitta `POST /api/v1/cv/upload`
-- Klicka "Try it out"
-- Välj en PDF-fil med ditt CV
-- Klicka "Execute"
+**Fil:** `backend/app/services/pdf_parser.py`
+- `extract_text()` — extraherar råtext från PDF
+- `validate_pdf()` — kontrollerar att filen är giltig PDF
 
-**Via curl:**
-```bash
-curl -X POST "http://localhost:8000/api/v1/cv/upload" \
-  -H "accept: application/json" \
-  -H "Content-Type: multipart/form-data" \
-  -F "file=@/path/to/your/cv.pdf"
+**Fil:** `backend/app/services/ai_service.py`
+- `structure_cv_text(text)` — strukturerar CV-text till `CVStructure`
+- `match_competences_to_job(skills, experiences, job_desc, seeker_profile)` — matchar kompetensbank mot jobbannons
+
+## Kompetensbank
+
+**Fil:** `backend/app/api/competence.py`
+**Fil:** `backend/app/services/competence_service.py`
+
+Kompetensbanken byggs upp när användaren "behandlar" ett eller flera CV:n:
+
+```
+POST /competence/merge/{cv_id}
+  → competence_service.merge_cv_to_bank()
+    → Extraherar skills ur structured_data
+    → Kategoriserar via CATEGORY_RULES (nyckelord → kategori)
+    → Dedupliserar mot befintliga skills (fuzzy match)
+    → Sparar/uppdaterar SkillEntry och ExperienceEntry i DB
+    → source_cv_ids (JSONB) håller koll på vilka CV:n som bidragit
 ```
 
-### 3. Lista CV:n:
-```bash
-curl http://localhost:8000/api/v1/cv/
+### Datamodeller i kompetensbanken
+
+**`SkillEntry`** (tabell: `skill_entries`):
+- `name` — skillens namn
+- `category` — t.ex. "Mjukvaruutveckling", "Databases", "Cloud & DevOps"
+- `skill_type` — "technical" | "soft" | "domain" | "language" | "tool"
+- `source_cv_ids` — JSONB-array med CV-ID:n som bidragit
+
+**`ExperienceEntry`** (tabell: `experience_entries`):
+- `company`, `position`, `start_date`, `end_date`
+- `achievements` — JSONB-array med prestationer (strängar)
+- `source_cv_ids` — JSONB-array med CV-ID:n som bidragit
+
+### CRUD i kompetensbanken
+
+Alla skrivoperationer använder `flag_modified()` för JSONB-fält för att SQLAlchemy ska detektera ändringar:
+
+```python
+from sqlalchemy.orm.attributes import flag_modified
+entry.achievements = new_list
+flag_modified(entry, "achievements")
+db.commit()
 ```
 
-### 4. Optimera CV för jobbannons:
+## Matchning mot jobbannons
 
-**Via Swagger UI:**
-- Hitta `POST /api/v1/optimize`
-- Klicka "Try it out"
-- Fyll i JSON:
-```json
-{
-  "cv_id": 1,
-  "job_posting": {
-    "title": "Senior Backend Developer",
-    "description": "We are looking for an experienced backend developer with Python and FastAPI experience...",
-    "company": "Tech Company AB"
-  }
+**Endpoint:** `POST /competence/match-job`
+
+Flöde:
+1. Hämtar alla `SkillEntry` och `ExperienceEntry` för användaren
+2. Hämtar användarens `JobSeekerProfile` (sökprofil)
+3. Bygger en strukturerad prompt med skills, erfarenheter och sökpreferenser
+4. GPT-4o returnerar JSON med `summary`, `matching_skills`, `missing_skills`, `overall_score`, `recommendation`
+5. Resultatet visas direkt i frontend (sparas inte i DB)
+
+## Frontend
+
+**Fil:** `frontend/js/app.js` — all logik, ~2000 rader
+
+Inga externa ramverk används. Applikationen är en SPA med manuell vyhantering:
+
+```javascript
+function showView(viewId, navEl) {
+    // Döljer alla .view, visar #view-{viewId}
 }
 ```
 
-**Via curl:**
+Viktiga tillstånd:
+- `currentUser` — inloggad användare
+- `allCVs` — cachat CV-array
+- `selectedCV` — valt CV (för merge-knappen i kompetensbanken)
+- `bankSkills` / `bankExperiences` — kompetensbanksdata
+
+API-anrop sker via `apiFetch()` som alltid skickar `credentials: 'include'` och hanterar 401-svar genom att automatiskt visa inloggningsskärmen.
+
+## Databas
+
+Tabeller skapas automatiskt vid uppstart via `Base.metadata.create_all()` i `main.py` — ingen manuell migration behövs.
+
+Docker-containern (`cv_optimizer_db`) monterar `database/init.sql` vid första start, vilket aktiverar pgvector-extensionen.
+
+## Miljövariabler
+
+Se `backend/.env.example` för komplett lista. De viktigaste:
+
+| Variabel | Beskrivning |
+|---|---|
+| `OPENAI_API_KEY` | Krävs för AI-funktioner |
+| `SECRET_KEY` | JWT-signeringsnyckel — generera med `openssl rand -hex 32` |
+| `DATABASE_URL` | Automatiskt korrekt med Docker-uppsättningen |
+| `DEBUG` | `True` under utveckling (aktiverar auto-reload) |
+
+## Vanliga felscenarion
+
+**"Address already in use" (port 8000):**
 ```bash
-curl -X POST "http://localhost:8000/api/v1/optimize" \
-  -H "Content-Type: application/json" \
-  -d '{
-    "cv_id": 1,
-    "job_posting": {
-      "title": "Senior Backend Developer",
-      "description": "Looking for Python developer with FastAPI...",
-      "company": "Tech AB"
-    }
-  }'
+lsof -ti :8000 | xargs kill -9
+./start-backend.sh
 ```
 
-## Vad händer under huven:
-
-1. **Upload:**
-   - PDF laddas upp → sparas temporärt
-   - Text extraheras från PDF:en
-   - OpenAI strukturerar texten till JSON
-   - Embeddings genereras för semantisk sökning
-   - Allt sparas i PostgreSQL med pgvector
-
-2. **Optimize:**
-   - Hämtar original-CV från databasen
-   - Skickar CV + jobbannons till OpenAI
-   - AI omformulerar och prioriterar innehåll
-   - Sparar optimerad version
-   - Beräknar match-score
-
-## Nästa steg (Steg 6):
-
-- Semantic search (hitta relevanta CV:n baserat på jobbeskrivningar)
-- PDF/Word-generering av optimerade CV:n
-- Förbättra frontend för bättre UX
-
-## Felsökning:
-
-**"Module not found" error:**
-```bash
-pip install -r requirements.txt
+**SkillEntry visas med gammalt kategorinamn:**
+Befintlig data i DB behåller det namn som användes vid merge. Frontend har en `CATEGORY_ALIASES`-mappning i `app.js` som normaliserar gamla namn till nya vid rendering. För att uppdatera DB-data direkt:
+```sql
+UPDATE skill_entries SET category = 'Mjukvaruutveckling' WHERE category = 'Programming Languages';
 ```
 
-**"Database error":**
-```bash
-# Kontrollera att PostgreSQL körs
-docker ps
-
-# Kontrollera .env-filen
-cat backend/.env
-```
-
-**"OpenAI API error":**
-- Verifiera att OPENAI_API_KEY är korrekt i .env
-- Kontrollera att du har credits på ditt OpenAI-konto
-
-## Kostnad:
-
-För utveckling/testning:
-- Text strukturering (GPT-4o-mini): ~$0.0002 per CV
-- Embeddings: ~$0.00002 per CV
-- CV-optimering (GPT-4o): ~$0.01 per optimering
-
-**Totalt för 20 test-CV:n + 10 optimeringar: ~$0.10**
+**CORS-fel i webbläsaren:**
+Kontrollera att `ALLOWED_ORIGINS` i `backend/.env` inkluderar den origin där frontend serveras (t.ex. `http://localhost:3000`).

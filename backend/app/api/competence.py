@@ -11,7 +11,7 @@ from app.core.auth import get_current_user
 from app.models.cv import CV
 from app.models.competence import SkillEntry, ExperienceEntry
 from app.models.user import User
-from app.models.job_seeker_profile import JobSeekerProfile
+from app.models.candidate_profile import CandidateProfile
 from app.services.competence_service import (
     merge_cv_into_bank, merge_experiences, clear_bank, rebuild_bank,
     add_skill, delete_skill, delete_experience,
@@ -492,8 +492,11 @@ async def match_job(
         for e in experiences
     ]
 
-    # Hämta sökprofil om den finns
-    sp = db.query(JobSeekerProfile).filter(JobSeekerProfile.user_id == uid).first()
+    # Hämta kandidatprofil (sökprofil) om den finns
+    sp = db.query(CandidateProfile).filter(
+        CandidateProfile.user_id == uid,
+        CandidateProfile.managed_by_user_id == None,  # noqa: E711
+    ).first()
     seeker_profile = None
     if sp:
         seeker_profile = {

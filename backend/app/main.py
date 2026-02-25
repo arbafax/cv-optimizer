@@ -8,14 +8,14 @@ from app.core.database import engine, Base
 from app.api import cv, optimize
 from app.api.competence import router as competence_router
 from app.api.auth import router as auth_router
-from app.api.job_seeker_profile import router as sokprofil_router
+from app.api.candidate_profile import router as sokprofil_router
 
 # Import all models so Base.metadata knows about them
 from app.models import cv as cv_models                   # noqa: F401
 from app.models import competence as competence_models   # noqa: F401
 from app.models import user as user_models               # noqa: F401
 from app.models import search_profile as sp_models       # noqa: F401
-from app.models import job_seeker_profile as jsp_models  # noqa: F401
+from app.models import candidate_profile as cp_models  # noqa: F401
 
 # Configure logging
 logging.basicConfig(
@@ -23,13 +23,39 @@ logging.basicConfig(
     format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
 )
 
+# Tabellmigrationer som måste köras FÖRE create_all (hanterar befintliga installationer)
+from sqlalchemy import text  # noqa: E402
+with engine.connect() as _conn:
+    # Döp om job_seeker_profiles → candidate_profiles
+    _conn.execute(text("""
+        DO $$ BEGIN
+            IF EXISTS (
+                SELECT 1 FROM pg_tables
+                WHERE schemaname = 'public' AND tablename = 'job_seeker_profiles'
+            ) AND NOT EXISTS (
+                SELECT 1 FROM pg_tables
+                WHERE schemaname = 'public' AND tablename = 'candidate_profiles'
+            ) THEN
+                ALTER TABLE job_seeker_profiles RENAME TO candidate_profiles;
+            END IF;
+        END $$;
+    """))
+    _conn.commit()
+
 # Create all database tables
 Base.metadata.create_all(bind=engine)
 
 # Idempotenta kolumnmigrationer (hanterar befintliga installationer)
-from sqlalchemy import text  # noqa: E402
 with engine.connect() as _conn:
     _conn.execute(text("ALTER TABLE users ADD COLUMN IF NOT EXISTS roles VARCHAR(500)"))
+    _conn.execute(text(
+        "ALTER TABLE candidate_profiles ADD COLUMN IF NOT EXISTS "
+        "managed_by_user_id INTEGER REFERENCES users(id) ON DELETE SET NULL"
+    ))
+    # Tillåt NULL i user_id (för säljar-hanterade kandidatprofiler)
+    _conn.execute(text(
+        "ALTER TABLE candidate_profiles ALTER COLUMN user_id DROP NOT NULL"
+    ))
     _conn.commit()
 
 # Initialize FastAPI app

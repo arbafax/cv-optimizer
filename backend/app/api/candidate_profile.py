@@ -4,7 +4,7 @@ from sqlalchemy.orm import Session
 
 from app.core.database import get_db
 from app.core.auth import get_current_user
-from app.models.job_seeker_profile import JobSeekerProfile
+from app.models.candidate_profile import CandidateProfile
 from app.models.user import User
 
 router = APIRouter(prefix="/sokprofil", tags=["Sökprofil"])
@@ -21,7 +21,7 @@ class SokprofilRequest(BaseModel):
     searchable:         bool        = False
 
 
-def _to_dict(p: JobSeekerProfile) -> dict:
+def _to_dict(p: CandidateProfile) -> dict:
     return {
         "public_name":        p.public_name,
         "public_phone":       p.public_phone,
@@ -39,9 +39,10 @@ async def get_sokprofil(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
-    """Hämta inloggad användares sökprofil. Returnerar defaults om ingen finns."""
-    p = db.query(JobSeekerProfile).filter(
-        JobSeekerProfile.user_id == current_user.id
+    """Hämta inloggad användares kandidatprofil (sökprofil). Returnerar defaults om ingen finns."""
+    p = db.query(CandidateProfile).filter(
+        CandidateProfile.user_id == current_user.id,
+        CandidateProfile.managed_by_user_id == None,  # noqa: E711
     ).first()
     if not p:
         return {
@@ -63,12 +64,13 @@ async def save_sokprofil(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
-    """Spara (upsert) sökprofil för inloggad användare."""
-    p = db.query(JobSeekerProfile).filter(
-        JobSeekerProfile.user_id == current_user.id
+    """Spara (upsert) kandidatprofil (sökprofil) för inloggad användare."""
+    p = db.query(CandidateProfile).filter(
+        CandidateProfile.user_id == current_user.id,
+        CandidateProfile.managed_by_user_id == None,  # noqa: E711
     ).first()
     if not p:
-        p = JobSeekerProfile(user_id=current_user.id)
+        p = CandidateProfile(user_id=current_user.id)
         db.add(p)
 
     p.public_name        = body.public_name.strip()        if body.public_name        else None

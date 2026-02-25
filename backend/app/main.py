@@ -26,6 +26,12 @@ logging.basicConfig(
 # Create all database tables
 Base.metadata.create_all(bind=engine)
 
+# Idempotenta kolumnmigrationer (hanterar befintliga installationer)
+from sqlalchemy import text  # noqa: E402
+with engine.connect() as _conn:
+    _conn.execute(text("ALTER TABLE users ADD COLUMN IF NOT EXISTS roles VARCHAR(500)"))
+    _conn.commit()
+
 # Initialize FastAPI app
 app = FastAPI(
     title=settings.APP_NAME,

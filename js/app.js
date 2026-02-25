@@ -2411,11 +2411,17 @@ function showKandidatForm(kandidat) {
 
     document.getElementById('kand-delete-btn').style.display = kandidat ? '' : 'none';
     document.getElementById('kand-status').textContent = '';
+
+    // Bank-fliken aktiveras bara vid redigering av befintlig kandidat
+    document.getElementById('kand-tab-btn-bank').disabled = !kandidat;
+    kandUploadSetup = false;
+    switchKandidatTab('profil');
 }
 
 function showKandidatListPanel() {
     document.getElementById('kandidat-form-panel').style.display   = 'none';
     document.getElementById('kandidater-list-panel').style.display = '';
+    switchKandidatTab('profil');
     loadKandidaterView();
 }
 
@@ -2489,6 +2495,220 @@ function showKandidatStatus(msg, type) {
     el.textContent = msg;
     el.className = `status-message status-${type}`;
     setTimeout(() => { el.textContent = ''; el.className = ''; }, 4000);
+}
+
+// ── Kandidat tabs ─────────────────────────────────────────────────────────────
+
+let kandUploadSetup = false;
+
+function switchKandidatTab(tab) {
+    ['profil', 'bank'].forEach(t => {
+        document.getElementById(`kand-tab-${t}`).style.display       = t === tab ? '' : 'none';
+        document.getElementById(`kand-tab-btn-${t}`).classList.toggle('active', t === tab);
+    });
+    if (tab === 'bank' && currentKandidatId) {
+        setupKandidatUpload();
+        loadKandidatBank(currentKandidatId);
+    }
+}
+
+// ── Kandidat kompetensbank ────────────────────────────────────────────────────
+
+async function loadKandidatBank(kandidatId) {
+    try {
+        const res = await apiFetch(`${API_BASE_URL}/kandidater/${kandidatId}/bank`);
+        if (!res.ok) return;
+        const data = await res.json();
+        renderKandidatSkills(data.skills);
+        renderKandidatExperiences(data.experiences);
+    } catch (err) {
+        if (err.message !== 'Inte inloggad') console.error(err);
+    }
+}
+
+function renderKandidatSkills(skills) {
+    const container = document.getElementById('kand-skills-list');
+    if (!container) return;
+
+    if (!skills.length) {
+        container.innerHTML = '<div class="empty-hint">Inga kompetenser tillagda ännu.</div>';
+        return;
+    }
+
+    // Gruppera per kategori
+    const byCategory = {};
+    skills.forEach(s => {
+        const cat = s.category || 'Övrigt';
+        if (!byCategory[cat]) byCategory[cat] = [];
+        byCategory[cat].push(s);
+    });
+
+    container.innerHTML = Object.entries(byCategory).map(([cat, items]) => `
+        <div style="margin-bottom:1rem">
+            <div style="font-size:0.8125rem; font-weight:600; color:var(--text-muted); text-transform:uppercase;
+                        letter-spacing:0.05em; margin-bottom:0.5rem">${cat}</div>
+            <div style="display:flex; flex-wrap:wrap; gap:0.375rem">
+                ${items.map(s => `
+                    <span class="skill-tag" style="display:inline-flex; align-items:center; gap:0.25rem">
+                        ${s.skill_name}
+                        <button onclick="deleteKandidatSkill(${s.id})"
+                            style="background:none; border:none; cursor:pointer; color:inherit;
+                                   font-size:0.875rem; line-height:1; padding:0 0.1rem; opacity:0.6"
+                            title="Ta bort">×</button>
+                    </span>
+                `).join('')}
+            </div>
+        </div>
+    `).join('');
+}
+
+async function addKandidatSkill() {
+    if (!currentKandidatId) return;
+    const nameEl = document.getElementById('kand-skill-name');
+    const catEl  = document.getElementById('kand-skill-category');
+    const name   = nameEl.value.trim();
+    if (!name) { showKandidatBankStatus('Ange ett kompetensnamn', 'error'); return; }
+
+    try {
+        const res = await apiFetch(`${API_BASE_URL}/kandidater/${currentKandidatId}/bank/skills`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                skill_name: name,
+                category:   catEl.value.trim() || 'Övrigt',
+            }),
+        });
+        if (!res.ok) { const e = await res.json(); throw new Error(e.detail || 'Fel'); }
+        nameEl.value = '';
+        catEl.value  = '';
+        showKandidatBankStatus('Kompetens tillagd', 'success');
+        loadKandidatBank(currentKandidatId);
+    } catch (err) {
+        showKandidatBankStatus(err.message, 'error');
+    }
+}
+
+async function deleteKandidatSkill(skillId) {
+    if (!currentKandidatId) return;
+    try {
+        const res = await apiFetch(
+            `${API_BASE_URL}/kandidater/${currentKandidatId}/bank/skills/${skillId}`,
+            { method: 'DELETE' }
+        );
+        if (!res.ok) { const e = await res.json(); throw new Error(e.detail || 'Fel'); }
+        loadKandidatBank(currentKandidatId);
+    } catch (err) {
+        showKandidatBankStatus(err.message, 'error');
+    }
+}
+
+function showKandidatBankStatus(msg, type) {
+    const el = document.getElementById('kand-bank-status');
+    if (!el) return;
+    el.textContent = msg;
+    el.className = `status-message status-${type}`;
+    setTimeout(() => { el.textContent = ''; el.className = ''; }, 4000);
+}
+
+function showKandidatUploadStatus(msg, type) {
+    const el = document.getElementById('kand-upload-status');
+    if (!el) return;
+    el.textContent = msg;
+    el.className = `status-message status-${type}`;
+    if (type !== 'loading') setTimeout(() => { el.textContent = ''; el.className = ''; }, 5000);
+}
+
+function setupKandidatUpload() {
+    if (kandUploadSetup) return;
+    kandUploadSetup = true;
+
+    const area  = document.getElementById('kand-upload-area');
+    const input = document.getElementById('kand-cv-upload');
+    if (!area || !input) return;
+
+    area.addEventListener('dragover', e => { e.preventDefault(); area.classList.add('drag-over'); });
+    area.addEventListener('dragleave', ()  => area.classList.remove('drag-over'));
+    area.addEventListener('drop', e => {
+        e.preventDefault();
+        area.classList.remove('drag-over');
+        const file = e.dataTransfer.files[0];
+        if (file) handleKandidatCVUpload(file);
+    });
+    input.addEventListener('change', () => {
+        if (input.files[0]) handleKandidatCVUpload(input.files[0]);
+        input.value = '';
+    });
+}
+
+async function handleKandidatCVUpload(file) {
+    if (!currentKandidatId) return;
+    if (!file.name.toLowerCase().endsWith('.pdf')) {
+        showKandidatUploadStatus('Endast PDF-filer är tillåtna', 'error');
+        return;
+    }
+    if (file.size > 10 * 1024 * 1024) {
+        showKandidatUploadStatus('Filen är för stor (max 10 MB)', 'error');
+        return;
+    }
+
+    showKandidatUploadStatus('⏳ Analyserar CV...', 'loading');
+
+    const formData = new FormData();
+    formData.append('file', file);
+
+    try {
+        const res = await apiFetch(
+            `${API_BASE_URL}/kandidater/${currentKandidatId}/bank/upload-cv`,
+            { method: 'POST', body: formData }
+        );
+        if (!res.ok) { const e = await res.json(); throw new Error(e.detail || 'Fel vid uppladdning'); }
+        const data = await res.json();
+        showKandidatUploadStatus(
+            `✅ ${data.name || file.name} — ${data.skills_added} kompetenser och ${data.experiences_added} erfarenheter tillagda`,
+            'success'
+        );
+        loadKandidatBank(currentKandidatId);
+    } catch (err) {
+        showKandidatUploadStatus(`❌ ${err.message}`, 'error');
+    }
+}
+
+function renderKandidatExperiences(experiences) {
+    const container = document.getElementById('kand-experiences-list');
+    if (!container) return;
+
+    if (!experiences || !experiences.length) {
+        container.innerHTML = '<div class="empty-hint">Inga erfarenheter tillagda ännu.</div>';
+        return;
+    }
+
+    const typeLabel = { work: 'Arbete', education: 'Utbildning', certification: 'Certifiering', project: 'Projekt' };
+
+    container.innerHTML = experiences.map(e => {
+        const period = [e.start_date, e.is_current ? 'nu' : e.end_date].filter(Boolean).join(' – ');
+        const achievements = (e.achievements || []).length
+            ? `<ul style="margin:0.375rem 0 0 1rem; padding:0; font-size:0.85rem; color:var(--text-muted)">
+                   ${e.achievements.map(a => `<li>${a}</li>`).join('')}
+               </ul>`
+            : '';
+        return `
+            <div style="border:1px solid var(--border); border-radius:var(--radius); padding:0.875rem 1rem; margin-bottom:0.75rem">
+                <div style="display:flex; justify-content:space-between; align-items:flex-start; gap:0.5rem">
+                    <div>
+                        <span style="font-size:0.75rem; font-weight:600; text-transform:uppercase;
+                                     letter-spacing:0.05em; color:var(--text-muted)">
+                            ${typeLabel[e.experience_type] || e.experience_type}
+                        </span>
+                        <div style="font-weight:600; margin-top:0.125rem">${e.title}</div>
+                        ${e.organization ? `<div style="font-size:0.875rem; color:var(--text-muted)">${e.organization}</div>` : ''}
+                        ${period ? `<div style="font-size:0.8125rem; color:var(--text-muted); margin-top:0.125rem">${period}</div>` : ''}
+                    </div>
+                </div>
+                ${e.description ? `<div style="font-size:0.875rem; margin-top:0.5rem">${e.description}</div>` : ''}
+                ${achievements}
+            </div>
+        `;
+    }).join('');
 }
 
 // Merge ALL CVs

@@ -2041,9 +2041,16 @@ function showApp() {
     loadBankData();
 }
 
+function updateRoleBasedNav() {
+    const roles = currentUser?.roles || [];
+    document.getElementById('nav-minakandidater')
+        ?.classList.toggle('hidden', !roles.includes('Säljare'));
+}
+
 function renderSidebarUser() {
     const el = document.getElementById('sidebar-user');
     if (!el || !currentUser) return;
+    updateRoleBasedNav();
     const initials = currentUser.name
         .split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2);
     el.innerHTML = `
@@ -2230,6 +2237,7 @@ async function saveAccountRoles() {
             throw new Error(err.detail || 'Kunde inte spara roller');
         }
         currentUser = await res.json();
+        updateRoleBasedNav();
         showAccountStatus('account-roles-status', 'Roller sparade', 'success');
     } catch (err) {
         showAccountStatus('account-roles-status', err.message, 'error');

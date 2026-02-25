@@ -72,9 +72,10 @@ class CVStructure(BaseModel):
 class CVResponse(BaseModel):
     id: int
     filename: str
-    title: Optional[str] = None          # ← NY: användarsatt titel
+    title: Optional[str] = None
     upload_date: datetime
     structured_data: CVStructure
+    is_merged: bool = False
 
     class Config:
         from_attributes = True

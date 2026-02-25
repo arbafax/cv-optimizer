@@ -14,7 +14,7 @@ logger = logging.getLogger(__name__)
 # ──────────────────────────────────────────────────────────────────────────────
 
 CATEGORY_RULES = {
-    "Programming Languages": [
+    "Mjukvaruutveckling": [
         "python", "javascript", "typescript", "java", "c#", "c++", "c",
         "go", "rust", "swift", "kotlin", "ruby", "php", "scala", "r",
         "matlab", "bash", "powershell", "perl", "haskell", "elixir",

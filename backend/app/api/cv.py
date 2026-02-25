@@ -11,10 +11,10 @@ from app.core.config import settings
 from app.core.auth import get_current_user
 from app.models.cv import CV
 from app.models.user import User
+from app.models.competence import SkillEntry
 from app.schemas.cv import CVResponse, CVStructure, CVUpdateTitle
 from app.services.pdf_parser import PDFParser
 from app.services.ai_service import AIService
-from app.services.competence_service import rebuild_bank
 
 logger = logging.getLogger(__name__)
 
@@ -121,6 +121,15 @@ async def list_cvs(
 ):
     """Lista alla uppladdade CV:n."""
     cvs = db.query(CV).filter(CV.user_id == current_user.id).offset(skip).limit(limit).all()
+
+    # Bygg upp en mängd med alla CV-ID:n som finns i kompetensbanken
+    merged_cv_ids: set[int] = set()
+    for (source_ids,) in db.query(SkillEntry.source_cv_ids).filter(
+        SkillEntry.user_id == current_user.id
+    ).all():
+        if source_ids:
+            merged_cv_ids.update(source_ids)
+
     return [
         CVResponse(
             id              = cv.id,
@@ -128,6 +137,7 @@ async def list_cvs(
             title           = cv.title,
             upload_date     = cv.upload_date,
             structured_data = CVStructure(**cv.structured_data),
+            is_merged       = cv.id in merged_cv_ids,
         )
         for cv in cvs
     ]
@@ -185,33 +195,15 @@ async def delete_cv(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
-    """
-    Radera ett CV och bygg automatiskt om kompetensbanken
-    från kvarvarande CV:n.
-    """
+    """Radera ett CV."""
     cv = db.query(CV).filter(CV.id == cv_id, CV.user_id == current_user.id).first()
     if not cv:
         raise HTTPException(status_code=404, detail="CV hittades inte")
 
     cv_name = (cv.structured_data.get("personal_info") or {}).get("full_name") or cv.filename
 
-    # Ta bort CV:t
     db.delete(cv)
     db.commit()
     logger.info(f"Raderade CV {cv_id} ({cv_name})")
 
-    # Hämta kvarvarande CV:n för denna användare och bygg om banken
-    remaining_cvs = db.query(CV).filter(CV.user_id == current_user.id).all()
-    result = rebuild_bank(remaining_cvs, db, current_user.id)
-    logger.info(
-        f"Ombyggd kompetensbank: {result['total_skills_added']} skills, "
-        f"{result['total_experiences_added']} erfarenheter från "
-        f"{result['total_cvs_processed']} CV:n"
-    )
-
-    return {
-        "message"          : f"'{cv_name}' raderat och kompetensbanken ombyggd",
-        "remaining_cvs"    : result["total_cvs_processed"],
-        "total_skills"     : result["total_skills_added"],
-        "total_experiences": result["total_experiences_added"],
-    }
+    return {"message": f"'{cv_name}' raderat"}

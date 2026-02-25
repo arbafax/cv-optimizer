@@ -762,6 +762,8 @@ function displayMatchResult(result, container) {
     const skills = (result.skills ?? []).filter(s => s.score > 0);
     const experiences = (result.experiences ?? []).filter(e => e.score > 0);
     const missing = result.missing_skills ?? [];
+    const jobInfo = result.job_info ?? {};
+    const profileFit = result.profile_fit ?? [];
 
     const typeLabels = { work: 'Arbete', education: 'Utbildning', certification: 'Certifiering', project: 'Projekt' };
 
@@ -795,19 +797,58 @@ function displayMatchResult(result, container) {
         ? missing.map(m => `<span class="match-missing-chip">${m}</span>`).join('')
         : '<p class="match-empty">Inga saknade kompetenser identifierade</p>';
 
+    // ── Jobbinfo-chips ────────────────────────────────────────────────────────
+    const jobInfoItems = [
+        { icon: '📍', value: jobInfo.city },
+        { icon: '⏱', value: jobInfo.employment_type },
+        { icon: '📋', value: jobInfo.duration },
+        { icon: '🏢', value: jobInfo.workplace },
+    ].filter(i => i.value);
+
+    const jobInfoHtml = jobInfoItems.length ? `
+        <div class="job-info-bar">
+            ${jobInfoItems.map(i => `<span class="job-info-chip">${i.icon} ${i.value}</span>`).join('')}
+        </div>` : '';
+
+    // ── Profilpassning ────────────────────────────────────────────────────────
+    const fitIcon = m => m === true ? '✅' : m === false ? '❌' : '❓';
+    const profileFitHtml = profileFit.length ? `
+        <div class="profile-fit-section">
+            <h4 class="match-section-title">Passning mot profil</h4>
+            <div class="profile-fit-grid">
+                ${profileFit.map(f => `
+                    <div class="profile-fit-row ${f.match === false ? 'fit-mismatch' : ''}">
+                        <span class="fit-icon">${fitIcon(f.match)}</span>
+                        <span class="fit-aspect">${f.aspect}</span>
+                        <span class="fit-values">
+                            <span class="fit-job">${f.job_value || 'Ej angiven'}</span>
+                            <span class="fit-arrow">→</span>
+                            <span class="fit-pref">${f.preference || 'Ej angiven'}</span>
+                        </span>
+                        ${f.note ? `<span class="fit-note">${f.note}</span>` : ''}
+                    </div>
+                `).join('')}
+            </div>
+        </div>` : '';
+
     optimizeResult.innerHTML = `
         <div class="match-result-header">
             <div class="match-overall-score ${scoreColor(overall)}">
                 <span class="match-overall-number">${overall}</span>
                 <span class="match-overall-label">/ 100</span>
             </div>
-            <p class="match-summary">${result.summary || ''}</p>
+            <div>
+                ${jobInfoHtml}
+                <p class="match-summary">${result.summary || ''}</p>
+            </div>
         </div>
+
+        ${profileFitHtml}
 
         <div class="match-sections">
             <div class="match-section">
-                <h4 class="match-section-title">Matchande skills (${skills.length})</h4>
-                <div class="match-list">${skillsHtml || '<p class="match-empty">Inga matchande skills</p>'}</div>
+                <h4 class="match-section-title">Matchande kompetenser (${skills.length})</h4>
+                <div class="match-list">${skillsHtml || '<p class="match-empty">Inga matchande kompetenser</p>'}</div>
             </div>
             <div class="match-section">
                 <h4 class="match-section-title">Matchande erfarenheter (${experiences.length})</h4>
@@ -828,7 +869,7 @@ function displayMatchResult(result, container) {
                 💡 Tips
             </button>
             <button id="gen-cv-btn" class="btn btn-primary" onclick="handleGenerateCV()">
-                ✨ Generera anpassat CV-utkast
+                Generera anpassat CV-utkast
             </button>
         </div>` : ''}
     `;
@@ -874,7 +915,7 @@ async function handleGenerateCV() {
 
     } catch (err) {
         genBtn.disabled = false;
-        genBtn.innerHTML = '✨ Generera anpassat CV-utkast';
+        genBtn.innerHTML = 'Generera anpassat CV-utkast';
         alert('Fel: ' + err.message);
     }
 }
@@ -1280,10 +1321,10 @@ function renderExperiencesTab() {
 
     const typeOrder = ['work', 'education', 'certification', 'project'];
     const typeLabels = {
-        work:          '💼 Arbetslivserfarenhet',
-        education:     '🎓 Utbildning',
-        certification: '🏆 Certifieringar',
-        project:       '🚀 Projekt',
+        work:          '● Arbetslivserfarenhet',
+        education:     '● Utbildning',
+        certification: '● Certifieringar',
+        project:       '● Projekt',
     };
 
     const groups = {};
@@ -2628,18 +2669,16 @@ function renderKandidatSkills(skills) {
         byCategory[cat].push(s);
     });
 
+    const typeClass = t => t === 'soft' ? 'chip-soft' : t === 'language' ? 'chip-language' : 'chip-technical';
+
     container.innerHTML = Object.entries(byCategory).map(([cat, items]) => `
         <div style="margin-bottom:1rem">
             <div style="font-size:0.8125rem; font-weight:600; color:var(--text-muted); text-transform:uppercase;
                         letter-spacing:0.05em; margin-bottom:0.5rem">${cat}</div>
-            <div style="display:flex; flex-wrap:wrap; gap:0.375rem">
+            <div class="bank-skills-wrap">
                 ${items.map(s => `
-                    <span class="skill-tag" style="display:inline-flex; align-items:center; gap:0.25rem">
-                        ${s.skill_name}
-                        <button onclick="deleteKandidatSkill(${s.id})"
-                            style="background:none; border:none; cursor:pointer; color:inherit;
-                                   font-size:0.875rem; line-height:1; padding:0 0.1rem; opacity:0.6"
-                            title="Ta bort">×</button>
+                    <span class="bank-skill-chip ${typeClass(s.skill_type)}">
+                        ${s.skill_name}<button onclick="deleteKandidatSkill(${s.id})" class="chip-delete" title="Ta bort">×</button>
                     </span>
                 `).join('')}
             </div>

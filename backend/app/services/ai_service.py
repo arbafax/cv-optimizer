@@ -259,12 +259,27 @@ Optimera CV:t för denna jobbannons."""
 
         system_prompt = """Du är en expert på rekrytering och kompetensanalys.
 Du får en lista med skills och erfarenheter från en persons kompetensbank, samt en jobbannons.
-Din uppgift är att analysera hur väl kompetenserna matchar jobbet.
+Din uppgift är att analysera hur väl kompetenserna matchar jobbet OCH hur väl jobbets villkor matchar personens preferenser.
 
 Svara ENDAST med JSON i exakt detta format:
 {
   "overall_score": <0-100>,
-  "summary": "<2-3 meningar om matchningen totalt sett>",
+  "summary": "<2-3 meningar om matchningen totalt sett, inkl. hur villkor stämmer med preferenser>",
+  "job_info": {
+    "city": "<ort där jobbet är, eller null om okänt>",
+    "employment_type": "<Heltid|Deltid|null>",
+    "duration": "<Tillsvidare|Tidsbegränsat|null>",
+    "workplace": "<På plats|Hybrid|Distans|null>"
+  },
+  "profile_fit": [
+    {
+      "aspect": "<t.ex. Ort, Anställningsform, Varaktighet, Arbetsplats>",
+      "job_value": "<vad jobbet erbjuder, eller 'Ej angiven'>",
+      "preference": "<personens önskemål, eller 'Ej angiven'>",
+      "match": <true|false|null>,
+      "note": "<kort notering vid avvikelse, annars tom sträng>"
+    }
+  ],
   "skills": [
     {"skill_name": "<namn>", "score": <1-100>, "reason": "<kort förklaring>"},
     ...
@@ -277,10 +292,12 @@ Svara ENDAST med JSON i exakt detta format:
 }
 
 Regler:
-- Inkludera ENDAST skills och erfarenheter som är relevanta för jobbet (score >= 1). Utelämna sådant som inte alls berörs av annonsen.
-- Lägg till i missing_skills alla tekniker, verktyg, språk och kompetenser som annonsen efterfrågar men som INTE finns i personens kompetensbank.
-- Sortera skills och experiences med högst poäng först.
-- Om personens preferenser finns med (önskad roll, ort, anställningsform, arbetsplats), väg in hur väl jobbet passar preferenserna i summary och overall_score. Nämn eventuella avvikelser kort."""
+- Extrahera alltid job_info från annonsen. Sätt null om informationen saknas.
+- Bygg profile_fit ENDAST om personens preferenser skickas med. Inkludera en rad per preferens som är satt. Sätt match=null om jobbets värde är okänt.
+- overall_score ska påverkas av hur väl jobbvillkoren stämmer med preferenserna – en stor avvikelse (t.ex. fel ort) sänker poängen.
+- Inkludera ENDAST skills och erfarenheter som är relevanta för jobbet (score >= 1).
+- Lägg till i missing_skills alla tekniker, verktyg och kompetenser som annonsen efterfrågar men saknas i kompetensbanken.
+- Sortera skills och experiences med högst poäng först."""
 
         seeker_section = ""
         if seeker_profile:

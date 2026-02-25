@@ -754,7 +754,8 @@ function scoreBar(score) {
     return `<div class="match-bar"><div class="match-bar-fill ${scoreColor(score)}" style="width:${score}%"></div></div>`;
 }
 
-function displayMatchResult(result) {
+function displayMatchResult(result, container) {
+    const optimizeResult = container ?? document.getElementById('optimize-result');
     const overall = result.overall_score ?? 0;
     const skills = (result.skills ?? []).filter(s => s.score > 0);
     const experiences = (result.experiences ?? []).filter(e => e.score > 0);
@@ -2043,8 +2044,11 @@ function showApp() {
 
 function updateRoleBasedNav() {
     const roles = currentUser?.roles || [];
+    const isSaljare = roles.includes('Säljare');
     document.getElementById('nav-minakandidater')
-        ?.classList.toggle('hidden', !roles.includes('Säljare'));
+        ?.classList.toggle('hidden', !isSaljare);
+    document.getElementById('nav-matchakandidater')
+        ?.classList.toggle('hidden', !isSaljare);
 }
 
 function renderSidebarUser() {
@@ -2423,6 +2427,77 @@ function showKandidatListPanel() {
     document.getElementById('kandidater-list-panel').style.display = '';
     switchKandidatTab('profil');
     loadKandidaterView();
+}
+
+// ── Matcha mot kandidater ─────────────────────────────────────────────────────
+
+async function loadMatchKandidatView() {
+    try {
+        const res = await apiFetch(`${API_BASE_URL}/kandidater/`);
+        if (!res.ok) return;
+        const data = await res.json();
+        const sel = document.getElementById('mk-kandidat-select');
+        if (!sel) return;
+        const current = sel.value;
+        sel.innerHTML = '<option value="">– Välj kandidat –</option>' +
+            (data.kandidater || []).map(k => {
+                const name  = k.public_name || '(Inget namn)';
+                const label = k.roles ? `${name} (${k.roles})` : name;
+                return `<option value="${k.id}"${k.id == current ? ' selected' : ''}>${label}</option>`;
+            }).join('');
+        updateMatchKandidatBtn();
+    } catch (err) {
+        if (err.message !== 'Inte inloggad') console.error(err);
+    }
+}
+
+function updateMatchKandidatBtn() {
+    const sel  = document.getElementById('mk-kandidat-select');
+    const txt  = document.getElementById('mk-job-description');
+    const btn  = document.getElementById('mk-match-btn');
+    if (btn) btn.disabled = !sel?.value || !txt?.value.trim();
+}
+
+async function matchKandidatJob() {
+    const sel  = document.getElementById('mk-kandidat-select');
+    const txt  = document.getElementById('mk-job-description');
+    const btn  = document.getElementById('mk-match-btn');
+    const res  = document.getElementById('mk-result');
+
+    const kandidatId = sel?.value;
+    const jobDesc    = txt?.value.trim();
+    if (!kandidatId || !jobDesc) return;
+
+    btn.disabled = true;
+    btn.querySelector('.btn-text').style.display = 'none';
+    btn.querySelector('.btn-loading').classList.remove('hidden');
+    res.classList.add('hidden');
+
+    try {
+        const response = await apiFetch(`${API_BASE_URL}/kandidater/${kandidatId}/match-job`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ job_title: '', job_description: jobDesc }),
+        });
+
+        if (!response.ok) {
+            const err = await response.json();
+            throw new Error(err.detail || 'Matchning misslyckades');
+        }
+
+        const result = await response.json();
+        displayMatchResult(result, res);
+        setTimeout(() => res.scrollIntoView({ behavior: 'smooth', block: 'start' }), 100);
+
+    } catch (err) {
+        res.innerHTML = `<div class="status-message status-error">❌ Fel: ${err.message}</div>`;
+        res.classList.remove('hidden');
+    } finally {
+        btn.disabled = false;
+        btn.querySelector('.btn-text').style.display = 'inline';
+        btn.querySelector('.btn-loading').classList.add('hidden');
+        updateMatchKandidatBtn();
+    }
 }
 
 async function saveKandidat() {

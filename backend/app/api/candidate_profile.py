@@ -19,6 +19,7 @@ class SokprofilRequest(BaseModel):
     desired_workplace:  list[str]   = []
     willing_to_commute: bool        = False
     searchable:         bool        = False
+    available_from:     str | None  = None
 
 
 def _to_dict(p: CandidateProfile) -> dict:
@@ -31,6 +32,7 @@ def _to_dict(p: CandidateProfile) -> dict:
         "desired_workplace":  p.desired_workplace.split(",")  if p.desired_workplace  else [],
         "willing_to_commute": p.willing_to_commute,
         "searchable":         p.searchable,
+        "available_from":     p.available_from,
     }
 
 
@@ -54,6 +56,7 @@ async def get_sokprofil(
             "desired_workplace":  [],
             "willing_to_commute": False,
             "searchable":         False,
+            "available_from":     None,
         }
     return _to_dict(p)
 
@@ -81,6 +84,7 @@ async def save_sokprofil(
     p.desired_workplace  = ",".join(body.desired_workplace)  if body.desired_workplace  else None
     p.willing_to_commute = body.willing_to_commute
     p.searchable         = body.searchable
+    p.available_from     = body.available_from or None
 
     db.commit()
     db.refresh(p)

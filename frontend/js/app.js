@@ -2280,6 +2280,7 @@ async function loadSokprofil() {
 
         document.getElementById('sp-commute').checked    = data.willing_to_commute;
         document.getElementById('sp-searchable').checked = data.searchable;
+        document.getElementById('sp-available-from').value = data.available_from || '';
     } catch (err) {
         if (err.message !== 'Inte inloggad') console.error(err);
     }
@@ -2307,6 +2308,7 @@ async function saveSokprofil() {
                 desired_workplace,
                 willing_to_commute: document.getElementById('sp-commute').checked,
                 searchable:         document.getElementById('sp-searchable').checked,
+                available_from:     document.getElementById('sp-available-from').value || null,
             }),
         });
         if (!res.ok) throw new Error('Kunde inte spara');
@@ -2318,6 +2320,171 @@ async function saveSokprofil() {
 
 function showSokprofilStatus(msg, type) {
     const el = document.getElementById('sp-status');
+    if (!el) return;
+    el.textContent = msg;
+    el.className = `status-message status-${type}`;
+    setTimeout(() => { el.textContent = ''; el.className = ''; }, 4000);
+}
+
+// ════════════════════════════════════════════════════
+// MINA KANDIDATER
+// ════════════════════════════════════════════════════
+
+let currentKandidatId = null;
+let kandidaterCache   = [];
+
+async function loadKandidaterView() {
+    try {
+        const res = await apiFetch(`${API_BASE_URL}/kandidater/`);
+        if (!res.ok) return;
+        const data = await res.json();
+        kandidaterCache = data.kandidater;
+        renderKandidatList(kandidaterCache);
+    } catch (err) {
+        if (err.message !== 'Inte inloggad') console.error(err);
+    }
+}
+
+function renderKandidatList(kandidater) {
+    const container = document.getElementById('kandidater-list');
+    if (!container) return;
+
+    if (!kandidater.length) {
+        container.innerHTML = '<div class="empty-hint">Inga kandidater ännu. Klicka "+ Lägg till kandidat" för att komma igång.</div>';
+        return;
+    }
+
+    container.innerHTML = kandidater.map(k => {
+        const meta = [
+            k.roles                     ? k.roles                            : null,
+            k.desired_city              ? k.desired_city                     : null,
+            k.desired_employment.length ? k.desired_employment.join(', ')    : null,
+            k.desired_workplace.length  ? k.desired_workplace.join(', ')     : null,
+        ].filter(Boolean).join(' · ');
+
+        return `
+        <div class="cv-item" onclick="editKandidatById(${k.id})" style="cursor:pointer">
+            <div class="cv-item-info">
+                <div class="cv-item-name">${k.public_name || '(Inget namn)'}</div>
+                ${meta ? `<div class="cv-item-meta">${meta}</div>` : ''}
+            </div>
+            <div class="cv-item-actions">
+                ${k.searchable ? '<span class="cv-item-badge" style="background:var(--success-bg);color:var(--success)">Sökbar</span>' : ''}
+                <button class="btn btn-secondary btn-sm" onclick="event.stopPropagation(); editKandidatById(${k.id})">Redigera</button>
+            </div>
+        </div>`;
+    }).join('');
+}
+
+function editKandidatById(id) {
+    const kandidat = kandidaterCache.find(k => k.id === id);
+    if (kandidat) showKandidatForm(kandidat);
+}
+
+function showKandidatForm(kandidat) {
+    currentKandidatId = kandidat ? kandidat.id : null;
+
+    document.getElementById('kandidater-list-panel').style.display = 'none';
+    document.getElementById('kandidat-form-panel').style.display   = '';
+
+    document.getElementById('kandidat-form-title').textContent =
+        kandidat ? `Redigera: ${kandidat.public_name}` : 'Lägg till kandidat';
+
+    document.getElementById('kand-public-name').value  = kandidat?.public_name  || '';
+    document.getElementById('kand-public-phone').value = kandidat?.public_phone || '';
+    document.getElementById('kand-roles').value        = kandidat?.roles        || '';
+    document.getElementById('kand-city').value         = kandidat?.desired_city || '';
+
+    ['kand-emp-heltid', 'kand-emp-deltid', 'kand-emp-timmar'].forEach(id => {
+        const el = document.getElementById(id);
+        el.checked = (kandidat?.desired_employment || []).includes(el.value);
+    });
+
+    ['kand-wp-plats', 'kand-wp-hybrid', 'kand-wp-distans'].forEach(id => {
+        const el = document.getElementById(id);
+        el.checked = (kandidat?.desired_workplace || []).includes(el.value);
+    });
+
+    document.getElementById('kand-commute').checked    = kandidat?.willing_to_commute || false;
+    document.getElementById('kand-searchable').checked = kandidat?.searchable         || false;
+    document.getElementById('kand-available-from').value = kandidat?.available_from   || '';
+
+    document.getElementById('kand-delete-btn').style.display = kandidat ? '' : 'none';
+    document.getElementById('kand-status').textContent = '';
+}
+
+function showKandidatListPanel() {
+    document.getElementById('kandidat-form-panel').style.display   = 'none';
+    document.getElementById('kandidater-list-panel').style.display = '';
+    loadKandidaterView();
+}
+
+async function saveKandidat() {
+    const public_name = document.getElementById('kand-public-name').value.trim();
+    if (!public_name) {
+        showKandidatStatus('Namn är obligatoriskt', 'error');
+        return;
+    }
+
+    const desired_employment = ['kand-emp-heltid', 'kand-emp-deltid', 'kand-emp-timmar']
+        .filter(id => document.getElementById(id).checked)
+        .map(id => document.getElementById(id).value);
+
+    const desired_workplace = ['kand-wp-plats', 'kand-wp-hybrid', 'kand-wp-distans']
+        .filter(id => document.getElementById(id).checked)
+        .map(id => document.getElementById(id).value);
+
+    const body = {
+        public_name,
+        public_phone:       document.getElementById('kand-public-phone').value.trim() || null,
+        roles:              document.getElementById('kand-roles').value.trim()         || null,
+        desired_city:       document.getElementById('kand-city').value.trim()          || null,
+        desired_employment,
+        desired_workplace,
+        willing_to_commute: document.getElementById('kand-commute').checked,
+        searchable:         document.getElementById('kand-searchable').checked,
+        available_from:     document.getElementById('kand-available-from').value || null,
+    };
+
+    try {
+        const url    = currentKandidatId
+            ? `${API_BASE_URL}/kandidater/${currentKandidatId}`
+            : `${API_BASE_URL}/kandidater/`;
+        const method = currentKandidatId ? 'PUT' : 'POST';
+
+        const res = await apiFetch(url, {
+            method,
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(body),
+        });
+        if (!res.ok) { const e = await res.json(); throw new Error(e.detail || 'Fel'); }
+
+        const saved = await res.json();
+        currentKandidatId = saved.id;
+        document.getElementById('kandidat-form-title').textContent = `Redigera: ${saved.public_name}`;
+        document.getElementById('kand-delete-btn').style.display = '';
+        showKandidatStatus('Kandidat sparad', 'success');
+    } catch (err) {
+        showKandidatStatus(err.message, 'error');
+    }
+}
+
+async function deleteKandidat() {
+    if (!currentKandidatId) return;
+    const name = document.getElementById('kand-public-name').value.trim() || 'kandidaten';
+    if (!confirm(`Ta bort "${name}"? Detta kan inte ångras.`)) return;
+
+    try {
+        const res = await apiFetch(`${API_BASE_URL}/kandidater/${currentKandidatId}`, { method: 'DELETE' });
+        if (!res.ok) { const e = await res.json(); throw new Error(e.detail || 'Fel'); }
+        showKandidatListPanel();
+    } catch (err) {
+        showKandidatStatus(err.message, 'error');
+    }
+}
+
+function showKandidatStatus(msg, type) {
+    const el = document.getElementById('kand-status');
     if (!el) return;
     el.textContent = msg;
     el.className = `status-message status-${type}`;

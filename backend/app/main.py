@@ -9,6 +9,7 @@ from app.api import cv, optimize
 from app.api.competence import router as competence_router
 from app.api.auth import router as auth_router
 from app.api.candidate_profile import router as sokprofil_router
+from app.api.kandidater import router as kandidater_router
 
 # Import all models so Base.metadata knows about them
 from app.models import cv as cv_models                   # noqa: F401
@@ -56,6 +57,9 @@ with engine.connect() as _conn:
     _conn.execute(text(
         "ALTER TABLE candidate_profiles ALTER COLUMN user_id DROP NOT NULL"
     ))
+    _conn.execute(text(
+        "ALTER TABLE candidate_profiles ADD COLUMN IF NOT EXISTS available_from VARCHAR(20)"
+    ))
     _conn.commit()
 
 # Initialize FastAPI app
@@ -97,6 +101,7 @@ app.include_router(cv.router, prefix="/api/v1")
 app.include_router(optimize.router, prefix="/api/v1")
 app.include_router(competence_router, prefix="/api/v1")
 app.include_router(sokprofil_router, prefix="/api/v1")
+app.include_router(kandidater_router, prefix="/api/v1")
 
 if __name__ == "__main__":
     import uvicorn

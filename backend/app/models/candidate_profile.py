@@ -19,6 +19,7 @@ class CandidateProfile(Base):
     desired_workplace  = Column(String(200), nullable=True)    # kommasep: På plats,Hybrid,Distans
     willing_to_commute = Column(Boolean, nullable=False, default=False, server_default="false")
     searchable         = Column(Boolean, nullable=False, default=False, server_default="false")
+    available_from     = Column(String(20), nullable=True)   # ISO-datum: YYYY-MM-DD
     updated_at         = Column(DateTime(timezone=True), onupdate=func.now())
 
     def __repr__(self):

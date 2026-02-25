@@ -2380,6 +2380,98 @@ function showSokprofilStatus(msg, type) {
     setTimeout(() => { el.textContent = ''; el.className = ''; }, 4000);
 }
 
+function switchSokprofilTab(tab) {
+    ['basinfo', 'kompetenser', 'erfarenheter'].forEach(t => {
+        document.getElementById(`sp-tab-${t}`).style.display       = t === tab ? '' : 'none';
+        document.getElementById(`sp-tab-btn-${t}`).classList.toggle('active', t === tab);
+    });
+    if (tab === 'kompetenser')  loadSpKompetenser();
+    if (tab === 'erfarenheter') loadSpErfarenheter();
+}
+
+async function loadSpKompetenser() {
+    try {
+        const res = await apiFetch(`${API_BASE_URL}/competence/skills`);
+        if (!res.ok) return;
+        const data = await res.json();
+        renderSpSkills(data.skills);
+    } catch (err) {
+        if (err.message !== 'Inte inloggad') console.error(err);
+    }
+}
+
+async function loadSpErfarenheter() {
+    try {
+        const res = await apiFetch(`${API_BASE_URL}/competence/experiences`);
+        if (!res.ok) return;
+        const data = await res.json();
+        renderSpExperiences(data.experiences);
+    } catch (err) {
+        if (err.message !== 'Inte inloggad') console.error(err);
+    }
+}
+
+function renderSpSkills(skills) {
+    const container = document.getElementById('sp-skills-list');
+    if (!container) return;
+    if (!skills || !skills.length) {
+        container.innerHTML = '<div class="empty-hint">Inga kompetenser i banken ännu. Ladda upp ett CV under Mina CV:n.</div>';
+        return;
+    }
+    const byCategory = {};
+    skills.forEach(s => {
+        const cat = s.category || 'Övrigt';
+        if (!byCategory[cat]) byCategory[cat] = [];
+        byCategory[cat].push(s);
+    });
+    const typeClass = t => t === 'soft' ? 'chip-soft' : t === 'language' ? 'chip-language' : 'chip-technical';
+    container.innerHTML = Object.entries(byCategory).map(([cat, items]) => `
+        <div style="margin-bottom:1rem">
+            <div style="font-size:0.8125rem;font-weight:600;color:var(--text-muted);text-transform:uppercase;
+                        letter-spacing:0.05em;margin-bottom:0.5rem">${cat}</div>
+            <div class="bank-skills-wrap">
+                ${items.map(s => `<span class="bank-skill-chip ${typeClass(s.skill_type)}">${s.skill_name}</span>`).join('')}
+            </div>
+        </div>
+    `).join('');
+}
+
+function renderSpExperiences(experiences) {
+    const container = document.getElementById('sp-experiences-list');
+    if (!container) return;
+    if (!experiences || !experiences.length) {
+        container.innerHTML = '<div class="empty-hint">Inga erfarenheter i banken ännu. Ladda upp ett CV under Mina CV:n.</div>';
+        return;
+    }
+    const typeLabel = { work: 'Arbete', education: 'Utbildning', certification: 'Certifiering', project: 'Projekt' };
+    // Gruppera per typ
+    const byType = {};
+    experiences.forEach(e => {
+        const t = e.experience_type || 'work';
+        if (!byType[t]) byType[t] = [];
+        byType[t].push(e);
+    });
+    const typeOrder = ['work', 'education', 'certification', 'project'];
+    container.innerHTML = typeOrder.filter(t => byType[t]).map(type => {
+        const items = byType[type];
+        return `
+            <div style="margin-bottom:1.5rem">
+                <div style="font-size:0.8125rem;font-weight:600;color:var(--text-muted);text-transform:uppercase;
+                            letter-spacing:0.05em;margin-bottom:0.75rem">${typeLabel[type] || type}</div>
+                ${items.map(e => {
+                    const period = [e.start_date, e.is_current ? 'nu' : e.end_date].filter(Boolean).join(' – ');
+                    return `
+                        <div style="border:1px solid var(--border);border-radius:var(--radius);
+                                    padding:0.875rem 1rem;margin-bottom:0.5rem">
+                            <div style="font-weight:600">${e.title}</div>
+                            ${e.organization ? `<div style="font-size:0.875rem;color:var(--text-muted)">${e.organization}</div>` : ''}
+                            ${period ? `<div style="font-size:0.8125rem;color:var(--text-muted);margin-top:0.125rem">${period}</div>` : ''}
+                        </div>`;
+                }).join('')}
+            </div>`;
+    }).join('');
+}
+
 // ════════════════════════════════════════════════════
 // MINA KANDIDATER
 // ════════════════════════════════════════════════════
@@ -2468,15 +2560,17 @@ function showKandidatForm(kandidat) {
     document.getElementById('kand-status').textContent = '';
 
     // Bank-fliken aktiveras bara vid redigering av befintlig kandidat
-    document.getElementById('kand-tab-btn-bank').disabled = !kandidat;
+    ['kand-tab-btn-kompetenser', 'kand-tab-btn-erfarenheter'].forEach(id => {
+        document.getElementById(id).disabled = !kandidat;
+    });
     kandUploadSetup = false;
-    switchKandidatTab('profil');
+    switchKandidatTab('basinfo');
 }
 
 function showKandidatListPanel() {
     document.getElementById('kandidat-form-panel').style.display   = 'none';
     document.getElementById('kandidater-list-panel').style.display = '';
-    switchKandidatTab('profil');
+    switchKandidatTab('basinfo');
     loadKandidaterView();
 }
 
@@ -2632,13 +2726,13 @@ function showKandidatStatus(msg, type) {
 let kandUploadSetup = false;
 
 function switchKandidatTab(tab) {
-    ['profil', 'bank'].forEach(t => {
+    ['basinfo', 'kompetenser', 'erfarenheter'].forEach(t => {
         document.getElementById(`kand-tab-${t}`).style.display       = t === tab ? '' : 'none';
         document.getElementById(`kand-tab-btn-${t}`).classList.toggle('active', t === tab);
     });
-    if (tab === 'bank' && currentKandidatId) {
-        setupKandidatUpload();
-        loadKandidatBank(currentKandidatId);
+    if (currentKandidatId) {
+        if (tab === 'kompetenser') { setupKandidatUpload(); loadKandidatBank(currentKandidatId); }
+        if (tab === 'erfarenheter') { loadKandidatBank(currentKandidatId); }
     }
 }
 

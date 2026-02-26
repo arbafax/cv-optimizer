@@ -1193,7 +1193,7 @@ function displayTips(data, overallScore) {
         ${suggestedSkills.length ? `
         <div class="tips-section">
             <h3 class="tips-section-title">Skills att lägga till</h3>
-            <p class="tips-section-desc">Dessa kompetenser nämns i annonsen och saknas i din bank. Klicka "+ Lägg till" för att direkt lägga till dem.</p>
+            <p class="tips-section-desc">Dessa kompetenser nämns i annonsen och saknas i ${lastMatchKandidatId ? 'kandidatens' : 'din'} bank. Klicka "+ Lägg till" för att direkt lägga till dem.</p>
             <div class="tip-skills-list">${skillsHtml}</div>
         </div>` : ''}
 
@@ -1214,7 +1214,10 @@ async function addSuggestedSkill(skillName, category, rowIndex) {
     btn.textContent = '…';
 
     try {
-        const response = await apiFetch(`${API_BASE_URL}/competence/skills`, {
+        const url = lastMatchKandidatId
+            ? `${API_BASE_URL}/kandidater/${lastMatchKandidatId}/bank/skills`
+            : `${API_BASE_URL}/competence/skills`;
+        const response = await apiFetch(url, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ skill_name: skillName, category: category || null }),
@@ -2945,7 +2948,7 @@ async function saveKandidat() {
 
         const saved = await res.json();
         currentKandidatId = saved.id;
-        document.getElementById('kandidat-form-title').textContent = `Redigera: ${saved.public_name}`;
+        document.getElementById('kandidat-form-title').textContent = `Kandidat: ${saved.public_name}`;
         document.getElementById('kand-delete-btn').style.display = '';
         showKandidatStatus('Kandidat sparad', 'success');
     } catch (err) {

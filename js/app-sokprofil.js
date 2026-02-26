@@ -247,10 +247,8 @@ function renderSpExperiences(experiences) {
                     <input class="form-input" id="sp-edit-exp-title" value="${esc(e.title)}" placeholder="Titel" style="grid-column:span 2">
                     <input class="form-input" id="sp-edit-exp-org"   value="${esc(e.organization)}" placeholder="Organisation">
                     <select class="form-input" id="sp-edit-exp-type">
-                        <option value="work"          ${sel(e.experience_type,'work')}         >Arbete</option>
-                        <option value="education"     ${sel(e.experience_type,'education')}    >Utbildning</option>
-                        <option value="certification" ${sel(e.experience_type,'certification')}>Certifiering</option>
-                        <option value="project"       ${sel(e.experience_type,'project')}      >Projekt</option>
+                        <option value="work"    ${sel(e.experience_type,'work')}   >Arbete</option>
+                        <option value="project" ${sel(e.experience_type,'project')}>Projekt</option>
                     </select>
                     <input class="form-input" id="sp-edit-exp-start" value="${esc(e.start_date)}" placeholder="Från (ÅÅÅÅ-MM)">
                     <input class="form-input" id="sp-edit-exp-end"   value="${esc(e.end_date)}"   placeholder="Till (ÅÅÅÅ-MM)">

@@ -1,4 +1,4 @@
-from sqlalchemy import Column, Integer, String, Boolean, DateTime, ForeignKey
+from sqlalchemy import Column, Integer, String, Boolean, DateTime, ForeignKey, Text
 from sqlalchemy.sql import func
 from app.core.database import Base
 
@@ -19,6 +19,7 @@ class CandidateProfile(Base):
     willing_to_commute = Column(Boolean, nullable=False, default=False, server_default="false")
     searchable         = Column(Boolean, nullable=False, default=False, server_default="false")
     available_from     = Column(String(20), nullable=True)   # ISO-datum: YYYY-MM-DD
+    description        = Column(Text, nullable=True)         # 3-5 sentence candidate narrative
     updated_at         = Column(DateTime(timezone=True), onupdate=func.now())
 
     def __repr__(self):

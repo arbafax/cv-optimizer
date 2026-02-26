@@ -5,6 +5,8 @@ import re
 import logging
 
 from app.models.candidate_bank import CandidateSkillEntry, CandidateExperienceEntry
+from app.models.candidate_education import CandidateEducation
+from app.models.candidate_certification import CandidateCertification
 
 logger = logging.getLogger(__name__)
 
@@ -340,6 +342,286 @@ def rebuild_bank(cvs: list, candidate_profile_id: int, db: Session) -> dict:
         "total_cvs_processed"    : len(cvs),
         "total_skills_added"     : total_skills,
         "total_experiences_added": total_experiences,
+    }
+
+
+# ──────────────────────────────────────────────────────────────────────────────
+# Enhanced merge for CandidateCV — populates education + certifications too
+# ──────────────────────────────────────────────────────────────────────────────
+
+def merge_candidate_cv_into_bank(
+    candidate_cv,          # CandidateCV ORM object
+    candidate_profile_id: int,
+    db: Session,
+) -> dict:
+    """
+    Full merge for CandidateCV objects.  In addition to skills and work/project
+    experiences (handled by the base merge), this function also populates:
+      - CandidateEducation
+      - CandidateCertification
+    The candidate_cv.structured_json uses the same format as CV.structured_data.
+    """
+    data            = candidate_cv.structured_json or {}
+    cv_id           = candidate_cv.id
+    skills_added    = 0
+    exp_added       = 0
+    exp_merged      = 0
+    duplicates      = 0
+    edu_added       = 0
+    cert_added      = 0
+
+    # ── Skills ──────────────────────────────────────────────────────────────
+    raw_skills: list[str] = list(data.get("skills", []))
+    for exp  in data.get("work_experience", []): raw_skills.extend(exp.get("technologies", []))
+    for proj in data.get("projects", []):        raw_skills.extend(proj.get("technologies", []))
+
+    seen, unique_skills = set(), []
+    for s in raw_skills:
+        norm = s.strip()
+        if norm and norm.lower() not in seen:
+            seen.add(norm.lower())
+            unique_skills.append(norm)
+
+    for skill_name in unique_skills:
+        existing = db.query(CandidateSkillEntry).filter(
+            CandidateSkillEntry.candidate_profile_id == candidate_profile_id,
+            func.lower(CandidateSkillEntry.skill_name) == skill_name.lower(),
+        ).first()
+        if existing:
+            sources = list(existing.source_cv_ids or [])
+            if cv_id not in sources:
+                sources.append(cv_id)
+                existing.source_cv_ids = sources
+                flag_modified(existing, "source_cv_ids")
+            duplicates += 1
+        else:
+            category, skill_type = categorise_skill(skill_name)
+            db.add(CandidateSkillEntry(
+                candidate_profile_id = candidate_profile_id,
+                skill_name           = skill_name,
+                category             = category,
+                skill_type           = skill_type,
+                source_cv_ids        = [cv_id],
+            ))
+            skills_added += 1
+
+    # ── Work experiences ─────────────────────────────────────────────────────
+    for w in data.get("work_experience", []):
+        title  = w.get("position") or w.get("title") or "Okänd roll"
+        org    = w.get("company")  or w.get("organization")
+        start  = w.get("start_date")
+        end    = w.get("end_date")
+        current= bool(w.get("current") or w.get("is_current"))
+        key    = _experience_key(title, org, start)
+
+        existing = db.query(CandidateExperienceEntry).filter(
+            CandidateExperienceEntry.candidate_profile_id == candidate_profile_id,
+            CandidateExperienceEntry.experience_type == "work",
+            func.lower(func.regexp_replace(CandidateExperienceEntry.title, r'[^\w\s]', '', 'g'))
+            == _normalise(title),
+        ).first()
+
+        if existing:
+            existing.description  = _merge_descriptions(existing.description, w.get("description"))
+            existing.achievements = list(dict.fromkeys(
+                (existing.achievements or []) + (w.get("achievements") or [])
+            ))
+            existing.related_skills = _merge_skill_list(
+                existing.related_skills or [], w.get("technologies") or []
+            )
+            sources = list(existing.source_cv_ids or [])
+            if cv_id not in sources:
+                sources.append(cv_id)
+                existing.source_cv_ids = sources
+                flag_modified(existing, "source_cv_ids")
+            flag_modified(existing, "achievements")
+            flag_modified(existing, "related_skills")
+            exp_merged += 1
+        else:
+            db.add(CandidateExperienceEntry(
+                candidate_profile_id = candidate_profile_id,
+                experience_type      = "work",
+                title                = title,
+                organization         = org,
+                start_date           = start,
+                end_date             = end,
+                is_current           = current,
+                description          = w.get("description"),
+                achievements         = list(w.get("achievements") or []),
+                related_skills       = list(w.get("technologies") or []),
+                source_cv_ids        = [cv_id],
+            ))
+            exp_added += 1
+
+    # ── Projects ─────────────────────────────────────────────────────────────
+    for proj in data.get("projects", []):
+        title = proj.get("name") or "Projekt"
+        db.add(CandidateExperienceEntry(
+            candidate_profile_id = candidate_profile_id,
+            experience_type      = "project",
+            title                = title,
+            organization         = proj.get("role"),
+            start_date           = proj.get("start_date"),
+            end_date             = proj.get("end_date"),
+            is_current           = False,
+            description          = proj.get("description"),
+            achievements         = [],
+            related_skills       = list(proj.get("technologies") or []),
+            source_cv_ids        = [cv_id],
+        ))
+        exp_added += 1
+
+    # ── Education ────────────────────────────────────────────────────────────
+    for edu in data.get("education", []):
+        institution = edu.get("institution") or ""
+        degree      = edu.get("degree") or edu.get("field_of_study") or "Utbildning"
+
+        # Dedup: same degree + institution
+        existing_edu = db.query(CandidateEducation).filter(
+            CandidateEducation.candidate_profile_id == candidate_profile_id,
+            func.lower(CandidateEducation.institution) == institution.lower(),
+            func.lower(CandidateEducation.degree)      == degree.lower(),
+        ).first()
+
+        if not existing_edu:
+            db.add(CandidateEducation(
+                candidate_profile_id = candidate_profile_id,
+                source_cv_id         = cv_id,
+                degree               = degree,
+                institution          = institution or None,
+                field_of_study       = edu.get("field_of_study"),
+                start_date           = edu.get("start_date"),
+                end_date             = edu.get("end_date"),
+                description          = "; ".join(edu.get("achievements") or []) or None,
+            ))
+            edu_added += 1
+
+    # ── Certifications ───────────────────────────────────────────────────────
+    for cert in data.get("certifications", []):
+        name   = cert.get("name") or "Certifiering"
+        issuer = cert.get("issuing_organization") or cert.get("issuer")
+
+        existing_cert = db.query(CandidateCertification).filter(
+            CandidateCertification.candidate_profile_id == candidate_profile_id,
+            func.lower(CandidateCertification.name) == name.lower(),
+        ).first()
+
+        if not existing_cert:
+            db.add(CandidateCertification(
+                candidate_profile_id = candidate_profile_id,
+                source_cv_id         = cv_id,
+                name                 = name,
+                issuer               = issuer,
+                date                 = cert.get("issue_date") or cert.get("date"),
+                description          = None,
+            ))
+            cert_added += 1
+
+    db.commit()
+
+    cv_name = (data.get("personal_info") or {}).get("full_name") or candidate_cv.filename
+    return {
+        "cv_name"           : cv_name,
+        "skills_added"      : skills_added,
+        "experiences_added" : exp_added,
+        "experiences_merged": exp_merged,
+        "education_added"   : edu_added,
+        "certifications_added": cert_added,
+        "duplicates_skipped": duplicates,
+    }
+
+
+# ── Education CRUD ────────────────────────────────────────────────────────────
+
+def get_education(candidate_profile_id: int, db: Session) -> list:
+    rows = db.query(CandidateEducation).filter(
+        CandidateEducation.candidate_profile_id == candidate_profile_id
+    ).order_by(CandidateEducation.start_date.desc().nullsfirst()).all()
+    return [_edu_to_dict(e) for e in rows]
+
+
+def add_education(data: dict, candidate_profile_id: int, db: Session) -> dict:
+    edu = CandidateEducation(
+        candidate_profile_id = candidate_profile_id,
+        degree               = data["degree"],
+        institution          = data.get("institution"),
+        field_of_study       = data.get("field_of_study"),
+        start_date           = data.get("start_date"),
+        end_date             = data.get("end_date"),
+        description          = data.get("description"),
+    )
+    db.add(edu)
+    db.commit()
+    db.refresh(edu)
+    return _edu_to_dict(edu)
+
+
+def delete_education(edu_id: int, candidate_profile_id: int, db: Session) -> None:
+    edu = db.query(CandidateEducation).filter(
+        CandidateEducation.id == edu_id,
+        CandidateEducation.candidate_profile_id == candidate_profile_id,
+    ).first()
+    if not edu:
+        raise ValueError(f"Education {edu_id} not found")
+    db.delete(edu)
+    db.commit()
+
+
+def _edu_to_dict(e: CandidateEducation) -> dict:
+    return {
+        "id"           : e.id,
+        "degree"       : e.degree,
+        "institution"  : e.institution,
+        "field_of_study": e.field_of_study,
+        "start_date"   : e.start_date,
+        "end_date"     : e.end_date,
+        "description"  : e.description,
+        "source_cv_id" : e.source_cv_id,
+    }
+
+
+# ── Certification CRUD ────────────────────────────────────────────────────────
+
+def get_certifications(candidate_profile_id: int, db: Session) -> list:
+    rows = db.query(CandidateCertification).filter(
+        CandidateCertification.candidate_profile_id == candidate_profile_id
+    ).order_by(CandidateCertification.date.desc().nullsfirst()).all()
+    return [_cert_to_dict(c) for c in rows]
+
+
+def add_certification(data: dict, candidate_profile_id: int, db: Session) -> dict:
+    cert = CandidateCertification(
+        candidate_profile_id = candidate_profile_id,
+        name                 = data["name"],
+        issuer               = data.get("issuer"),
+        date                 = data.get("date"),
+        description          = data.get("description"),
+    )
+    db.add(cert)
+    db.commit()
+    db.refresh(cert)
+    return _cert_to_dict(cert)
+
+
+def delete_certification(cert_id: int, candidate_profile_id: int, db: Session) -> None:
+    cert = db.query(CandidateCertification).filter(
+        CandidateCertification.id == cert_id,
+        CandidateCertification.candidate_profile_id == candidate_profile_id,
+    ).first()
+    if not cert:
+        raise ValueError(f"Certification {cert_id} not found")
+    db.delete(cert)
+    db.commit()
+
+
+def _cert_to_dict(c: CandidateCertification) -> dict:
+    return {
+        "id"         : c.id,
+        "name"       : c.name,
+        "issuer"     : c.issuer,
+        "date"       : c.date,
+        "description": c.description,
+        "source_cv_id": c.source_cv_id,
     }
 
 

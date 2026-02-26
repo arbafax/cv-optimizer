@@ -19,6 +19,8 @@ from app.services.competence_service import (
     add_experience_skill, remove_experience_skill, create_experience,
     update_experience_description,
     update_experience_period,
+    get_education, add_education, delete_education,
+    get_certifications, add_certification, delete_certification,
 )
 
 
@@ -709,3 +711,89 @@ async def reset_bank(
     profile = _get_or_create_profile(current_user.id, db)
     clear_bank(profile.id, db)
     return {"message": "Kompetensbanken rensad"}
+
+
+# ── Education endpoints ───────────────────────────────────────────────────────
+
+class EducationRequest(BaseModel):
+    degree: str
+    institution: str | None = None
+    field_of_study: str | None = None
+    start_date: str | None = None
+    end_date: str | None = None
+    description: str | None = None
+
+
+@router.get("/education")
+async def list_education(
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    profile = _get_or_create_profile(current_user.id, db)
+    return {"education": get_education(profile.id, db)}
+
+
+@router.post("/education", status_code=201)
+async def create_education(
+    body: EducationRequest,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    profile = _get_or_create_profile(current_user.id, db)
+    return add_education(body.model_dump(), profile.id, db)
+
+
+@router.delete("/education/{edu_id}")
+async def remove_education(
+    edu_id: int,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    profile = _get_or_create_profile(current_user.id, db)
+    try:
+        delete_education(edu_id, profile.id, db)
+    except ValueError as e:
+        raise HTTPException(status_code=404, detail=str(e))
+    return {"message": "Utbildning borttagen"}
+
+
+# ── Certification endpoints ───────────────────────────────────────────────────
+
+class CertificationRequest(BaseModel):
+    name: str
+    issuer: str | None = None
+    date: str | None = None
+    description: str | None = None
+
+
+@router.get("/certifications")
+async def list_certifications(
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    profile = _get_or_create_profile(current_user.id, db)
+    return {"certifications": get_certifications(profile.id, db)}
+
+
+@router.post("/certifications", status_code=201)
+async def create_certification(
+    body: CertificationRequest,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    profile = _get_or_create_profile(current_user.id, db)
+    return add_certification(body.model_dump(), profile.id, db)
+
+
+@router.delete("/certifications/{cert_id}")
+async def remove_certification(
+    cert_id: int,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    profile = _get_or_create_profile(current_user.id, db)
+    try:
+        delete_certification(cert_id, profile.id, db)
+    except ValueError as e:
+        raise HTTPException(status_code=404, detail=str(e))
+    return {"message": "Certifiering borttagen"}

@@ -10,15 +10,19 @@ from app.api.competence import router as competence_router
 from app.api.auth import router as auth_router
 from app.api.candidate_profile import router as sokprofil_router
 from app.api.kandidater import router as kandidater_router
+from app.api.candidate_cvs import router as candidate_cvs_router
 
 # Import all models so Base.metadata knows about them
 # NOTE: competence_models (SkillEntry/ExperienceEntry) NOT imported — those tables are dropped
-from app.models import cv as cv_models                   # noqa: F401
-from app.models import user as user_models               # noqa: F401
-from app.models import search_profile as sp_models       # noqa: F401
-from app.models import candidate_profile as cp_models    # noqa: F401
-from app.models import candidate_bank as cb_models       # noqa: F401
-from app.models import seller_candidates as sc_models    # noqa: F401
+from app.models import cv as cv_models                          # noqa: F401
+from app.models import user as user_models                      # noqa: F401
+from app.models import search_profile as sp_models              # noqa: F401
+from app.models import candidate_profile as cp_models           # noqa: F401
+from app.models import candidate_bank as cb_models              # noqa: F401
+from app.models import seller_candidates as sc_models           # noqa: F401
+from app.models import candidate_cv as ccv_models               # noqa: F401
+from app.models import candidate_education as cedu_models       # noqa: F401
+from app.models import candidate_certification as ccert_models  # noqa: F401
 
 # Configure logging
 logging.basicConfig(
@@ -75,7 +79,15 @@ with engine.connect() as _conn:
         "ALTER TABLE candidate_profiles ADD COLUMN IF NOT EXISTS email VARCHAR(255)"
     ))
 
-    # candidate_skills — ny kolumn + unique constraint
+    # candidate_profiles — beskrivning (sätts från första CV:ns summary)
+    _conn.execute(text(
+        "ALTER TABLE candidate_profiles ADD COLUMN IF NOT EXISTS description TEXT"
+    ))
+
+    # candidate_skills — embedding + source_cv_ids + unique constraint
+    _conn.execute(text(
+        "ALTER TABLE candidate_skills ADD COLUMN IF NOT EXISTS embedding vector(1536)"
+    ))
     _conn.execute(text(
         "ALTER TABLE candidate_skills ADD COLUMN IF NOT EXISTS source_cv_ids JSON"
     ))
@@ -90,6 +102,11 @@ with engine.connect() as _conn:
             END IF;
         END $$;
     """))
+
+    # candidate_experiences — embedding
+    _conn.execute(text(
+        "ALTER TABLE candidate_experiences ADD COLUMN IF NOT EXISTS embedding vector(1536)"
+    ))
 
     _conn.commit()
 
@@ -133,6 +150,7 @@ app.include_router(optimize.router, prefix="/api/v1")
 app.include_router(competence_router, prefix="/api/v1")
 app.include_router(sokprofil_router, prefix="/api/v1")
 app.include_router(kandidater_router, prefix="/api/v1")
+app.include_router(candidate_cvs_router, prefix="/api/v1")
 
 if __name__ == "__main__":
     import uvicorn

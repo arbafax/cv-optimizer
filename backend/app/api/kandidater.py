@@ -2,25 +2,22 @@ from fastapi import APIRouter, Depends, HTTPException, UploadFile, File
 from pydantic import BaseModel
 from sqlalchemy.orm import Session
 from sqlalchemy import func
-import os
-import shutil
-from datetime import datetime
 
 from app.core.database import get_db
-from app.core.config import settings
 from app.core.auth import get_current_user
 from app.models.candidate_profile import CandidateProfile
+from app.models.candidate_cv import CandidateCV
 from app.models.seller_candidates import SellerCandidate
 from app.models.candidate_bank import CandidateSkillEntry, CandidateExperienceEntry
+from app.models.candidate_education import CandidateEducation
+from app.models.candidate_certification import CandidateCertification
 from app.models.user import User
-from app.services.pdf_parser import PDFParser
-from app.services.ai_service import AIService
-from app.services.competence_service import categorise_skill
-
-_pdf_parser  = PDFParser()
-_ai_service  = AIService()
-
-os.makedirs(settings.UPLOAD_DIR, exist_ok=True)
+from app.services.competence_service import (
+    categorise_skill,
+    get_education, add_education, delete_education,
+    get_certifications, add_certification, delete_certification,
+)
+from app.api.candidate_cvs import process_and_store_cv, _cv_summary, _delete_cv_and_entries
 
 router = APIRouter(prefix="/kandidater", tags=["Kandidater"])
 
@@ -286,145 +283,200 @@ async def delete_kandidat_skill(
     return {"message": "Skill borttagen"}
 
 
-@router.post("/{kandidat_id}/bank/upload-cv")
+@router.post("/{kandidat_id}/bank/upload-cv", status_code=201)
 async def upload_cv_to_kandidat_bank(
     kandidat_id: int,
     file: UploadFile = File(...),
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
-    """Ladda upp ett CV-PDF och lägg till kompetenser och erfarenheter i kandidatens bank."""
+    """Upload a CV PDF for a candidate: stores file, runs AI structuring and vectorization."""
     _require_kandidat(kandidat_id, current_user, db)
 
     if not (file.filename or "").lower().endswith(".pdf"):
         raise HTTPException(status_code=400, detail="Endast PDF-filer är tillåtna")
 
-    timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-    temp_path = os.path.join(settings.UPLOAD_DIR, f"kand_{kandidat_id}_{timestamp}_{file.filename}")
+    file_bytes = await file.read()
+    if len(file_bytes) > 10 * 1024 * 1024:
+        raise HTTPException(status_code=400, detail="Filen är för stor. Max 10 MB")
 
     try:
-        with open(temp_path, "wb") as buf:
-            shutil.copyfileobj(file.file, buf)
-
-        if not _pdf_parser.validate_pdf(temp_path):
-            raise HTTPException(status_code=400, detail="Ogiltig eller skadad PDF-fil")
-
-        cv_text = _pdf_parser.extract_text(temp_path)
-        if not cv_text:
-            raise HTTPException(status_code=400, detail="Kunde inte extrahera text från PDF")
-
-        cv_structure = _ai_service.structure_cv_text(cv_text)
-        if not cv_structure:
-            raise HTTPException(status_code=500, detail="Misslyckades med att strukturera CV-data")
-
-        data = cv_structure.model_dump()
-
-        # ── Skills ──────────────────────────────────────────────────────────
-        raw_skills: list[str] = list(data.get("skills", []))
-        for exp  in data.get("work_experience", []): raw_skills.extend(exp.get("technologies", []))
-        for proj in data.get("projects", []):        raw_skills.extend(proj.get("technologies", []))
-
-        seen, unique_skills = set(), []
-        for s in raw_skills:
-            norm = s.strip()
-            if norm and norm.lower() not in seen:
-                seen.add(norm.lower())
-                unique_skills.append(norm)
-
-        skills_added = skills_skipped = 0
-        for skill_name in unique_skills:
-            exists = db.query(CandidateSkillEntry).filter(
-                CandidateSkillEntry.candidate_profile_id == kandidat_id,
-                func.lower(CandidateSkillEntry.skill_name) == skill_name.lower(),
-            ).first()
-            if exists:
-                skills_skipped += 1
-            else:
-                category, skill_type = categorise_skill(skill_name)
-                db.add(CandidateSkillEntry(
-                    candidate_profile_id=kandidat_id,
-                    skill_name=skill_name,
-                    category=category,
-                    skill_type=skill_type,
-                ))
-                skills_added += 1
-
-        # ── Work experience ──────────────────────────────────────────────────
-        exp_added = exp_skipped = 0
-
-        def _upsert_exp(title, org, exp_type, start, end, is_current, desc, achievements, related):
-            nonlocal exp_added, exp_skipped
-            exists = db.query(CandidateExperienceEntry).filter(
-                CandidateExperienceEntry.candidate_profile_id == kandidat_id,
-                CandidateExperienceEntry.experience_type == exp_type,
-                func.lower(CandidateExperienceEntry.title) == title.lower(),
-                func.lower(func.coalesce(CandidateExperienceEntry.organization, ""))
-                == (org or "").lower(),
-            ).first()
-            if exists:
-                exp_skipped += 1
-            else:
-                db.add(CandidateExperienceEntry(
-                    candidate_profile_id=kandidat_id,
-                    title=title,
-                    organization=org,
-                    experience_type=exp_type,
-                    start_date=start,
-                    end_date=end,
-                    is_current=is_current,
-                    description=desc,
-                    achievements=achievements or [],
-                    related_skills=related or [],
-                ))
-                exp_added += 1
-
-        for exp in data.get("work_experience", []):
-            _upsert_exp(
-                title       = exp.get("position") or "Okänd tjänst",
-                org         = exp.get("company"),
-                exp_type    = "work",
-                start       = exp.get("start_date"),
-                end         = exp.get("end_date"),
-                is_current  = exp.get("current", False),
-                desc        = exp.get("description"),
-                achievements= exp.get("achievements", []),
-                related     = exp.get("technologies", []),
-            )
-
-        for edu in data.get("education", []):
-            title = edu.get("degree") or "Utbildning"
-            if edu.get("field_of_study"):
-                title = f"{title} – {edu['field_of_study']}"
-            _upsert_exp(
-                title       = title,
-                org         = edu.get("institution"),
-                exp_type    = "education",
-                start       = edu.get("start_date"),
-                end         = edu.get("end_date"),
-                is_current  = False,
-                desc        = None,
-                achievements= edu.get("achievements", []),
-                related     = [],
-            )
-
-        db.commit()
-
-        cv_name = (data.get("personal_info") or {}).get("full_name") or file.filename
-        return {
-            "name":               cv_name,
-            "skills_added":       skills_added,
-            "skills_skipped":     skills_skipped,
-            "experiences_added":  exp_added,
-            "experiences_skipped": exp_skipped,
-        }
-
-    except HTTPException:
-        raise
+        cv = process_and_store_cv(file_bytes, file.filename, kandidat_id, db)
+        return _cv_summary(cv, db)
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Fel vid bearbetning av CV: {str(e)}")
-    finally:
-        if os.path.exists(temp_path):
-            os.remove(temp_path)
+
+
+# ── CV management for a candidate ────────────────────────────────────────────
+
+@router.get("/{kandidat_id}/cvs")
+async def list_kandidat_cvs(
+    kandidat_id: int,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    """List all CandidateCVs for a candidate."""
+    _require_kandidat(kandidat_id, current_user, db)
+    cvs = db.query(CandidateCV).filter(
+        CandidateCV.candidate_profile_id == kandidat_id
+    ).order_by(CandidateCV.upload_date.desc()).all()
+    return [_cv_summary(cv, db) for cv in cvs]
+
+
+@router.delete("/{kandidat_id}/cvs/{cv_id}")
+async def delete_kandidat_cv(
+    kandidat_id: int,
+    cv_id: int,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    """Delete a CandidateCV for a candidate."""
+    _require_kandidat(kandidat_id, current_user, db)
+    cv = db.query(CandidateCV).filter(
+        CandidateCV.id == cv_id,
+        CandidateCV.candidate_profile_id == kandidat_id,
+    ).first()
+    if not cv:
+        raise HTTPException(status_code=404, detail="CV hittades inte")
+    _delete_cv_and_entries(cv, db)
+    return {"message": f"'{cv.filename}' raderat"}
+
+
+@router.post("/{kandidat_id}/cvs/{cv_id}/vectorize")
+async def vectorize_kandidat_cv(
+    kandidat_id: int,
+    cv_id: int,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    """(Re)generate vector embeddings for a candidate's CandidateCV."""
+    from app.services.embedding_service import re_vectorize_candidate_cv
+    _require_kandidat(kandidat_id, current_user, db)
+    cv = db.query(CandidateCV).filter(
+        CandidateCV.id == cv_id,
+        CandidateCV.candidate_profile_id == kandidat_id,
+    ).first()
+    if not cv:
+        raise HTTPException(status_code=404, detail="CV hittades inte")
+    if not cv.is_processed:
+        raise HTTPException(status_code=400, detail="CV är inte behandlat ännu")
+    re_vectorize_candidate_cv(cv_id, db)
+    return _cv_summary(cv, db)
+
+
+@router.get("/{kandidat_id}/cvs/{cv_id}/file")
+async def download_kandidat_cv_file(
+    kandidat_id: int,
+    cv_id: int,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    """Download the original PDF file for a candidate's CV."""
+    from fastapi.responses import Response
+    _require_kandidat(kandidat_id, current_user, db)
+    cv = db.query(CandidateCV).filter(
+        CandidateCV.id == cv_id,
+        CandidateCV.candidate_profile_id == kandidat_id,
+    ).first()
+    if not cv or not cv.file_data:
+        raise HTTPException(status_code=404, detail="Fil saknas")
+    return Response(
+        content=cv.file_data,
+        media_type="application/pdf",
+        headers={"Content-Disposition": f'attachment; filename="{cv.filename}"'},
+    )
+
+
+# ── Education for a candidate ─────────────────────────────────────────────────
+
+class EducationRequest(BaseModel):
+    degree: str
+    institution: str | None = None
+    field_of_study: str | None = None
+    start_date: str | None = None
+    end_date: str | None = None
+    description: str | None = None
+
+
+@router.get("/{kandidat_id}/education")
+async def list_kandidat_education(
+    kandidat_id: int,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    _require_kandidat(kandidat_id, current_user, db)
+    return {"education": get_education(kandidat_id, db)}
+
+
+@router.post("/{kandidat_id}/education", status_code=201)
+async def create_kandidat_education(
+    kandidat_id: int,
+    body: EducationRequest,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    _require_kandidat(kandidat_id, current_user, db)
+    return add_education(body.model_dump(), kandidat_id, db)
+
+
+@router.delete("/{kandidat_id}/education/{edu_id}")
+async def remove_kandidat_education(
+    kandidat_id: int,
+    edu_id: int,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    _require_kandidat(kandidat_id, current_user, db)
+    try:
+        delete_education(edu_id, kandidat_id, db)
+    except ValueError as e:
+        raise HTTPException(status_code=404, detail=str(e))
+    return {"message": "Utbildning borttagen"}
+
+
+# ── Certifications for a candidate ───────────────────────────────────────────
+
+class CertificationRequest(BaseModel):
+    name: str
+    issuer: str | None = None
+    date: str | None = None
+    description: str | None = None
+
+
+@router.get("/{kandidat_id}/certifications")
+async def list_kandidat_certifications(
+    kandidat_id: int,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    _require_kandidat(kandidat_id, current_user, db)
+    return {"certifications": get_certifications(kandidat_id, db)}
+
+
+@router.post("/{kandidat_id}/certifications", status_code=201)
+async def create_kandidat_certification(
+    kandidat_id: int,
+    body: CertificationRequest,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    _require_kandidat(kandidat_id, current_user, db)
+    return add_certification(body.model_dump(), kandidat_id, db)
+
+
+@router.delete("/{kandidat_id}/certifications/{cert_id}")
+async def remove_kandidat_certification(
+    kandidat_id: int,
+    cert_id: int,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    _require_kandidat(kandidat_id, current_user, db)
+    try:
+        delete_certification(cert_id, kandidat_id, db)
+    except ValueError as e:
+        raise HTTPException(status_code=404, detail=str(e))
+    return {"message": "Certifiering borttagen"}
 
 
 # ── Matcha mot jobbannons ─────────────────────────────────────────────────────

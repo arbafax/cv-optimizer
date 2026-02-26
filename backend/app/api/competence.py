@@ -10,6 +10,8 @@ from app.core.database import get_db
 from app.core.auth import get_current_user
 from app.models.cv import CV
 from app.models.candidate_bank import CandidateSkillEntry, CandidateExperienceEntry
+from app.models.candidate_education import CandidateEducation
+from app.models.candidate_certification import CandidateCertification
 from app.models.user import User
 from app.models.candidate_profile import CandidateProfile
 from app.services.competence_service import (
@@ -713,6 +715,62 @@ async def reset_bank(
     return {"message": "Kompetensbanken rensad"}
 
 
+@router.delete("/skills")
+async def clear_all_skills(
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    """Rensa alla kompetenser för den inloggade användarens profil."""
+    profile = _get_or_create_profile(current_user.id, db)
+    db.query(CandidateSkillEntry).filter(
+        CandidateSkillEntry.candidate_profile_id == profile.id
+    ).delete()
+    db.commit()
+    return {"message": "Alla kompetenser raderade"}
+
+
+@router.delete("/experiences")
+async def clear_all_experiences(
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    """Rensa alla erfarenheter för den inloggade användarens profil."""
+    profile = _get_or_create_profile(current_user.id, db)
+    db.query(CandidateExperienceEntry).filter(
+        CandidateExperienceEntry.candidate_profile_id == profile.id
+    ).delete()
+    db.commit()
+    return {"message": "Alla erfarenheter raderade"}
+
+
+@router.delete("/education")
+async def clear_all_education(
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    """Rensa all utbildning för den inloggade användarens profil."""
+    profile = _get_or_create_profile(current_user.id, db)
+    db.query(CandidateEducation).filter(
+        CandidateEducation.candidate_profile_id == profile.id
+    ).delete()
+    db.commit()
+    return {"message": "All utbildning raderad"}
+
+
+@router.delete("/certifications")
+async def clear_all_certifications(
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    """Rensa alla certifieringar för den inloggade användarens profil."""
+    profile = _get_or_create_profile(current_user.id, db)
+    db.query(CandidateCertification).filter(
+        CandidateCertification.candidate_profile_id == profile.id
+    ).delete()
+    db.commit()
+    return {"message": "Alla certifieringar raderade"}
+
+
 # ── Education endpoints ───────────────────────────────────────────────────────
 
 class EducationRequest(BaseModel):
@@ -797,3 +855,154 @@ async def remove_certification(
     except ValueError as e:
         raise HTTPException(status_code=404, detail=str(e))
     return {"message": "Certifiering borttagen"}
+
+
+# ── PUT endpoints (update + re-vectorize) ─────────────────────────────────────
+
+class SkillUpdateRequest(BaseModel):
+    skill_name: str
+    category: str = "Övrigt"
+    skill_type: str = "technical"
+
+
+class ExperienceUpdateRequest(BaseModel):
+    title: str
+    organization: str | None = None
+    experience_type: str = "work"
+    start_date: str | None = None
+    end_date: str | None = None
+    is_current: bool = False
+    description: str | None = None
+    achievements: list[str] = []
+    related_skills: list[str] = []
+
+
+@router.put("/skills/{skill_id}")
+async def update_skill(
+    skill_id: int,
+    body: SkillUpdateRequest,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    """Uppdatera en skill och regenerera dess embedding."""
+    from app.services.ai_service import AIService
+    profile = _get_or_create_profile(current_user.id, db)
+    skill = db.query(CandidateSkillEntry).filter(
+        CandidateSkillEntry.id == skill_id,
+        CandidateSkillEntry.candidate_profile_id == profile.id,
+    ).first()
+    if not skill:
+        raise HTTPException(status_code=404, detail="Skill hittades inte")
+    skill.skill_name = body.skill_name.strip()
+    skill.category   = body.category
+    skill.skill_type = body.skill_type
+    text = f"{body.skill_name} [{body.category}] [{body.skill_type}]"
+    skill.embedding = AIService().generate_embeddings(text)
+    db.commit()
+    db.refresh(skill)
+    return {"id": skill.id, "skill_name": skill.skill_name,
+            "category": skill.category, "skill_type": skill.skill_type}
+
+
+@router.put("/experiences/{experience_id}")
+async def update_experience(
+    experience_id: int,
+    body: ExperienceUpdateRequest,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    """Uppdatera en erfarenhetspost och regenerera dess embedding."""
+    from app.services.ai_service import AIService
+    from sqlalchemy.orm.attributes import flag_modified
+    profile = _get_or_create_profile(current_user.id, db)
+    exp = db.query(CandidateExperienceEntry).filter(
+        CandidateExperienceEntry.id == experience_id,
+        CandidateExperienceEntry.candidate_profile_id == profile.id,
+    ).first()
+    if not exp:
+        raise HTTPException(status_code=404, detail="Erfarenhet hittades inte")
+    exp.title           = body.title
+    exp.organization    = body.organization
+    exp.experience_type = body.experience_type
+    exp.start_date      = body.start_date
+    exp.end_date        = body.end_date
+    exp.is_current      = body.is_current
+    exp.description     = body.description
+    exp.achievements    = body.achievements
+    exp.related_skills  = body.related_skills
+    flag_modified(exp, "achievements")
+    flag_modified(exp, "related_skills")
+    parts = [f"{body.title} vid {body.organization or ''}"]
+    if body.description:
+        parts.append(body.description)
+    if body.achievements:
+        parts.extend(body.achievements)
+    exp.embedding = AIService().generate_embeddings("\n".join(parts))
+    db.commit()
+    db.refresh(exp)
+    return {
+        "id": exp.id, "title": exp.title, "organization": exp.organization,
+        "experience_type": exp.experience_type, "start_date": exp.start_date,
+        "end_date": exp.end_date, "is_current": exp.is_current,
+        "description": exp.description, "achievements": exp.achievements or [],
+        "related_skills": exp.related_skills or [],
+    }
+
+
+@router.put("/education/{edu_id}")
+async def update_education(
+    edu_id: int,
+    body: EducationRequest,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    """Uppdatera en utbildning och regenerera dess embedding."""
+    from app.services.ai_service import AIService
+    profile = _get_or_create_profile(current_user.id, db)
+    edu = db.query(CandidateEducation).filter(
+        CandidateEducation.id == edu_id,
+        CandidateEducation.candidate_profile_id == profile.id,
+    ).first()
+    if not edu:
+        raise HTTPException(status_code=404, detail="Utbildning hittades inte")
+    edu.degree         = body.degree
+    edu.institution    = body.institution
+    edu.field_of_study = body.field_of_study
+    edu.start_date     = body.start_date
+    edu.end_date       = body.end_date
+    edu.description    = body.description
+    text = f"{body.degree} vid {body.institution or ''}, {body.field_of_study or ''}\n{body.description or ''}"
+    edu.embedding = AIService().generate_embeddings(text)
+    db.commit()
+    db.refresh(edu)
+    return {"id": edu.id, "degree": edu.degree, "institution": edu.institution,
+            "field_of_study": edu.field_of_study, "start_date": edu.start_date,
+            "end_date": edu.end_date, "description": edu.description}
+
+
+@router.put("/certifications/{cert_id}")
+async def update_certification_item(
+    cert_id: int,
+    body: CertificationRequest,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    """Uppdatera ett certifikat och regenerera dess embedding."""
+    from app.services.ai_service import AIService
+    profile = _get_or_create_profile(current_user.id, db)
+    cert = db.query(CandidateCertification).filter(
+        CandidateCertification.id == cert_id,
+        CandidateCertification.candidate_profile_id == profile.id,
+    ).first()
+    if not cert:
+        raise HTTPException(status_code=404, detail="Certifiering hittades inte")
+    cert.name        = body.name
+    cert.issuer      = body.issuer
+    cert.date        = body.date
+    cert.description = body.description
+    text = f"{body.name} utfärdad av {body.issuer or ''}\n{body.description or ''}"
+    cert.embedding = AIService().generate_embeddings(text)
+    db.commit()
+    db.refresh(cert)
+    return {"id": cert.id, "name": cert.name, "issuer": cert.issuer,
+            "date": cert.date, "description": cert.description}

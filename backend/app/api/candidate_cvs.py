@@ -7,6 +7,8 @@ Seller's cand: /kandidater/{id}/cvs/* (in kandidater.py — delegates to helpers
 """
 import logging
 from fastapi import APIRouter, UploadFile, File, HTTPException, Depends
+from sqlalchemy import cast
+from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.orm import Session
 
 from app.core.database import get_db
@@ -120,11 +122,11 @@ def process_and_store_cv(
 def _cv_summary(cv: CandidateCV, db: Session) -> dict:
     skill_count = db.query(CandidateSkillEntry).filter(
         CandidateSkillEntry.candidate_profile_id == cv.candidate_profile_id,
-        CandidateSkillEntry.source_cv_ids.contains([cv.id]),
+        cast(CandidateSkillEntry.source_cv_ids, JSONB).contains([cv.id]),
     ).count()
     exp_count = db.query(CandidateExperienceEntry).filter(
         CandidateExperienceEntry.candidate_profile_id == cv.candidate_profile_id,
-        CandidateExperienceEntry.source_cv_ids.contains([cv.id]),
+        cast(CandidateExperienceEntry.source_cv_ids, JSONB).contains([cv.id]),
     ).count()
     edu_count  = db.query(CandidateEducation).filter(
         CandidateEducation.source_cv_id == cv.id

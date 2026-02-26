@@ -21,6 +21,19 @@ let authMode    = 'login'; // 'login' | 'register'
 
 // Profile state
 
+// Edit state for inline forms
+let spEditingSkillId  = null, spEditingExpId   = null,
+    spEditingEduId    = null, spEditingCertId  = null;
+let kandEditingSkillId = null, kandEditingExpId = null,
+    kandEditingEduId  = null, kandEditingCertId = null;
+
+// Cached lists (for cancel without re-fetch)
+let cachedSpSkills = [], cachedSpExps   = [], cachedSpEdu   = [], cachedSpCerts   = [];
+let cachedKandSkills = [], cachedKandExps = [], cachedKandEdu = [], cachedKandCerts = [];
+
+// Escape value for use inside HTML attribute strings
+const esc = v => (v == null ? '' : String(v)).replace(/&/g,'&amp;').replace(/"/g,'&quot;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+
 // ── apiFetch — wraps fetch with credentials + 401-guard ───────────────────
 async function apiFetch(url, options = {}) {
     const response = await fetch(url, { ...options, credentials: 'include' });
@@ -2482,7 +2495,9 @@ async function loadSpKompetenser() {
         const res = await apiFetch(`${API_BASE_URL}/competence/skills`);
         if (!res.ok) return;
         const data = await res.json();
-        renderSpSkills(data.skills);
+        cachedSpSkills = data.skills || [];
+        spEditingSkillId = null;
+        renderSpSkills(cachedSpSkills);
     } catch (err) {
         if (err.message !== 'Inte inloggad') console.error(err);
     }
@@ -2493,7 +2508,9 @@ async function loadSpErfarenheter() {
         const res = await apiFetch(`${API_BASE_URL}/competence/experiences`);
         if (!res.ok) return;
         const data = await res.json();
-        renderSpExperiences(data.experiences);
+        cachedSpExps = data.experiences || [];
+        spEditingExpId = null;
+        renderSpExperiences(cachedSpExps);
     } catch (err) {
         if (err.message !== 'Inte inloggad') console.error(err);
     }
@@ -2503,7 +2520,7 @@ function renderSpSkills(skills) {
     const container = document.getElementById('sp-skills-list');
     if (!container) return;
     if (!skills || !skills.length) {
-        container.innerHTML = '<div class="empty-hint">Inga kompetenser i banken ännu. Ladda upp ett CV under Mina CV:n.</div>';
+        container.innerHTML = '<div class="empty-hint">Inga kompetenser i banken ännu. Ladda upp ett CV under CV-fliken.</div>';
         return;
     }
     const byCategory = {};
@@ -2513,51 +2530,153 @@ function renderSpSkills(skills) {
         byCategory[cat].push(s);
     });
     const typeClass = t => t === 'soft' ? 'chip-soft' : t === 'language' ? 'chip-language' : 'chip-technical';
-    container.innerHTML = Object.entries(byCategory).map(([cat, items]) => `
+    const clearBarSkills = `<div class="list-clear-bar"><span>${skills.length} kompetens${skills.length !== 1 ? 'er' : ''}</span><button class="btn btn-danger btn-sm" onclick="clearSpSkills()">Rensa alla</button></div>`;
+    container.innerHTML = clearBarSkills + Object.entries(byCategory).map(([cat, items]) => `
         <div style="margin-bottom:1rem">
             <div style="font-size:0.8125rem;font-weight:600;color:var(--text-muted);text-transform:uppercase;
                         letter-spacing:0.05em;margin-bottom:0.5rem">${cat}</div>
             <div class="bank-skills-wrap">
-                ${items.map(s => `<span class="bank-skill-chip ${typeClass(s.skill_type)}">${s.skill_name}</span>`).join('')}
+                ${items.map(s => {
+                    if (s.id === spEditingSkillId) {
+                        return `<div class="skill-edit-row">
+                            <input class="form-input" id="sp-edit-skill-name" value="${esc(s.skill_name)}" placeholder="Kompetensnamn" style="flex:1;min-width:120px">
+                            <input class="form-input" id="sp-edit-skill-cat"  value="${esc(s.category)}"   placeholder="Kategori"      style="flex:1;min-width:100px">
+                            <select class="form-input" id="sp-edit-skill-type" style="min-width:110px">
+                                <option value="technical" ${s.skill_type==='technical'?'selected':''}>Teknisk</option>
+                                <option value="soft"      ${s.skill_type==='soft'     ?'selected':''}>Mjuk</option>
+                                <option value="language"  ${s.skill_type==='language' ?'selected':''}>Språk</option>
+                                <option value="tool"      ${s.skill_type==='tool'     ?'selected':''}>Verktyg</option>
+                            </select>
+                            <button class="btn btn-primary btn-small" onclick="saveSpSkill(${s.id})">Spara</button>
+                            <button class="btn btn-secondary btn-small" onclick="spEditingSkillId=null;renderSpSkills(cachedSpSkills)">Avbryt</button>
+                        </div>`;
+                    }
+                    return `<span class="bank-skill-chip ${typeClass(s.skill_type)}">
+                        ${esc(s.skill_name)}
+                        <button class="chip-delete" style="font-size:0.85em;padding:0 1px 0 3px" onclick="spEditingSkillId=${s.id};renderSpSkills(cachedSpSkills)" title="Redigera">✎</button>
+                        <button class="chip-delete" onclick="deleteSpSkill(${s.id})" title="Ta bort">×</button>
+                    </span>`;
+                }).join('')}
             </div>
         </div>
     `).join('');
+}
+
+async function saveSpSkill(id) {
+    const body = {
+        skill_name: document.getElementById('sp-edit-skill-name').value.trim(),
+        category:   document.getElementById('sp-edit-skill-cat').value.trim()  || 'Övrigt',
+        skill_type: document.getElementById('sp-edit-skill-type').value,
+    };
+    if (!body.skill_name) { alert('Kompetensnamn krävs'); return; }
+    try {
+        const res = await apiFetch(`${API_BASE_URL}/competence/skills/${id}`, {
+            method: 'PUT', headers: {'Content-Type':'application/json'}, body: JSON.stringify(body),
+        });
+        if (!res.ok) { const e = await res.json(); throw new Error(e.detail || 'Fel'); }
+        spEditingSkillId = null;
+        await loadSpKompetenser();
+    } catch (err) { alert(err.message); }
+}
+
+async function deleteSpSkill(id) {
+    if (!confirm('Ta bort kompetensen?')) return;
+    try {
+        const res = await apiFetch(`${API_BASE_URL}/competence/skills/${id}`, { method:'DELETE' });
+        if (!res.ok) throw new Error('Kunde inte ta bort');
+        await loadSpKompetenser();
+    } catch (err) { alert(err.message); }
 }
 
 function renderSpExperiences(experiences) {
     const container = document.getElementById('sp-experiences-list');
     if (!container) return;
     if (!experiences || !experiences.length) {
-        container.innerHTML = '<div class="empty-hint">Inga erfarenheter i banken ännu. Ladda upp ett CV under Mina CV:n.</div>';
+        container.innerHTML = '<div class="empty-hint">Inga erfarenheter i banken ännu. Ladda upp ett CV under CV-fliken.</div>';
         return;
     }
     const typeLabel = { work: 'Arbete', education: 'Utbildning', certification: 'Certifiering', project: 'Projekt' };
-    // Gruppera per typ
-    const byType = {};
-    experiences.forEach(e => {
-        const t = e.experience_type || 'work';
-        if (!byType[t]) byType[t] = [];
-        byType[t].push(e);
-    });
-    const typeOrder = ['work', 'education', 'certification', 'project'];
-    container.innerHTML = typeOrder.filter(t => byType[t]).map(type => {
-        const items = byType[type];
-        return `
-            <div style="margin-bottom:1.5rem">
-                <div style="font-size:0.8125rem;font-weight:600;color:var(--text-muted);text-transform:uppercase;
-                            letter-spacing:0.05em;margin-bottom:0.75rem">${typeLabel[type] || type}</div>
-                ${items.map(e => {
-                    const period = [e.start_date, e.is_current ? 'nu' : e.end_date].filter(Boolean).join(' – ');
-                    return `
-                        <div style="border:1px solid var(--border);border-radius:var(--radius);
-                                    padding:0.875rem 1rem;margin-bottom:0.5rem">
-                            <div style="font-weight:600">${e.title}</div>
-                            ${e.organization ? `<div style="font-size:0.875rem;color:var(--text-muted)">${e.organization}</div>` : ''}
-                            ${period ? `<div style="font-size:0.8125rem;color:var(--text-muted);margin-top:0.125rem">${period}</div>` : ''}
-                        </div>`;
-                }).join('')}
+    const sel = (val, opt) => opt === val ? 'selected' : '';
+    const clearBarExp = `<div class="list-clear-bar"><span>${experiences.length} erfarenhet${experiences.length !== 1 ? 'er' : ''}</span><button class="btn btn-danger btn-sm" onclick="clearSpExperiences()">Rensa alla</button></div>`;
+    container.innerHTML = clearBarExp + experiences.map(e => {
+        if (e.id === spEditingExpId) {
+            const achText = (e.achievements || []).join('\n');
+            return `<div style="border:1px solid var(--blue);border-radius:var(--radius);padding:0.875rem 1rem;margin-bottom:0.75rem">
+                <div style="display:grid;grid-template-columns:1fr 1fr;gap:0.5rem;margin-bottom:0.5rem">
+                    <input class="form-input" id="sp-edit-exp-title" value="${esc(e.title)}" placeholder="Titel" style="grid-column:span 2">
+                    <input class="form-input" id="sp-edit-exp-org"   value="${esc(e.organization)}" placeholder="Organisation">
+                    <select class="form-input" id="sp-edit-exp-type">
+                        <option value="work"          ${sel(e.experience_type,'work')}         >Arbete</option>
+                        <option value="education"     ${sel(e.experience_type,'education')}    >Utbildning</option>
+                        <option value="certification" ${sel(e.experience_type,'certification')}>Certifiering</option>
+                        <option value="project"       ${sel(e.experience_type,'project')}      >Projekt</option>
+                    </select>
+                    <input class="form-input" id="sp-edit-exp-start" value="${esc(e.start_date)}" placeholder="Från (ÅÅÅÅ-MM)">
+                    <input class="form-input" id="sp-edit-exp-end"   value="${esc(e.end_date)}"   placeholder="Till (ÅÅÅÅ-MM)">
+                </div>
+                <label style="font-size:0.8125rem;display:flex;align-items:center;gap:0.4rem;margin-bottom:0.5rem">
+                    <input type="checkbox" id="sp-edit-exp-current" ${e.is_current?'checked':''}> Pågående
+                </label>
+                <textarea class="form-input" id="sp-edit-exp-desc" placeholder="Beskrivning" rows="3" style="margin-bottom:0.5rem;width:100%;box-sizing:border-box">${esc(e.description)}</textarea>
+                <label style="font-size:0.8125rem;color:var(--text-muted);margin-bottom:0.25rem;display:block">Prestationer (en per rad)</label>
+                <textarea class="form-input" id="sp-edit-exp-ach" placeholder="En prestation per rad" rows="3" style="margin-bottom:0.5rem;width:100%;box-sizing:border-box">${esc(achText)}</textarea>
+                <div style="display:flex;gap:0.5rem">
+                    <button class="btn btn-primary btn-small" onclick="saveSpExperience(${e.id})">Spara</button>
+                    <button class="btn btn-secondary btn-small" onclick="spEditingExpId=null;renderSpExperiences(cachedSpExps)">Avbryt</button>
+                </div>
             </div>`;
+        }
+        const period = [e.start_date, e.is_current ? 'nu' : e.end_date].filter(Boolean).join(' – ');
+        const achHtml = (e.achievements || []).length
+            ? `<ul style="margin:0.375rem 0 0 1rem;padding:0;font-size:0.85rem;color:var(--text-muted)">${(e.achievements).map(a=>`<li>${esc(a)}</li>`).join('')}</ul>` : '';
+        return `<div style="border:1px solid var(--border);border-radius:var(--radius);padding:0.875rem 1rem;margin-bottom:0.5rem">
+            <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:0.5rem">
+                <div>
+                    <span style="font-size:0.75rem;font-weight:600;text-transform:uppercase;letter-spacing:0.05em;color:var(--text-muted)">${typeLabel[e.experience_type]||e.experience_type}</span>
+                    <div style="font-weight:600">${esc(e.title)}</div>
+                    ${e.organization ? `<div style="font-size:0.875rem;color:var(--text-muted)">${esc(e.organization)}</div>` : ''}
+                    ${period ? `<div style="font-size:0.8125rem;color:var(--text-muted);margin-top:0.125rem">${period}</div>` : ''}
+                </div>
+                <div style="display:flex;gap:0.25rem;flex-shrink:0">
+                    <button class="btn-icon" onclick="spEditingExpId=${e.id};renderSpExperiences(cachedSpExps)" title="Redigera">✎</button>
+                    <button class="btn-icon btn-icon-danger" onclick="deleteSpExperience(${e.id})" title="Ta bort">&times;</button>
+                </div>
+            </div>
+            ${e.description ? `<div style="font-size:0.875rem;margin-top:0.5rem">${esc(e.description)}</div>` : ''}
+            ${achHtml}
+        </div>`;
     }).join('');
+}
+
+async function saveSpExperience(id) {
+    const body = {
+        title:           document.getElementById('sp-edit-exp-title').value.trim(),
+        organization:    document.getElementById('sp-edit-exp-org').value.trim()   || null,
+        experience_type: document.getElementById('sp-edit-exp-type').value,
+        start_date:      document.getElementById('sp-edit-exp-start').value.trim() || null,
+        end_date:        document.getElementById('sp-edit-exp-end').value.trim()   || null,
+        is_current:      document.getElementById('sp-edit-exp-current').checked,
+        description:     document.getElementById('sp-edit-exp-desc').value.trim() || null,
+        achievements:    document.getElementById('sp-edit-exp-ach').value.split('\n').map(s=>s.trim()).filter(Boolean),
+    };
+    if (!body.title) { alert('Titel krävs'); return; }
+    try {
+        const res = await apiFetch(`${API_BASE_URL}/competence/experiences/${id}`, {
+            method: 'PUT', headers: {'Content-Type':'application/json'}, body: JSON.stringify(body),
+        });
+        if (!res.ok) { const e = await res.json(); throw new Error(e.detail || 'Fel'); }
+        spEditingExpId = null;
+        await loadSpErfarenheter();
+    } catch (err) { alert(err.message); }
+}
+
+async function deleteSpExperience(id) {
+    if (!confirm('Ta bort erfarenheten?')) return;
+    try {
+        const res = await apiFetch(`${API_BASE_URL}/competence/experiences/${id}`, { method:'DELETE' });
+        if (!res.ok) throw new Error('Kunde inte ta bort');
+        await loadSpErfarenheter();
+    } catch (err) { alert(err.message); }
 }
 
 // ════════════════════════════════════════════════════
@@ -2595,16 +2714,18 @@ function renderKandidatList(kandidater) {
             k.desired_employment.length ? k.desired_employment.join(', ')    : null,
             k.desired_workplace.length  ? k.desired_workplace.join(', ')     : null,
         ].filter(Boolean).join(' · ');
+        const safeName = esc(k.public_name || '(Inget namn)');
 
         return `
         <div class="cv-item" onclick="editKandidatById(${k.id})" style="cursor:pointer">
             <div class="cv-item-info">
-                <div class="cv-item-name">${k.public_name || '(Inget namn)'}</div>
+                <div class="cv-item-name">${safeName}</div>
                 ${meta ? `<div class="cv-item-meta">${meta}</div>` : ''}
             </div>
             <div class="cv-item-actions">
                 ${k.searchable ? '<span class="cv-item-badge" style="background:var(--success-bg);color:var(--success)">Sökbar</span>' : ''}
                 <button class="btn btn-secondary btn-sm" onclick="event.stopPropagation(); editKandidatById(${k.id})">Redigera</button>
+                <button class="btn btn-danger btn-sm" onclick="event.stopPropagation(); deleteKandidatFromList(${k.id}, '${safeName}')">Ta bort</button>
             </div>
         </div>`;
     }).join('');
@@ -2615,6 +2736,18 @@ function editKandidatById(id) {
     if (kandidat) showKandidatForm(kandidat);
 }
 
+async function deleteKandidatFromList(id, name) {
+    if (!confirm(`Ta bort "${name}"? All data för kandidaten raderas och kan inte återställas.`)) return;
+    try {
+        const res = await apiFetch(`${API_BASE_URL}/kandidater/${id}`, { method: 'DELETE' });
+        if (!res.ok) { const e = await res.json(); throw new Error(e.detail || 'Fel vid borttagning'); }
+        kandidaterCache = kandidaterCache.filter(k => k.id !== id);
+        renderKandidatList(kandidaterCache);
+    } catch (err) {
+        alert(err.message);
+    }
+}
+
 function showKandidatForm(kandidat) {
     currentKandidatId = kandidat ? kandidat.id : null;
 
@@ -2622,7 +2755,7 @@ function showKandidatForm(kandidat) {
     document.getElementById('kandidat-form-panel').style.display   = '';
 
     document.getElementById('kandidat-form-title').textContent =
-        kandidat ? `Redigera: ${kandidat.public_name}` : 'Lägg till kandidat';
+        kandidat ? `Kandidat: ${kandidat.public_name}` : 'Lägg till kandidat';
 
     document.getElementById('kand-public-name').value  = kandidat?.public_name  || '';
     document.getElementById('kand-email').value        = kandidat?.email        || '';
@@ -2835,8 +2968,12 @@ async function loadKandidatBank(kandidatId) {
         const res = await apiFetch(`${API_BASE_URL}/kandidater/${kandidatId}/bank`);
         if (!res.ok) return;
         const data = await res.json();
-        renderKandidatSkills(data.skills);
-        renderKandidatExperiences(data.experiences);
+        cachedKandSkills = data.skills || [];
+        cachedKandExps   = data.experiences || [];
+        kandEditingSkillId = null;
+        kandEditingExpId   = null;
+        renderKandidatSkills(cachedKandSkills);
+        renderKandidatExperiences(cachedKandExps);
     } catch (err) {
         if (err.message !== 'Inte inloggad') console.error(err);
     }
@@ -2851,7 +2988,6 @@ function renderKandidatSkills(skills) {
         return;
     }
 
-    // Gruppera per kategori
     const byCategory = {};
     skills.forEach(s => {
         const cat = s.category || 'Övrigt';
@@ -2860,20 +2996,54 @@ function renderKandidatSkills(skills) {
     });
 
     const typeClass = t => t === 'soft' ? 'chip-soft' : t === 'language' ? 'chip-language' : 'chip-technical';
-
-    container.innerHTML = Object.entries(byCategory).map(([cat, items]) => `
+    const clearBarKandSkills = `<div class="list-clear-bar"><span>${skills.length} kompetens${skills.length !== 1 ? 'er' : ''}</span><button class="btn btn-danger btn-sm" onclick="clearKandSkills(${currentKandidatId})">Rensa alla</button></div>`;
+    container.innerHTML = clearBarKandSkills + Object.entries(byCategory).map(([cat, items]) => `
         <div style="margin-bottom:1rem">
-            <div style="font-size:0.8125rem; font-weight:600; color:var(--text-muted); text-transform:uppercase;
-                        letter-spacing:0.05em; margin-bottom:0.5rem">${cat}</div>
+            <div style="font-size:0.8125rem;font-weight:600;color:var(--text-muted);text-transform:uppercase;
+                        letter-spacing:0.05em;margin-bottom:0.5rem">${cat}</div>
             <div class="bank-skills-wrap">
-                ${items.map(s => `
-                    <span class="bank-skill-chip ${typeClass(s.skill_type)}">
-                        ${s.skill_name}<button onclick="deleteKandidatSkill(${s.id})" class="chip-delete" title="Ta bort">×</button>
-                    </span>
-                `).join('')}
+                ${items.map(s => {
+                    if (s.id === kandEditingSkillId) {
+                        return `<div class="skill-edit-row">
+                            <input class="form-input" id="kand-edit-skill-name" value="${esc(s.skill_name)}" placeholder="Kompetensnamn" style="flex:1;min-width:120px">
+                            <input class="form-input" id="kand-edit-skill-cat"  value="${esc(s.category)}"   placeholder="Kategori"      style="flex:1;min-width:100px">
+                            <select class="form-input" id="kand-edit-skill-type" style="min-width:110px">
+                                <option value="technical" ${s.skill_type==='technical'?'selected':''}>Teknisk</option>
+                                <option value="soft"      ${s.skill_type==='soft'     ?'selected':''}>Mjuk</option>
+                                <option value="language"  ${s.skill_type==='language' ?'selected':''}>Språk</option>
+                                <option value="tool"      ${s.skill_type==='tool'     ?'selected':''}>Verktyg</option>
+                            </select>
+                            <button class="btn btn-primary btn-small" onclick="saveKandSkill(${s.id})">Spara</button>
+                            <button class="btn btn-secondary btn-small" onclick="kandEditingSkillId=null;renderKandidatSkills(cachedKandSkills)">Avbryt</button>
+                        </div>`;
+                    }
+                    return `<span class="bank-skill-chip ${typeClass(s.skill_type)}">
+                        ${esc(s.skill_name)}
+                        <button class="chip-delete" style="font-size:0.85em;padding:0 1px 0 3px" onclick="kandEditingSkillId=${s.id};renderKandidatSkills(cachedKandSkills)" title="Redigera">✎</button>
+                        <button class="chip-delete" onclick="deleteKandidatSkill(${s.id})" title="Ta bort">×</button>
+                    </span>`;
+                }).join('')}
             </div>
         </div>
     `).join('');
+}
+
+async function saveKandSkill(id) {
+    if (!currentKandidatId) return;
+    const body = {
+        skill_name: document.getElementById('kand-edit-skill-name').value.trim(),
+        category:   document.getElementById('kand-edit-skill-cat').value.trim()  || 'Övrigt',
+        skill_type: document.getElementById('kand-edit-skill-type').value,
+    };
+    if (!body.skill_name) { alert('Kompetensnamn krävs'); return; }
+    try {
+        const res = await apiFetch(`${API_BASE_URL}/kandidater/${currentKandidatId}/bank/skills/${id}`, {
+            method: 'PUT', headers: {'Content-Type':'application/json'}, body: JSON.stringify(body),
+        });
+        if (!res.ok) { const e = await res.json(); throw new Error(e.detail || 'Fel'); }
+        kandEditingSkillId = null;
+        await loadKandidatBank(currentKandidatId);
+    } catch (err) { alert(err.message); }
 }
 
 async function addKandidatSkill() {
@@ -2998,32 +3168,88 @@ function renderKandidatExperiences(experiences) {
     }
 
     const typeLabel = { work: 'Arbete', education: 'Utbildning', certification: 'Certifiering', project: 'Projekt' };
-
-    container.innerHTML = experiences.map(e => {
-        const period = [e.start_date, e.is_current ? 'nu' : e.end_date].filter(Boolean).join(' – ');
-        const achievements = (e.achievements || []).length
-            ? `<ul style="margin:0.375rem 0 0 1rem; padding:0; font-size:0.85rem; color:var(--text-muted)">
-                   ${e.achievements.map(a => `<li>${a}</li>`).join('')}
-               </ul>`
-            : '';
-        return `
-            <div style="border:1px solid var(--border); border-radius:var(--radius); padding:0.875rem 1rem; margin-bottom:0.75rem">
-                <div style="display:flex; justify-content:space-between; align-items:flex-start; gap:0.5rem">
-                    <div>
-                        <span style="font-size:0.75rem; font-weight:600; text-transform:uppercase;
-                                     letter-spacing:0.05em; color:var(--text-muted)">
-                            ${typeLabel[e.experience_type] || e.experience_type}
-                        </span>
-                        <div style="font-weight:600; margin-top:0.125rem">${e.title}</div>
-                        ${e.organization ? `<div style="font-size:0.875rem; color:var(--text-muted)">${e.organization}</div>` : ''}
-                        ${period ? `<div style="font-size:0.8125rem; color:var(--text-muted); margin-top:0.125rem">${period}</div>` : ''}
-                    </div>
+    const sel = (val, opt) => opt === val ? 'selected' : '';
+    const clearBarKandExp = `<div class="list-clear-bar"><span>${experiences.length} erfarenhet${experiences.length !== 1 ? 'er' : ''}</span><button class="btn btn-danger btn-sm" onclick="clearKandExperiences(${currentKandidatId})">Rensa alla</button></div>`;
+    container.innerHTML = clearBarKandExp + experiences.map(e => {
+        if (e.id === kandEditingExpId) {
+            const achText = (e.achievements || []).join('\n');
+            return `<div style="border:1px solid var(--blue);border-radius:var(--radius);padding:0.875rem 1rem;margin-bottom:0.75rem">
+                <div style="display:grid;grid-template-columns:1fr 1fr;gap:0.5rem;margin-bottom:0.5rem">
+                    <input class="form-input" id="kand-edit-exp-title" value="${esc(e.title)}" placeholder="Titel" style="grid-column:span 2">
+                    <input class="form-input" id="kand-edit-exp-org"   value="${esc(e.organization)}" placeholder="Organisation">
+                    <select class="form-input" id="kand-edit-exp-type">
+                        <option value="work"          ${sel(e.experience_type,'work')}         >Arbete</option>
+                        <option value="education"     ${sel(e.experience_type,'education')}    >Utbildning</option>
+                        <option value="certification" ${sel(e.experience_type,'certification')}>Certifiering</option>
+                        <option value="project"       ${sel(e.experience_type,'project')}      >Projekt</option>
+                    </select>
+                    <input class="form-input" id="kand-edit-exp-start" value="${esc(e.start_date)}" placeholder="Från (ÅÅÅÅ-MM)">
+                    <input class="form-input" id="kand-edit-exp-end"   value="${esc(e.end_date)}"   placeholder="Till (ÅÅÅÅ-MM)">
                 </div>
-                ${e.description ? `<div style="font-size:0.875rem; margin-top:0.5rem">${e.description}</div>` : ''}
-                ${achievements}
+                <label style="font-size:0.8125rem;display:flex;align-items:center;gap:0.4rem;margin-bottom:0.5rem">
+                    <input type="checkbox" id="kand-edit-exp-current" ${e.is_current?'checked':''}> Pågående
+                </label>
+                <textarea class="form-input" id="kand-edit-exp-desc" placeholder="Beskrivning" rows="3" style="margin-bottom:0.5rem;width:100%;box-sizing:border-box">${esc(e.description)}</textarea>
+                <label style="font-size:0.8125rem;color:var(--text-muted);margin-bottom:0.25rem;display:block">Prestationer (en per rad)</label>
+                <textarea class="form-input" id="kand-edit-exp-ach" placeholder="En prestation per rad" rows="3" style="margin-bottom:0.5rem;width:100%;box-sizing:border-box">${esc(achText)}</textarea>
+                <div style="display:flex;gap:0.5rem">
+                    <button class="btn btn-primary btn-small" onclick="saveKandExperience(${e.id})">Spara</button>
+                    <button class="btn btn-secondary btn-small" onclick="kandEditingExpId=null;renderKandidatExperiences(cachedKandExps)">Avbryt</button>
+                </div>
+            </div>`;
+        }
+        const period = [e.start_date, e.is_current ? 'nu' : e.end_date].filter(Boolean).join(' – ');
+        const achHtml = (e.achievements || []).length
+            ? `<ul style="margin:0.375rem 0 0 1rem;padding:0;font-size:0.85rem;color:var(--text-muted)">${(e.achievements).map(a=>`<li>${esc(a)}</li>`).join('')}</ul>` : '';
+        return `<div style="border:1px solid var(--border);border-radius:var(--radius);padding:0.875rem 1rem;margin-bottom:0.75rem">
+            <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:0.5rem">
+                <div>
+                    <span style="font-size:0.75rem;font-weight:600;text-transform:uppercase;letter-spacing:0.05em;color:var(--text-muted)">${typeLabel[e.experience_type]||e.experience_type}</span>
+                    <div style="font-weight:600;margin-top:0.125rem">${esc(e.title)}</div>
+                    ${e.organization ? `<div style="font-size:0.875rem;color:var(--text-muted)">${esc(e.organization)}</div>` : ''}
+                    ${period ? `<div style="font-size:0.8125rem;color:var(--text-muted);margin-top:0.125rem">${period}</div>` : ''}
+                </div>
+                <div style="display:flex;gap:0.25rem;flex-shrink:0">
+                    <button class="btn-icon" onclick="kandEditingExpId=${e.id};renderKandidatExperiences(cachedKandExps)" title="Redigera">✎</button>
+                    <button class="btn-icon btn-icon-danger" onclick="deleteKandExperience(${e.id})" title="Ta bort">&times;</button>
+                </div>
             </div>
-        `;
+            ${e.description ? `<div style="font-size:0.875rem;margin-top:0.5rem">${esc(e.description)}</div>` : ''}
+            ${achHtml}
+        </div>`;
     }).join('');
+}
+
+async function saveKandExperience(id) {
+    if (!currentKandidatId) return;
+    const body = {
+        title:           document.getElementById('kand-edit-exp-title').value.trim(),
+        organization:    document.getElementById('kand-edit-exp-org').value.trim()   || null,
+        experience_type: document.getElementById('kand-edit-exp-type').value,
+        start_date:      document.getElementById('kand-edit-exp-start').value.trim() || null,
+        end_date:        document.getElementById('kand-edit-exp-end').value.trim()   || null,
+        is_current:      document.getElementById('kand-edit-exp-current').checked,
+        description:     document.getElementById('kand-edit-exp-desc').value.trim() || null,
+        achievements:    document.getElementById('kand-edit-exp-ach').value.split('\n').map(s=>s.trim()).filter(Boolean),
+    };
+    if (!body.title) { alert('Titel krävs'); return; }
+    try {
+        const res = await apiFetch(`${API_BASE_URL}/kandidater/${currentKandidatId}/bank/experiences/${id}`, {
+            method: 'PUT', headers: {'Content-Type':'application/json'}, body: JSON.stringify(body),
+        });
+        if (!res.ok) { const e = await res.json(); throw new Error(e.detail || 'Fel'); }
+        kandEditingExpId = null;
+        await loadKandidatBank(currentKandidatId);
+    } catch (err) { alert(err.message); }
+}
+
+async function deleteKandExperience(id) {
+    if (!currentKandidatId || !confirm('Ta bort erfarenheten?')) return;
+    try {
+        const res = await apiFetch(`${API_BASE_URL}/kandidater/${currentKandidatId}/bank/experiences/${id}`, { method:'DELETE' });
+        if (!res.ok) throw new Error('Kunde inte ta bort');
+        await loadKandidatBank(currentKandidatId);
+    } catch (err) { alert(err.message); }
 }
 
 // ── New Candidate CV API (Min profil / CV tab) ────────────────────────────────
@@ -3147,7 +3373,9 @@ async function loadSpEducation() {
         const res = await apiFetch(`${API_BASE_URL}/competence/education`);
         if (!res.ok) return;
         const data = await res.json();
-        renderSpEducation(data.education || []);
+        cachedSpEdu = data.education || [];
+        spEditingEduId = null;
+        renderSpEducation(cachedSpEdu);
     } catch (err) {
         if (err.message !== 'Inte inloggad') console.error(err);
     }
@@ -3160,19 +3388,61 @@ function renderSpEducation(items) {
         container.innerHTML = '<div class="empty-hint">Inga utbildningar tillagda ännu.</div>';
         return;
     }
-    container.innerHTML = items.map(e => {
-        const period = [e.start_date, e.end_date].filter(Boolean).join(' – ');
-        return `
-            <div style="border:1px solid var(--border);border-radius:var(--radius);padding:0.875rem 1rem;margin-bottom:0.75rem;display:flex;justify-content:space-between;align-items:flex-start;gap:0.5rem">
-                <div>
-                    <div style="font-weight:600">${e.degree}</div>
-                    ${e.institution    ? `<div style="font-size:0.875rem;color:var(--text-muted)">${e.institution}</div>` : ''}
-                    ${e.field_of_study ? `<div style="font-size:0.875rem;color:var(--text-muted)">${e.field_of_study}</div>` : ''}
-                    ${period           ? `<div style="font-size:0.8125rem;color:var(--text-muted);margin-top:0.125rem">${period}</div>` : ''}
+    const clearBarEdu = `<div class="list-clear-bar"><span>${items.length} utbildning${items.length !== 1 ? 'ar' : ''}</span><button class="btn btn-danger btn-sm" onclick="clearSpEducation()">Rensa alla</button></div>`;
+    container.innerHTML = clearBarEdu + items.map(e => {
+        if (e.id === spEditingEduId) {
+            return `<div style="border:1px solid var(--blue);border-radius:var(--radius);padding:0.875rem 1rem;margin-bottom:0.75rem">
+                <div style="display:flex;flex-direction:column;gap:0.5rem;margin-bottom:0.5rem">
+                    <input class="form-input" id="sp-edit-edu-degree"      value="${esc(e.degree)}"         placeholder="Examen / Utbildning" required>
+                    <input class="form-input" id="sp-edit-edu-institution"  value="${esc(e.institution)}"    placeholder="Lärosäte">
+                    <input class="form-input" id="sp-edit-edu-field"        value="${esc(e.field_of_study)}" placeholder="Ämne / Inriktning">
+                    <div style="display:flex;gap:0.5rem">
+                        <input class="form-input" id="sp-edit-edu-start" value="${esc(e.start_date)}" placeholder="Från (ÅÅÅÅ-MM)" style="flex:1">
+                        <input class="form-input" id="sp-edit-edu-end"   value="${esc(e.end_date)}"   placeholder="Till (ÅÅÅÅ-MM)" style="flex:1">
+                    </div>
+                    <textarea class="form-input" id="sp-edit-edu-desc" placeholder="Beskrivning" rows="2">${esc(e.description)}</textarea>
                 </div>
-                <button class="btn-icon btn-icon-danger" onclick="deleteSpEducation(${e.id})" title="Ta bort">&times;</button>
+                <div style="display:flex;gap:0.5rem">
+                    <button class="btn btn-primary btn-small" onclick="saveSpEducation(${e.id})">Spara</button>
+                    <button class="btn btn-secondary btn-small" onclick="spEditingEduId=null;renderSpEducation(cachedSpEdu)">Avbryt</button>
+                </div>
             </div>`;
+        }
+        const period = [e.start_date, e.end_date].filter(Boolean).join(' – ');
+        return `<div style="border:1px solid var(--border);border-radius:var(--radius);padding:0.875rem 1rem;margin-bottom:0.75rem;display:flex;justify-content:space-between;align-items:flex-start;gap:0.5rem">
+            <div>
+                <div style="font-weight:600">${esc(e.degree)}</div>
+                ${e.institution    ? `<div style="font-size:0.875rem;color:var(--text-muted)">${esc(e.institution)}</div>` : ''}
+                ${e.field_of_study ? `<div style="font-size:0.875rem;color:var(--text-muted)">${esc(e.field_of_study)}</div>` : ''}
+                ${period           ? `<div style="font-size:0.8125rem;color:var(--text-muted);margin-top:0.125rem">${period}</div>` : ''}
+            </div>
+            <div style="display:flex;gap:0.25rem;flex-shrink:0">
+                <button class="btn-icon" onclick="spEditingEduId=${e.id};renderSpEducation(cachedSpEdu)" title="Redigera">✎</button>
+                <button class="btn-icon btn-icon-danger" onclick="deleteSpEducation(${e.id})" title="Ta bort">&times;</button>
+            </div>
+        </div>`;
     }).join('');
+}
+
+async function saveSpEducation(id) {
+    const body = {
+        degree:         document.getElementById('sp-edit-edu-degree').value.trim(),
+        institution:    document.getElementById('sp-edit-edu-institution').value.trim() || null,
+        field_of_study: document.getElementById('sp-edit-edu-field').value.trim()       || null,
+        start_date:     document.getElementById('sp-edit-edu-start').value.trim()       || null,
+        end_date:       document.getElementById('sp-edit-edu-end').value.trim()         || null,
+        description:    document.getElementById('sp-edit-edu-desc').value.trim()        || null,
+    };
+    if (!body.degree) { showSpEduStatus('Examen / Utbildning krävs', 'error'); return; }
+    try {
+        const res = await apiFetch(`${API_BASE_URL}/competence/education/${id}`, {
+            method: 'PUT', headers: {'Content-Type':'application/json'}, body: JSON.stringify(body),
+        });
+        if (!res.ok) { const e = await res.json(); throw new Error(e.detail || 'Fel'); }
+        spEditingEduId = null;
+        showSpEduStatus('Utbildning sparad', 'success');
+        await loadSpEducation();
+    } catch (err) { showSpEduStatus(err.message, 'error'); }
 }
 
 async function addSpEducation() {
@@ -3221,7 +3491,9 @@ async function loadSpCertifications() {
         const res = await apiFetch(`${API_BASE_URL}/competence/certifications`);
         if (!res.ok) return;
         const data = await res.json();
-        renderSpCertifications(data.certifications || []);
+        cachedSpCerts = data.certifications || [];
+        spEditingCertId = null;
+        renderSpCertifications(cachedSpCerts);
     } catch (err) {
         if (err.message !== 'Inte inloggad') console.error(err);
     }
@@ -3234,15 +3506,125 @@ function renderSpCertifications(items) {
         container.innerHTML = '<div class="empty-hint">Inga kurser eller certifikat tillagda ännu.</div>';
         return;
     }
-    container.innerHTML = items.map(c => `
-        <div style="border:1px solid var(--border);border-radius:var(--radius);padding:0.875rem 1rem;margin-bottom:0.75rem;display:flex;justify-content:space-between;align-items:flex-start;gap:0.5rem">
+    const clearBarCert = `<div class="list-clear-bar"><span>${items.length} certifikat</span><button class="btn btn-danger btn-sm" onclick="clearSpCertifications()">Rensa alla</button></div>`;
+    container.innerHTML = clearBarCert + items.map(c => {
+        if (c.id === spEditingCertId) {
+            return `<div style="border:1px solid var(--blue);border-radius:var(--radius);padding:0.875rem 1rem;margin-bottom:0.75rem">
+                <div style="display:flex;flex-direction:column;gap:0.5rem;margin-bottom:0.5rem">
+                    <input class="form-input" id="sp-edit-cert-name"   value="${esc(c.name)}"        placeholder="Kurs / Certifikat" required>
+                    <input class="form-input" id="sp-edit-cert-issuer" value="${esc(c.issuer)}"       placeholder="Utfärdare">
+                    <input class="form-input" id="sp-edit-cert-date"   value="${esc(c.date)}"         placeholder="Datum (ÅÅÅÅ-MM)">
+                    <textarea class="form-input" id="sp-edit-cert-desc" placeholder="Beskrivning" rows="2">${esc(c.description)}</textarea>
+                </div>
+                <div style="display:flex;gap:0.5rem">
+                    <button class="btn btn-primary btn-small" onclick="saveSpCertification(${c.id})">Spara</button>
+                    <button class="btn btn-secondary btn-small" onclick="spEditingCertId=null;renderSpCertifications(cachedSpCerts)">Avbryt</button>
+                </div>
+            </div>`;
+        }
+        return `<div style="border:1px solid var(--border);border-radius:var(--radius);padding:0.875rem 1rem;margin-bottom:0.75rem;display:flex;justify-content:space-between;align-items:flex-start;gap:0.5rem">
             <div>
-                <div style="font-weight:600">${c.name}</div>
-                ${c.issuer ? `<div style="font-size:0.875rem;color:var(--text-muted)">${c.issuer}</div>` : ''}
+                <div style="font-weight:600">${esc(c.name)}</div>
+                ${c.issuer ? `<div style="font-size:0.875rem;color:var(--text-muted)">${esc(c.issuer)}</div>` : ''}
                 ${c.date   ? `<div style="font-size:0.8125rem;color:var(--text-muted);margin-top:0.125rem">${c.date}</div>` : ''}
             </div>
-            <button class="btn-icon btn-icon-danger" onclick="deleteSpCertification(${c.id})" title="Ta bort">&times;</button>
-        </div>`).join('');
+            <div style="display:flex;gap:0.25rem;flex-shrink:0">
+                <button class="btn-icon" onclick="spEditingCertId=${c.id};renderSpCertifications(cachedSpCerts)" title="Redigera">✎</button>
+                <button class="btn-icon btn-icon-danger" onclick="deleteSpCertification(${c.id})" title="Ta bort">&times;</button>
+            </div>
+        </div>`;
+    }).join('');
+}
+
+async function saveSpCertification(id) {
+    const body = {
+        name:        document.getElementById('sp-edit-cert-name').value.trim(),
+        issuer:      document.getElementById('sp-edit-cert-issuer').value.trim() || null,
+        date:        document.getElementById('sp-edit-cert-date').value.trim()   || null,
+        description: document.getElementById('sp-edit-cert-desc').value.trim()  || null,
+    };
+    if (!body.name) { showSpCertStatus('Namn krävs', 'error'); return; }
+    try {
+        const res = await apiFetch(`${API_BASE_URL}/competence/certifications/${id}`, {
+            method: 'PUT', headers: {'Content-Type':'application/json'}, body: JSON.stringify(body),
+        });
+        if (!res.ok) { const e = await res.json(); throw new Error(e.detail || 'Fel'); }
+        spEditingCertId = null;
+        showSpCertStatus('Certifikat sparat', 'success');
+        await loadSpCertifications();
+    } catch (err) { showSpCertStatus(err.message, 'error'); }
+}
+
+async function clearSpSkills() {
+    if (!confirm('Radera alla kompetenser? Detta kan inte ångras.')) return;
+    try {
+        const res = await apiFetch(`${API_BASE_URL}/competence/skills`, { method: 'DELETE' });
+        if (!res.ok) { const e = await res.json(); throw new Error(e.detail || 'Fel'); }
+        await loadSpKompetenser();
+    } catch (err) { alert(err.message); }
+}
+
+async function clearSpExperiences() {
+    if (!confirm('Radera alla erfarenheter? Detta kan inte ångras.')) return;
+    try {
+        const res = await apiFetch(`${API_BASE_URL}/competence/experiences`, { method: 'DELETE' });
+        if (!res.ok) { const e = await res.json(); throw new Error(e.detail || 'Fel'); }
+        await loadSpErfarenheter();
+    } catch (err) { alert(err.message); }
+}
+
+async function clearSpEducation() {
+    if (!confirm('Radera all utbildning? Detta kan inte ångras.')) return;
+    try {
+        const res = await apiFetch(`${API_BASE_URL}/competence/education`, { method: 'DELETE' });
+        if (!res.ok) { const e = await res.json(); throw new Error(e.detail || 'Fel'); }
+        await loadSpEducation();
+    } catch (err) { alert(err.message); }
+}
+
+async function clearSpCertifications() {
+    if (!confirm('Radera alla certifikat? Detta kan inte ångras.')) return;
+    try {
+        const res = await apiFetch(`${API_BASE_URL}/competence/certifications`, { method: 'DELETE' });
+        if (!res.ok) { const e = await res.json(); throw new Error(e.detail || 'Fel'); }
+        await loadSpCertifications();
+    } catch (err) { alert(err.message); }
+}
+
+async function clearKandSkills(kandidatId) {
+    if (!confirm('Radera alla kompetenser för kandidaten? Detta kan inte ångras.')) return;
+    try {
+        const res = await apiFetch(`${API_BASE_URL}/kandidater/${kandidatId}/bank/skills`, { method: 'DELETE' });
+        if (!res.ok) { const e = await res.json(); throw new Error(e.detail || 'Fel'); }
+        await loadKandidatBank(kandidatId);
+    } catch (err) { alert(err.message); }
+}
+
+async function clearKandExperiences(kandidatId) {
+    if (!confirm('Radera alla erfarenheter för kandidaten? Detta kan inte ångras.')) return;
+    try {
+        const res = await apiFetch(`${API_BASE_URL}/kandidater/${kandidatId}/bank/experiences`, { method: 'DELETE' });
+        if (!res.ok) { const e = await res.json(); throw new Error(e.detail || 'Fel'); }
+        await loadKandidatBank(kandidatId);
+    } catch (err) { alert(err.message); }
+}
+
+async function clearKandEducation(kandidatId) {
+    if (!confirm('Radera all utbildning för kandidaten? Detta kan inte ångras.')) return;
+    try {
+        const res = await apiFetch(`${API_BASE_URL}/kandidater/${kandidatId}/education`, { method: 'DELETE' });
+        if (!res.ok) { const e = await res.json(); throw new Error(e.detail || 'Fel'); }
+        await loadKandidatEducation(kandidatId);
+    } catch (err) { alert(err.message); }
+}
+
+async function clearKandCertifications(kandidatId) {
+    if (!confirm('Radera alla certifikat för kandidaten? Detta kan inte ångras.')) return;
+    try {
+        const res = await apiFetch(`${API_BASE_URL}/kandidater/${kandidatId}/certifications`, { method: 'DELETE' });
+        if (!res.ok) { const e = await res.json(); throw new Error(e.detail || 'Fel'); }
+        await loadKandidatCertifications(kandidatId);
+    } catch (err) { alert(err.message); }
 }
 
 async function addSpCertification() {
@@ -3400,7 +3782,9 @@ async function loadKandidatEducation(kandidatId) {
         const res = await apiFetch(`${API_BASE_URL}/kandidater/${kandidatId}/education`);
         if (!res.ok) return;
         const data = await res.json();
-        renderKandidatEducation(data.education || [], kandidatId);
+        cachedKandEdu = data.education || [];
+        kandEditingEduId = null;
+        renderKandidatEducation(cachedKandEdu, kandidatId);
     } catch (err) {
         if (err.message !== 'Inte inloggad') console.error(err);
     }
@@ -3413,19 +3797,61 @@ function renderKandidatEducation(items, kandidatId) {
         container.innerHTML = '<div class="empty-hint">Inga utbildningar tillagda ännu.</div>';
         return;
     }
-    container.innerHTML = items.map(e => {
-        const period = [e.start_date, e.end_date].filter(Boolean).join(' – ');
-        return `
-            <div style="border:1px solid var(--border);border-radius:var(--radius);padding:0.875rem 1rem;margin-bottom:0.75rem;display:flex;justify-content:space-between;align-items:flex-start;gap:0.5rem">
-                <div>
-                    <div style="font-weight:600">${e.degree}</div>
-                    ${e.institution    ? `<div style="font-size:0.875rem;color:var(--text-muted)">${e.institution}</div>` : ''}
-                    ${e.field_of_study ? `<div style="font-size:0.875rem;color:var(--text-muted)">${e.field_of_study}</div>` : ''}
-                    ${period           ? `<div style="font-size:0.8125rem;color:var(--text-muted);margin-top:0.125rem">${period}</div>` : ''}
+    const clearBarKandEdu = `<div class="list-clear-bar"><span>${items.length} utbildning${items.length !== 1 ? 'ar' : ''}</span><button class="btn btn-danger btn-sm" onclick="clearKandEducation(${kandidatId})">Rensa alla</button></div>`;
+    container.innerHTML = clearBarKandEdu + items.map(e => {
+        if (e.id === kandEditingEduId) {
+            return `<div style="border:1px solid var(--blue);border-radius:var(--radius);padding:0.875rem 1rem;margin-bottom:0.75rem">
+                <div style="display:flex;flex-direction:column;gap:0.5rem;margin-bottom:0.5rem">
+                    <input class="form-input" id="kand-edit-edu-degree"      value="${esc(e.degree)}"         placeholder="Examen / Utbildning" required>
+                    <input class="form-input" id="kand-edit-edu-institution"  value="${esc(e.institution)}"    placeholder="Lärosäte">
+                    <input class="form-input" id="kand-edit-edu-field"        value="${esc(e.field_of_study)}" placeholder="Ämne / Inriktning">
+                    <div style="display:flex;gap:0.5rem">
+                        <input class="form-input" id="kand-edit-edu-start" value="${esc(e.start_date)}" placeholder="Från (ÅÅÅÅ-MM)" style="flex:1">
+                        <input class="form-input" id="kand-edit-edu-end"   value="${esc(e.end_date)}"   placeholder="Till (ÅÅÅÅ-MM)" style="flex:1">
+                    </div>
+                    <textarea class="form-input" id="kand-edit-edu-desc" placeholder="Beskrivning" rows="2">${esc(e.description)}</textarea>
                 </div>
-                <button class="btn-icon btn-icon-danger" onclick="deleteKandidatEducation(${e.id}, ${kandidatId})" title="Ta bort">&times;</button>
+                <div style="display:flex;gap:0.5rem">
+                    <button class="btn btn-primary btn-small" onclick="saveKandEducation(${e.id},${kandidatId})">Spara</button>
+                    <button class="btn btn-secondary btn-small" onclick="kandEditingEduId=null;renderKandidatEducation(cachedKandEdu,${kandidatId})">Avbryt</button>
+                </div>
             </div>`;
+        }
+        const period = [e.start_date, e.end_date].filter(Boolean).join(' – ');
+        return `<div style="border:1px solid var(--border);border-radius:var(--radius);padding:0.875rem 1rem;margin-bottom:0.75rem;display:flex;justify-content:space-between;align-items:flex-start;gap:0.5rem">
+            <div>
+                <div style="font-weight:600">${esc(e.degree)}</div>
+                ${e.institution    ? `<div style="font-size:0.875rem;color:var(--text-muted)">${esc(e.institution)}</div>` : ''}
+                ${e.field_of_study ? `<div style="font-size:0.875rem;color:var(--text-muted)">${esc(e.field_of_study)}</div>` : ''}
+                ${period           ? `<div style="font-size:0.8125rem;color:var(--text-muted);margin-top:0.125rem">${period}</div>` : ''}
+            </div>
+            <div style="display:flex;gap:0.25rem;flex-shrink:0">
+                <button class="btn-icon" onclick="kandEditingEduId=${e.id};renderKandidatEducation(cachedKandEdu,${kandidatId})" title="Redigera">✎</button>
+                <button class="btn-icon btn-icon-danger" onclick="deleteKandidatEducation(${e.id},${kandidatId})" title="Ta bort">&times;</button>
+            </div>
+        </div>`;
     }).join('');
+}
+
+async function saveKandEducation(id, kandidatId) {
+    const body = {
+        degree:         document.getElementById('kand-edit-edu-degree').value.trim(),
+        institution:    document.getElementById('kand-edit-edu-institution').value.trim() || null,
+        field_of_study: document.getElementById('kand-edit-edu-field').value.trim()       || null,
+        start_date:     document.getElementById('kand-edit-edu-start').value.trim()       || null,
+        end_date:       document.getElementById('kand-edit-edu-end').value.trim()         || null,
+        description:    document.getElementById('kand-edit-edu-desc').value.trim()        || null,
+    };
+    if (!body.degree) { showKandEduStatus('Examen / Utbildning krävs', 'error'); return; }
+    try {
+        const res = await apiFetch(`${API_BASE_URL}/kandidater/${kandidatId}/education/${id}`, {
+            method: 'PUT', headers: {'Content-Type':'application/json'}, body: JSON.stringify(body),
+        });
+        if (!res.ok) { const e = await res.json(); throw new Error(e.detail || 'Fel'); }
+        kandEditingEduId = null;
+        showKandEduStatus('Utbildning sparad', 'success');
+        await loadKandidatEducation(kandidatId);
+    } catch (err) { showKandEduStatus(err.message, 'error'); }
 }
 
 async function addKandidatEducation() {
@@ -3475,7 +3901,9 @@ async function loadKandidatCertifications(kandidatId) {
         const res = await apiFetch(`${API_BASE_URL}/kandidater/${kandidatId}/certifications`);
         if (!res.ok) return;
         const data = await res.json();
-        renderKandidatCertifications(data.certifications || [], kandidatId);
+        cachedKandCerts = data.certifications || [];
+        kandEditingCertId = null;
+        renderKandidatCertifications(cachedKandCerts, kandidatId);
     } catch (err) {
         if (err.message !== 'Inte inloggad') console.error(err);
     }
@@ -3488,15 +3916,53 @@ function renderKandidatCertifications(items, kandidatId) {
         container.innerHTML = '<div class="empty-hint">Inga kurser eller certifikat tillagda ännu.</div>';
         return;
     }
-    container.innerHTML = items.map(c => `
-        <div style="border:1px solid var(--border);border-radius:var(--radius);padding:0.875rem 1rem;margin-bottom:0.75rem;display:flex;justify-content:space-between;align-items:flex-start;gap:0.5rem">
+    const clearBarKandCert = `<div class="list-clear-bar"><span>${items.length} certifikat</span><button class="btn btn-danger btn-sm" onclick="clearKandCertifications(${kandidatId})">Rensa alla</button></div>`;
+    container.innerHTML = clearBarKandCert + items.map(c => {
+        if (c.id === kandEditingCertId) {
+            return `<div style="border:1px solid var(--blue);border-radius:var(--radius);padding:0.875rem 1rem;margin-bottom:0.75rem">
+                <div style="display:flex;flex-direction:column;gap:0.5rem;margin-bottom:0.5rem">
+                    <input class="form-input" id="kand-edit-cert-name"   value="${esc(c.name)}"   placeholder="Kurs / Certifikat" required>
+                    <input class="form-input" id="kand-edit-cert-issuer" value="${esc(c.issuer)}" placeholder="Utfärdare">
+                    <input class="form-input" id="kand-edit-cert-date"   value="${esc(c.date)}"   placeholder="Datum (ÅÅÅÅ-MM)">
+                    <textarea class="form-input" id="kand-edit-cert-desc" placeholder="Beskrivning" rows="2">${esc(c.description)}</textarea>
+                </div>
+                <div style="display:flex;gap:0.5rem">
+                    <button class="btn btn-primary btn-small" onclick="saveKandCertification(${c.id},${kandidatId})">Spara</button>
+                    <button class="btn btn-secondary btn-small" onclick="kandEditingCertId=null;renderKandidatCertifications(cachedKandCerts,${kandidatId})">Avbryt</button>
+                </div>
+            </div>`;
+        }
+        return `<div style="border:1px solid var(--border);border-radius:var(--radius);padding:0.875rem 1rem;margin-bottom:0.75rem;display:flex;justify-content:space-between;align-items:flex-start;gap:0.5rem">
             <div>
-                <div style="font-weight:600">${c.name}</div>
-                ${c.issuer ? `<div style="font-size:0.875rem;color:var(--text-muted)">${c.issuer}</div>` : ''}
+                <div style="font-weight:600">${esc(c.name)}</div>
+                ${c.issuer ? `<div style="font-size:0.875rem;color:var(--text-muted)">${esc(c.issuer)}</div>` : ''}
                 ${c.date   ? `<div style="font-size:0.8125rem;color:var(--text-muted);margin-top:0.125rem">${c.date}</div>` : ''}
             </div>
-            <button class="btn-icon btn-icon-danger" onclick="deleteKandidatCertification(${c.id}, ${kandidatId})" title="Ta bort">&times;</button>
-        </div>`).join('');
+            <div style="display:flex;gap:0.25rem;flex-shrink:0">
+                <button class="btn-icon" onclick="kandEditingCertId=${c.id};renderKandidatCertifications(cachedKandCerts,${kandidatId})" title="Redigera">✎</button>
+                <button class="btn-icon btn-icon-danger" onclick="deleteKandidatCertification(${c.id},${kandidatId})" title="Ta bort">&times;</button>
+            </div>
+        </div>`;
+    }).join('');
+}
+
+async function saveKandCertification(id, kandidatId) {
+    const body = {
+        name:        document.getElementById('kand-edit-cert-name').value.trim(),
+        issuer:      document.getElementById('kand-edit-cert-issuer').value.trim() || null,
+        date:        document.getElementById('kand-edit-cert-date').value.trim()   || null,
+        description: document.getElementById('kand-edit-cert-desc').value.trim()  || null,
+    };
+    if (!body.name) { showKandCertStatus('Namn krävs', 'error'); return; }
+    try {
+        const res = await apiFetch(`${API_BASE_URL}/kandidater/${kandidatId}/certifications/${id}`, {
+            method: 'PUT', headers: {'Content-Type':'application/json'}, body: JSON.stringify(body),
+        });
+        if (!res.ok) { const e = await res.json(); throw new Error(e.detail || 'Fel'); }
+        kandEditingCertId = null;
+        showKandCertStatus('Certifikat sparat', 'success');
+        await loadKandidatCertifications(kandidatId);
+    } catch (err) { showKandCertStatus(err.message, 'error'); }
 }
 
 async function addKandidatCertification() {

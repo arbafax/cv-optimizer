@@ -930,6 +930,39 @@ body {
     color: #dc2626;
 }
 
+/* Clear-all header bar above lists */
+.list-clear-bar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 0.75rem;
+    padding-bottom: 0.5rem;
+    border-bottom: 1px solid var(--border);
+}
+.list-clear-bar span {
+    font-size: 0.8125rem;
+    color: var(--text-muted);
+}
+
+/* Inline skill edit row (appears below chip when editing) */
+.skill-edit-row {
+    width: 100%;
+    display: flex;
+    gap: 0.5rem;
+    align-items: center;
+    flex-wrap: wrap;
+    padding: 0.5rem 0;
+    border-top: 1px solid var(--border);
+    margin-top: 0.25rem;
+}
+.skill-edit-row input, .skill-edit-row select {
+    font-size: 0.8125rem;
+    padding: 0.25rem 0.5rem;
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm, 6px);
+    background: var(--bg);
+}
+
 /* Icon buttons for actions */
 .btn-icon {
     background: none;

@@ -47,7 +47,7 @@
 </div>
 
 <!-- ════════════════════════════════ SIDEBAR ════════════════════════════════ -->
-<aside class="sidebar" id="sidebar">
+<aside class="sidebar hidden" id="sidebar">
     <div class="sidebar-brand">
         <span class="brand-cv">CV</span><span class="brand-match">Match</span>
         <p class="brand-sub">AI-driven karriärverktyg</p>
@@ -57,14 +57,6 @@
         <a href="#" class="nav-item active" onclick="showView('dashboard', this)">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="3" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="3" width="7" height="7" rx="1.5"/><rect x="3" y="14" width="7" height="7" rx="1.5"/><rect x="14" y="14" width="7" height="7" rx="1.5"/></svg>
             Dashboard
-        </a>
-        <a href="#" class="nav-item" onclick="showView('sokprofil', this); loadSokprofil(); switchSokprofilTab('cv')">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>
-            Mina CV:n
-        </a>
-        <a href="#" class="nav-item" onclick="showView('bank', this)">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><ellipse cx="12" cy="5" rx="9" ry="3"/><path d="M21 12c0 1.66-4 3-9 3s-9-1.34-9-3"/><path d="M3 5v14c0 1.66 4 3 9 3s9-1.34 9-3V5"/></svg>
-            Min kompetensbank
         </a>
         <a href="#" class="nav-item" onclick="showView('optimize', this)">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
@@ -98,13 +90,13 @@
 </aside>
 
 <!-- ════════════════════════════════ MAIN ════════════════════════════════ -->
-<main class="main" id="main-content">
+<main class="main hidden" id="main-content">
 
     <!-- ── DASHBOARD VIEW ── -->
     <div id="view-dashboard" class="view active">
         <div class="view-header">
             <div>
-                <h1>Välkommen tillbaka/h1>
+                <h1>Välkommen tillbaka</h1>
                 <p class="view-subtitle">Här är en översikt av dina CV:n och matchningar.</p>
             </div>
         </div>
@@ -142,7 +134,7 @@
 
         <!-- Action cards -->
         <div class="action-cards">
-            <div class="action-card action-card--primary" onclick="showView('mycvs', document.querySelector('[onclick*=mycvs]'))">
+            <div class="action-card action-card--primary" onclick="showView('sokprofil', document.querySelector('[onclick*=sokprofil]')); loadSokprofil(); switchSokprofilTab('cv')">
                 <div class="action-card-icon">
                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
                 </div>
@@ -168,40 +160,11 @@
         <div class="dashboard-section">
             <div class="section-header">
                 <h2>Dina CV:n</h2>
-                <a href="#" class="section-link" onclick="showView('mycvs', document.querySelector('[onclick*=mycvs]'))">Visa alla →</a>
+                <a href="#" class="section-link" onclick="showView('sokprofil', document.querySelector('[onclick*=sokprofil]')); loadSokprofil(); switchSokprofilTab('cv')">Visa alla →</a>
             </div>
             <div id="dash-cv-list" class="dash-cv-list">
                 <div class="empty-hint">Inga CV:n uppladdade än</div>
             </div>
-        </div>
-    </div>
-
-    <!-- ── MY CVS VIEW ── -->
-    <div id="view-mycvs" class="view">
-        <div class="view-header">
-            <div>
-                <h1>Mina CV:n</h1>
-                <p class="view-subtitle">Ladda upp och hantera dina CV:n.</p>
-            </div>
-        </div>
-
-        <div class="card">
-            <div class="upload-zone" id="upload-area">
-                <input type="file" id="cv-upload" accept=".pdf" hidden>
-                <label for="cv-upload" id="upload-label">
-                    <div class="upload-icon-wrap">
-                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
-                    </div>
-                    <p class="upload-main">Dra och släpp din PDF här</p>
-                    <p class="upload-sub">eller klicka för att välja fil &nbsp;·&nbsp; Max 10 MB</p>
-                </label>
-            </div>
-            <div id="upload-status"></div>
-            <div id="cv-preview" class="cv-preview hidden"></div>
-        </div>
-
-        <div id="cv-list" class="cv-grid">
-            <div class="empty-hint">Inga CV:n uppladdade än</div>
         </div>
     </div>
 
@@ -237,6 +200,8 @@
                 <button id="kand-tab-btn-basinfo" class="kand-tab-btn active" onclick="switchKandidatTab('basinfo')">Basinfo</button>
                 <button id="kand-tab-btn-kompetenser" class="kand-tab-btn" onclick="switchKandidatTab('kompetenser')" disabled>Kompetenser</button>
                 <button id="kand-tab-btn-erfarenheter" class="kand-tab-btn" onclick="switchKandidatTab('erfarenheter')" disabled>Erfarenheter</button>
+                <button id="kand-tab-btn-utbildning" class="kand-tab-btn" onclick="switchKandidatTab('utbildning')" disabled>Utbildning</button>
+                <button id="kand-tab-btn-certifikat" class="kand-tab-btn" onclick="switchKandidatTab('certifikat')" disabled>Kurser &amp; Cert</button>
                 <button id="kand-tab-btn-cv" class="kand-tab-btn" onclick="switchKandidatTab('cv')" disabled>CV</button>
             </div>
 
@@ -388,6 +353,72 @@
 
             </div>
 
+            <!-- ── TAB: Utbildning ── -->
+            <div id="kand-tab-utbildning" style="display:none">
+                <div class="card" style="margin-bottom:1.25rem">
+                    <h3 style="margin:0 0 0.75rem">Lägg till utbildning</h3>
+                    <div style="display:grid; grid-template-columns:1fr 1fr; gap:0.5rem">
+                        <div>
+                            <label style="font-size:0.8125rem; color:var(--text-muted)">Examen / Utbildning <span style="color:var(--danger)">*</span></label>
+                            <input type="text" id="kand-edu-degree" class="form-input" placeholder="t.ex. Civilingenjör, Kandidatexamen">
+                        </div>
+                        <div>
+                            <label style="font-size:0.8125rem; color:var(--text-muted)">Lärosäte</label>
+                            <input type="text" id="kand-edu-institution" class="form-input" placeholder="t.ex. KTH, Stockholms Universitet">
+                        </div>
+                        <div>
+                            <label style="font-size:0.8125rem; color:var(--text-muted)">Inriktning</label>
+                            <input type="text" id="kand-edu-field" class="form-input" placeholder="t.ex. Datavetenskap">
+                        </div>
+                        <div style="display:flex; gap:0.5rem">
+                            <div style="flex:1">
+                                <label style="font-size:0.8125rem; color:var(--text-muted)">Från</label>
+                                <input type="text" id="kand-edu-start" class="form-input" placeholder="2018">
+                            </div>
+                            <div style="flex:1">
+                                <label style="font-size:0.8125rem; color:var(--text-muted)">Till</label>
+                                <input type="text" id="kand-edu-end" class="form-input" placeholder="2022">
+                            </div>
+                        </div>
+                    </div>
+                    <div id="kand-edu-status" style="margin-top:0.5rem"></div>
+                    <button class="btn btn-primary" onclick="addKandidatEducation()" style="margin-top:0.75rem">+ Lägg till utbildning</button>
+                </div>
+                <div class="card">
+                    <div id="kand-education-list">
+                        <div class="empty-hint">Inga utbildningar tillagda ännu.</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- ── TAB: Kurser & Cert ── -->
+            <div id="kand-tab-certifikat" style="display:none">
+                <div class="card" style="margin-bottom:1.25rem">
+                    <h3 style="margin:0 0 0.75rem">Lägg till kurs eller certifikat</h3>
+                    <div style="display:grid; grid-template-columns:1fr 1fr; gap:0.5rem">
+                        <div>
+                            <label style="font-size:0.8125rem; color:var(--text-muted)">Namn <span style="color:var(--danger)">*</span></label>
+                            <input type="text" id="kand-cert-name" class="form-input" placeholder="t.ex. AWS Solutions Architect">
+                        </div>
+                        <div>
+                            <label style="font-size:0.8125rem; color:var(--text-muted)">Utfärdare</label>
+                            <input type="text" id="kand-cert-issuer" class="form-input" placeholder="t.ex. Amazon, Coursera">
+                        </div>
+                        <div>
+                            <label style="font-size:0.8125rem; color:var(--text-muted)">Datum</label>
+                            <input type="text" id="kand-cert-date" class="form-input" placeholder="t.ex. 2023-05">
+                        </div>
+                    </div>
+                    <div id="kand-cert-status" style="margin-top:0.5rem"></div>
+                    <button class="btn btn-primary" onclick="addKandidatCertification()" style="margin-top:0.75rem">+ Lägg till certifikat</button>
+                </div>
+                <div class="card">
+                    <div id="kand-certifications-list">
+                        <div class="empty-hint">Inga kurser eller certifikat tillagda ännu.</div>
+                    </div>
+                </div>
+            </div>
+
             <!-- ── TAB: CV ── -->
             <div id="kand-tab-cv" style="display:none">
 
@@ -405,45 +436,24 @@
                     <div id="kand-upload-status"></div>
                 </div>
 
+                <div id="kand-cv-list" class="cv-grid" style="margin-top:1.25rem">
+                    <div class="empty-hint">Inga CV:n uppladdade än</div>
+                </div>
+                <!-- CV detail/edit panel -->
+                <div id="kand-cv-detail" style="display:none; margin-top:1.25rem">
+                    <div class="card">
+                        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:1rem">
+                            <h3 id="kand-cv-detail-title" style="margin:0">CV-detaljer</h3>
+                            <button class="btn btn-secondary btn-sm" onclick="closeKandidatCVDetail()">Stäng ×</button>
+                        </div>
+                        <div id="kand-cv-detail-body"></div>
+                    </div>
+                </div>
+
             </div>
 
         </div>
 
-    </div>
-
-    <!-- ── BANK VIEW ── -->
-    <div id="view-bank" class="view">
-        <div class="view-header">
-            <div>
-                <h1>Min kompetensbank</h1>
-                <p class="view-subtitle">Aggregerade skills och erfarenheter från alla dina CV:n.</p>
-            </div>
-        </div>
-
-        <div class="bank-stats" id="bank-stats">
-            <div class="bank-stat">
-                <div class="bank-stat-number" id="stat-skills">—</div>
-                <div class="bank-stat-label">Unika kompetenser</div>
-            </div>
-            <div class="bank-stat">
-                <div class="bank-stat-number" id="stat-experiences">—</div>
-                <div class="bank-stat-label">Erfarenheter</div>
-            </div>
-            <div class="bank-stat">
-                <div class="bank-stat-number" id="stat-sources">—</div>
-                <div class="bank-stat-label">CV:n processade</div>
-            </div>
-            <div class="bank-stat">
-                <div class="bank-stat-number" id="stat-categories">—</div>
-                <div class="bank-stat-label">Kategorier</div>
-            </div>
-        </div>
-
-        <div id="merge-status"></div>
-
-        <div class="bank-content" id="bank-content">
-            <div class="empty-hint">Ladda upp ett CV för att fylla banken</div>
-        </div>
     </div>
 
     <!-- ── ACCOUNT VIEW ── -->
@@ -597,6 +607,8 @@
             <button id="sp-tab-btn-basinfo" class="kand-tab-btn active" onclick="switchSokprofilTab('basinfo')">Basinfo</button>
             <button id="sp-tab-btn-kompetenser" class="kand-tab-btn" onclick="switchSokprofilTab('kompetenser')">Kompetenser</button>
             <button id="sp-tab-btn-erfarenheter" class="kand-tab-btn" onclick="switchSokprofilTab('erfarenheter')">Erfarenheter</button>
+            <button id="sp-tab-btn-utbildning" class="kand-tab-btn" onclick="switchSokprofilTab('utbildning')">Utbildning</button>
+            <button id="sp-tab-btn-certifikat" class="kand-tab-btn" onclick="switchSokprofilTab('certifikat')">Kurser &amp; Cert</button>
             <button id="sp-tab-btn-cv" class="kand-tab-btn" onclick="switchSokprofilTab('cv')">CV</button>
         </div>
 
@@ -605,7 +617,7 @@
         <div class="card sokprofil-card">
             <div class="form-group">
                 <label for="sp-email">E-postadress</label>
-                <p class="field-desc">Den e-postadress som visas för rekryterare och arbetsgivare. Fylls i automatiskt från ditt konto.</p>
+                <p class="field-desc">Den e-postadress som visas för rekryterare och arbetsgivare. Behöver inte vara samma som ditt kontos e-postadress.</p>
                 <input type="email" id="sp-email" class="form-input" placeholder="din@epost.se">
             </div>
             <div class="form-group">
@@ -723,6 +735,72 @@
             </div>
         </div>
 
+        <!-- ── TAB: Utbildning ── -->
+        <div id="sp-tab-utbildning" style="display:none">
+            <div class="card" style="margin-bottom:1.25rem">
+                <h3 style="margin:0 0 0.75rem">Lägg till utbildning</h3>
+                <div style="display:grid; grid-template-columns:1fr 1fr; gap:0.5rem">
+                    <div>
+                        <label style="font-size:0.8125rem; color:var(--text-muted)">Examen / Utbildning <span style="color:var(--danger)">*</span></label>
+                        <input type="text" id="sp-edu-degree" class="form-input" placeholder="t.ex. Civilingenjör, Kandidatexamen">
+                    </div>
+                    <div>
+                        <label style="font-size:0.8125rem; color:var(--text-muted)">Lärosäte</label>
+                        <input type="text" id="sp-edu-institution" class="form-input" placeholder="t.ex. KTH, Stockholms Universitet">
+                    </div>
+                    <div>
+                        <label style="font-size:0.8125rem; color:var(--text-muted)">Inriktning</label>
+                        <input type="text" id="sp-edu-field" class="form-input" placeholder="t.ex. Datavetenskap">
+                    </div>
+                    <div style="display:flex; gap:0.5rem">
+                        <div style="flex:1">
+                            <label style="font-size:0.8125rem; color:var(--text-muted)">Från</label>
+                            <input type="text" id="sp-edu-start" class="form-input" placeholder="2018">
+                        </div>
+                        <div style="flex:1">
+                            <label style="font-size:0.8125rem; color:var(--text-muted)">Till</label>
+                            <input type="text" id="sp-edu-end" class="form-input" placeholder="2022">
+                        </div>
+                    </div>
+                </div>
+                <div id="sp-edu-status" style="margin-top:0.5rem"></div>
+                <button class="btn btn-primary" onclick="addSpEducation()" style="margin-top:0.75rem">+ Lägg till utbildning</button>
+            </div>
+            <div class="card">
+                <div id="sp-education-list">
+                    <div class="empty-hint">Inga utbildningar tillagda ännu.</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- ── TAB: Kurser & Cert ── -->
+        <div id="sp-tab-certifikat" style="display:none">
+            <div class="card" style="margin-bottom:1.25rem">
+                <h3 style="margin:0 0 0.75rem">Lägg till kurs eller certifikat</h3>
+                <div style="display:grid; grid-template-columns:1fr 1fr; gap:0.5rem">
+                    <div>
+                        <label style="font-size:0.8125rem; color:var(--text-muted)">Namn <span style="color:var(--danger)">*</span></label>
+                        <input type="text" id="sp-cert-name" class="form-input" placeholder="t.ex. AWS Solutions Architect">
+                    </div>
+                    <div>
+                        <label style="font-size:0.8125rem; color:var(--text-muted)">Utfärdare</label>
+                        <input type="text" id="sp-cert-issuer" class="form-input" placeholder="t.ex. Amazon, Coursera">
+                    </div>
+                    <div>
+                        <label style="font-size:0.8125rem; color:var(--text-muted)">Datum</label>
+                        <input type="text" id="sp-cert-date" class="form-input" placeholder="t.ex. 2023-05">
+                    </div>
+                </div>
+                <div id="sp-cert-status" style="margin-top:0.5rem"></div>
+                <button class="btn btn-primary" onclick="addSpCertification()" style="margin-top:0.75rem">+ Lägg till certifikat</button>
+            </div>
+            <div class="card">
+                <div id="sp-certifications-list">
+                    <div class="empty-hint">Inga kurser eller certifikat tillagda ännu.</div>
+                </div>
+            </div>
+        </div>
+
         <!-- ── TAB: CV ── -->
         <div id="sp-tab-cv" style="display:none">
             <div class="card" style="margin-bottom:1.25rem">
@@ -740,6 +818,16 @@
             </div>
             <div id="sp-cv-list" class="cv-grid">
                 <div class="empty-hint">Inga CV:n uppladdade än</div>
+            </div>
+            <!-- CV detail/edit panel (shown when a CV card is clicked) -->
+            <div id="sp-cv-detail" style="display:none">
+                <div class="card" style="margin-top:1.25rem">
+                    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:1rem">
+                        <h3 id="sp-cv-detail-title" style="margin:0">CV-detaljer</h3>
+                        <button class="btn btn-secondary btn-sm" onclick="closeSpCVDetail()">Stäng ×</button>
+                    </div>
+                    <div id="sp-cv-detail-body"></div>
+                </div>
             </div>
         </div>
 

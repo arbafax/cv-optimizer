@@ -2,12 +2,6 @@
 const API_BASE_URL = 'http://localhost:8000/api/v1';
 
 // DOM Elements
-const uploadArea    = document.getElementById('upload-area');
-const uploadLabel   = document.getElementById('upload-label');
-const cvUpload      = document.getElementById('cv-upload');
-const uploadStatus  = document.getElementById('upload-status');
-const cvPreview     = document.getElementById('cv-preview');
-const cvList        = document.getElementById('cv-list');
 const optimizeBtn    = document.getElementById('optimize-btn');
 const jobDescription = document.getElementById('job-description');
 const charCount      = document.getElementById('char-count');
@@ -40,6 +34,7 @@ async function apiFetch(url, options = {}) {
 
 // ── Navigation ────────────────────────────────────────────
 function showView(viewId, navEl) {
+    if (!currentUser) { showAuthView(); return; }
     // Hide all views
     document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
     document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
@@ -62,19 +57,9 @@ document.addEventListener('DOMContentLoaded', () => {
 
 // Event Listeners
 function setupEventListeners() {
-    cvUpload.addEventListener('change', handleFileSelect);
-    uploadArea.addEventListener('dragover', handleDragOver);
-    uploadArea.addEventListener('dragleave', handleDragLeave);
-    uploadArea.addEventListener('drop', handleDrop);
     optimizeBtn.addEventListener('click', handleOptimize);
     jobDescription.addEventListener('input', updateCharCount);
     jobDescription.addEventListener('input', updateOptimizeButton);
-
-    cvList.addEventListener('click', (e) => {
-        if (!e.target.closest('.cv-item')) {
-            deselectCV();
-        }
-    });
 }
 
 // Drag and Drop Handlers
@@ -385,11 +370,11 @@ async function handleSpCVUpload(file) {
     formData.append('file', file);
 
     try {
-        const res = await apiFetch(`${API_BASE_URL}/cv/upload`, { method: 'POST', body: formData });
+        const res = await apiFetch(`${API_BASE_URL}/competence/cvs/upload`, { method: 'POST', body: formData });
         if (!res.ok) { const e = await res.json(); throw new Error(e.detail || 'Uppladdning misslyckades'); }
         if (area) area.classList.remove('uploading');
         showSpCVUploadStatus('✅ CV uppladdat och strukturerat!', 'success');
-        await loadCVs();
+        await loadSpCandidateCVs();
     } catch (err) {
         if (area) area.classList.remove('uploading');
         showSpCVUploadStatus(`❌ ${err.message}`, 'error');
@@ -2188,8 +2173,6 @@ function showApp() {
     if (h1 && currentUser) {
         h1.textContent = `Välkommen tillbaka, ${currentUser.name.split(' ')[0]}!`;
     }
-    loadCVs();
-    loadBankData();
 }
 
 function updateRoleBasedNav() {
@@ -2483,13 +2466,15 @@ function showSokprofilStatus(msg, type) {
 }
 
 function switchSokprofilTab(tab) {
-    ['basinfo', 'kompetenser', 'erfarenheter', 'cv'].forEach(t => {
+    ['basinfo', 'kompetenser', 'erfarenheter', 'utbildning', 'certifikat', 'cv'].forEach(t => {
         document.getElementById(`sp-tab-${t}`).style.display       = t === tab ? '' : 'none';
         document.getElementById(`sp-tab-btn-${t}`).classList.toggle('active', t === tab);
     });
     if (tab === 'kompetenser')  loadSpKompetenser();
     if (tab === 'erfarenheter') loadSpErfarenheter();
-    if (tab === 'cv') { setupSpCVUpload(); loadCVs(); }
+    if (tab === 'utbildning')   loadSpEducation();
+    if (tab === 'certifikat')   loadSpCertifications();
+    if (tab === 'cv') { setupSpCVUpload(); loadSpCandidateCVs(); }
 }
 
 async function loadSpKompetenser() {
@@ -2662,8 +2647,9 @@ function showKandidatForm(kandidat) {
     document.getElementById('kand-delete-btn').style.display = kandidat ? '' : 'none';
     document.getElementById('kand-status').textContent = '';
 
-    // Bank-fliken aktiveras bara vid redigering av befintlig kandidat
-    ['kand-tab-btn-kompetenser', 'kand-tab-btn-erfarenheter', 'kand-tab-btn-cv'].forEach(id => {
+    // Dessa flikar aktiveras bara vid redigering av befintlig kandidat
+    ['kand-tab-btn-kompetenser', 'kand-tab-btn-erfarenheter',
+     'kand-tab-btn-utbildning', 'kand-tab-btn-certifikat', 'kand-tab-btn-cv'].forEach(id => {
         document.getElementById(id).disabled = !kandidat;
     });
     kandUploadSetup = false;
@@ -2829,14 +2815,16 @@ function showKandidatStatus(msg, type) {
 let kandUploadSetup = false;
 
 function switchKandidatTab(tab) {
-    ['basinfo', 'kompetenser', 'erfarenheter', 'cv'].forEach(t => {
+    ['basinfo', 'kompetenser', 'erfarenheter', 'utbildning', 'certifikat', 'cv'].forEach(t => {
         document.getElementById(`kand-tab-${t}`).style.display       = t === tab ? '' : 'none';
         document.getElementById(`kand-tab-btn-${t}`).classList.toggle('active', t === tab);
     });
     if (currentKandidatId) {
         if (tab === 'kompetenser')  loadKandidatBank(currentKandidatId);
         if (tab === 'erfarenheter') loadKandidatBank(currentKandidatId);
-        if (tab === 'cv')           setupKandidatUpload();
+        if (tab === 'utbildning')   loadKandidatEducation(currentKandidatId);
+        if (tab === 'certifikat')   loadKandidatCertifications(currentKandidatId);
+        if (tab === 'cv')           { setupKandidatUpload(); loadKandidatCVs(currentKandidatId); }
     }
 }
 
@@ -2990,10 +2978,11 @@ async function handleKandidatCVUpload(file) {
         if (!res.ok) { const e = await res.json(); throw new Error(e.detail || 'Fel vid uppladdning'); }
         const data = await res.json();
         showKandidatUploadStatus(
-            `✅ ${data.name || file.name} — ${data.skills_added} kompetenser och ${data.experiences_added} erfarenheter tillagda`,
+            `✅ ${data.filename || file.name} — ${data.skill_count} kompetenser, ${data.experience_count} erfarenheter tillagda`,
             'success'
         );
         loadKandidatBank(currentKandidatId);
+        loadKandidatCVs(currentKandidatId);
     } catch (err) {
         showKandidatUploadStatus(`❌ ${err.message}`, 'error');
     }
@@ -3037,6 +3026,517 @@ function renderKandidatExperiences(experiences) {
     }).join('');
 }
 
+// ── New Candidate CV API (Min profil / CV tab) ────────────────────────────────
+
+let spCandidateCVs = [];
+
+async function loadSpCandidateCVs() {
+    try {
+        const res = await apiFetch(`${API_BASE_URL}/competence/cvs/`);
+        if (!res.ok) return;
+        spCandidateCVs = await res.json();
+        displaySpCandidateCVs(spCandidateCVs);
+    } catch (err) {
+        if (err.message !== 'Inte inloggad') console.error(err);
+    }
+}
+
+function displaySpCandidateCVs(cvs) {
+    const container = document.getElementById('sp-cv-list');
+    if (!container) return;
+    if (!cvs.length) {
+        container.innerHTML = '<div class="empty-hint">Inga CV:n uppladdade än</div>';
+        return;
+    }
+    container.innerHTML = cvs.map(cv => {
+        const date = cv.upload_date
+            ? new Date(cv.upload_date).toLocaleDateString('sv-SE', { year:'numeric', month:'short', day:'numeric' })
+            : '—';
+        const processedBadge  = cv.is_processed
+            ? '<span class="cv-badge cv-badge--green">✓ Behandlad</span>'
+            : '<span class="cv-badge cv-badge--blue">Ej behandlad</span>';
+        const vectorizedBadge = cv.is_vectorized
+            ? '<span class="cv-badge cv-badge--green">✓ Vektoriserad</span>'
+            : '';
+        return `
+            <div class="cv-item" onclick="openSpCVDetail(${cv.id})" style="cursor:pointer">
+                <div class="cv-item-header">
+                    <div class="cv-item-info">
+                        <h3>${cv.filename}</h3>
+                        <div style="display:flex;gap:0.5rem;flex-wrap:wrap;margin-top:0.25rem">
+                            ${processedBadge}${vectorizedBadge}
+                        </div>
+                    </div>
+                </div>
+                <div class="cv-item-details">
+                    <div class="cv-item-detail">📅 ${date}</div>
+                    <div class="cv-item-detail">🎯 ${cv.skill_count} kompetenser</div>
+                    <div class="cv-item-detail">💼 ${cv.experience_count} erfarenheter</div>
+                    <div class="cv-item-detail">🎓 ${cv.education_count} utbildningar</div>
+                    <div class="cv-item-detail">📜 ${cv.certification_count} certifikat</div>
+                </div>
+            </div>`;
+    }).join('');
+}
+
+function openSpCVDetail(cvId) {
+    const cv = spCandidateCVs.find(c => c.id === cvId);
+    if (!cv) return;
+    const detail = document.getElementById('sp-cv-detail');
+    const title  = document.getElementById('sp-cv-detail-title');
+    const body   = document.getElementById('sp-cv-detail-body');
+    if (!detail) return;
+    title.textContent = cv.filename;
+    const date = cv.upload_date
+        ? new Date(cv.upload_date).toLocaleDateString('sv-SE', { year:'numeric', month:'long', day:'numeric' })
+        : '—';
+    body.innerHTML = `
+        <div class="cv-detail-stats">
+            <div class="cv-detail-stat"><strong>${cv.skill_count}</strong><span>Kompetenser</span></div>
+            <div class="cv-detail-stat"><strong>${cv.experience_count}</strong><span>Erfarenheter</span></div>
+            <div class="cv-detail-stat"><strong>${cv.education_count}</strong><span>Utbildningar</span></div>
+            <div class="cv-detail-stat"><strong>${cv.certification_count}</strong><span>Certifikat</span></div>
+        </div>
+        <div style="margin-bottom:1rem;color:var(--text-muted);font-size:0.875rem">Uppladdad: ${date}</div>
+        <div id="sp-cv-action-status"></div>
+        <div style="display:flex;gap:0.75rem;flex-wrap:wrap">
+            ${!cv.is_vectorized && cv.is_processed
+                ? `<button class="btn btn-primary" onclick="vectorizeSpCV(${cv.id})">⚡ Vektorisera</button>`
+                : ''}
+            <a class="btn btn-secondary" href="${API_BASE_URL}/competence/cvs/${cv.id}/file" target="_blank">⬇ Ladda ner PDF</a>
+            <button class="btn btn-danger btn-sm" onclick="deleteSpCV(${cv.id}, '${cv.filename.replace(/'/g, "\\'")}')">🗑 Ta bort</button>
+        </div>`;
+    detail.style.display = '';
+    detail.scrollIntoView({ behavior:'smooth', block:'nearest' });
+}
+
+function closeSpCVDetail() {
+    const detail = document.getElementById('sp-cv-detail');
+    if (detail) detail.style.display = 'none';
+}
+
+async function vectorizeSpCV(cvId) {
+    const statusEl = document.getElementById('sp-cv-action-status');
+    if (statusEl) { statusEl.className = 'status-message status-loading'; statusEl.textContent = '⏳ Vektoriserar...'; }
+    try {
+        const res = await apiFetch(`${API_BASE_URL}/competence/cvs/${cvId}/vectorize`, { method:'POST' });
+        if (!res.ok) { const e = await res.json(); throw new Error(e.detail || 'Fel'); }
+        await loadSpCandidateCVs();
+        closeSpCVDetail();
+    } catch (err) {
+        if (statusEl) { statusEl.className = 'status-message status-error'; statusEl.textContent = `❌ ${err.message}`; }
+    }
+}
+
+async function deleteSpCV(cvId, filename) {
+    if (!confirm(`Ta bort "${filename}"? Kompetenser och utbildningar kopplade enbart till detta CV tas också bort.`)) return;
+    try {
+        const res = await apiFetch(`${API_BASE_URL}/competence/cvs/${cvId}`, { method:'DELETE' });
+        if (!res.ok) { const e = await res.json(); throw new Error(e.detail || 'Fel'); }
+        closeSpCVDetail();
+        await loadSpCandidateCVs();
+    } catch (err) {
+        alert(`❌ ${err.message}`);
+    }
+}
+
+// ── Education CRUD (Min profil) ────────────────────────────────────────────────
+
+async function loadSpEducation() {
+    try {
+        const res = await apiFetch(`${API_BASE_URL}/competence/education`);
+        if (!res.ok) return;
+        const data = await res.json();
+        renderSpEducation(data.education || []);
+    } catch (err) {
+        if (err.message !== 'Inte inloggad') console.error(err);
+    }
+}
+
+function renderSpEducation(items) {
+    const container = document.getElementById('sp-education-list');
+    if (!container) return;
+    if (!items.length) {
+        container.innerHTML = '<div class="empty-hint">Inga utbildningar tillagda ännu.</div>';
+        return;
+    }
+    container.innerHTML = items.map(e => {
+        const period = [e.start_date, e.end_date].filter(Boolean).join(' – ');
+        return `
+            <div style="border:1px solid var(--border);border-radius:var(--radius);padding:0.875rem 1rem;margin-bottom:0.75rem;display:flex;justify-content:space-between;align-items:flex-start;gap:0.5rem">
+                <div>
+                    <div style="font-weight:600">${e.degree}</div>
+                    ${e.institution    ? `<div style="font-size:0.875rem;color:var(--text-muted)">${e.institution}</div>` : ''}
+                    ${e.field_of_study ? `<div style="font-size:0.875rem;color:var(--text-muted)">${e.field_of_study}</div>` : ''}
+                    ${period           ? `<div style="font-size:0.8125rem;color:var(--text-muted);margin-top:0.125rem">${period}</div>` : ''}
+                </div>
+                <button class="btn-icon btn-icon-danger" onclick="deleteSpEducation(${e.id})" title="Ta bort">&times;</button>
+            </div>`;
+    }).join('');
+}
+
+async function addSpEducation() {
+    const degree = document.getElementById('sp-edu-degree').value.trim();
+    if (!degree) { showSpEduStatus('Examen / Utbildning krävs', 'error'); return; }
+    const body = {
+        degree,
+        institution:    document.getElementById('sp-edu-institution').value.trim() || null,
+        field_of_study: document.getElementById('sp-edu-field').value.trim()       || null,
+        start_date:     document.getElementById('sp-edu-start').value.trim()       || null,
+        end_date:       document.getElementById('sp-edu-end').value.trim()         || null,
+    };
+    try {
+        const res = await apiFetch(`${API_BASE_URL}/competence/education`, {
+            method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify(body),
+        });
+        if (!res.ok) { const e = await res.json(); throw new Error(e.detail || 'Fel'); }
+        ['sp-edu-degree','sp-edu-institution','sp-edu-field','sp-edu-start','sp-edu-end']
+            .forEach(id => document.getElementById(id).value = '');
+        showSpEduStatus('Utbildning tillagd', 'success');
+        await loadSpEducation();
+    } catch (err) { showSpEduStatus(err.message, 'error'); }
+}
+
+async function deleteSpEducation(id) {
+    if (!confirm('Ta bort utbildningen?')) return;
+    try {
+        const res = await apiFetch(`${API_BASE_URL}/competence/education/${id}`, { method:'DELETE' });
+        if (!res.ok) throw new Error('Kunde inte ta bort');
+        await loadSpEducation();
+    } catch (err) { alert(err.message); }
+}
+
+function showSpEduStatus(msg, type) {
+    const el = document.getElementById('sp-edu-status');
+    if (!el) return;
+    el.textContent = msg;
+    el.className = `status-message status-${type}`;
+    setTimeout(() => { el.textContent = ''; el.className = ''; }, 4000);
+}
+
+// ── Certification CRUD (Min profil) ────────────────────────────────────────────
+
+async function loadSpCertifications() {
+    try {
+        const res = await apiFetch(`${API_BASE_URL}/competence/certifications`);
+        if (!res.ok) return;
+        const data = await res.json();
+        renderSpCertifications(data.certifications || []);
+    } catch (err) {
+        if (err.message !== 'Inte inloggad') console.error(err);
+    }
+}
+
+function renderSpCertifications(items) {
+    const container = document.getElementById('sp-certifications-list');
+    if (!container) return;
+    if (!items.length) {
+        container.innerHTML = '<div class="empty-hint">Inga kurser eller certifikat tillagda ännu.</div>';
+        return;
+    }
+    container.innerHTML = items.map(c => `
+        <div style="border:1px solid var(--border);border-radius:var(--radius);padding:0.875rem 1rem;margin-bottom:0.75rem;display:flex;justify-content:space-between;align-items:flex-start;gap:0.5rem">
+            <div>
+                <div style="font-weight:600">${c.name}</div>
+                ${c.issuer ? `<div style="font-size:0.875rem;color:var(--text-muted)">${c.issuer}</div>` : ''}
+                ${c.date   ? `<div style="font-size:0.8125rem;color:var(--text-muted);margin-top:0.125rem">${c.date}</div>` : ''}
+            </div>
+            <button class="btn-icon btn-icon-danger" onclick="deleteSpCertification(${c.id})" title="Ta bort">&times;</button>
+        </div>`).join('');
+}
+
+async function addSpCertification() {
+    const name = document.getElementById('sp-cert-name').value.trim();
+    if (!name) { showSpCertStatus('Namn krävs', 'error'); return; }
+    const body = {
+        name,
+        issuer: document.getElementById('sp-cert-issuer').value.trim() || null,
+        date:   document.getElementById('sp-cert-date').value.trim()   || null,
+    };
+    try {
+        const res = await apiFetch(`${API_BASE_URL}/competence/certifications`, {
+            method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify(body),
+        });
+        if (!res.ok) { const e = await res.json(); throw new Error(e.detail || 'Fel'); }
+        ['sp-cert-name','sp-cert-issuer','sp-cert-date'].forEach(id => document.getElementById(id).value = '');
+        showSpCertStatus('Certifikat tillagt', 'success');
+        await loadSpCertifications();
+    } catch (err) { showSpCertStatus(err.message, 'error'); }
+}
+
+async function deleteSpCertification(id) {
+    if (!confirm('Ta bort certifikatet?')) return;
+    try {
+        const res = await apiFetch(`${API_BASE_URL}/competence/certifications/${id}`, { method:'DELETE' });
+        if (!res.ok) throw new Error('Kunde inte ta bort');
+        await loadSpCertifications();
+    } catch (err) { alert(err.message); }
+}
+
+function showSpCertStatus(msg, type) {
+    const el = document.getElementById('sp-cert-status');
+    if (!el) return;
+    el.textContent = msg;
+    el.className = `status-message status-${type}`;
+    setTimeout(() => { el.textContent = ''; el.className = ''; }, 4000);
+}
+
+// ── Kandidat CV list (new API) ────────────────────────────────────────────────
+
+let kandCandidateCVs = [];
+
+async function loadKandidatCVs(kandidatId) {
+    try {
+        const res = await apiFetch(`${API_BASE_URL}/kandidater/${kandidatId}/cvs`);
+        if (!res.ok) return;
+        kandCandidateCVs = await res.json();
+        displayKandidatCVs(kandCandidateCVs, kandidatId);
+    } catch (err) {
+        if (err.message !== 'Inte inloggad') console.error(err);
+    }
+}
+
+function displayKandidatCVs(cvs, kandidatId) {
+    const container = document.getElementById('kand-cv-list');
+    if (!container) return;
+    if (!cvs.length) {
+        container.innerHTML = '<div class="empty-hint">Inga CV:n uppladdade än</div>';
+        return;
+    }
+    container.innerHTML = cvs.map(cv => {
+        const date = cv.upload_date
+            ? new Date(cv.upload_date).toLocaleDateString('sv-SE', { year:'numeric', month:'short', day:'numeric' })
+            : '—';
+        const processedBadge  = cv.is_processed
+            ? '<span class="cv-badge cv-badge--green">✓ Behandlad</span>'
+            : '<span class="cv-badge cv-badge--blue">Ej behandlad</span>';
+        const vectorizedBadge = cv.is_vectorized
+            ? '<span class="cv-badge cv-badge--green">✓ Vektoriserad</span>'
+            : '';
+        return `
+            <div class="cv-item" onclick="openKandidatCVDetail(${cv.id}, ${kandidatId})" style="cursor:pointer">
+                <div class="cv-item-header">
+                    <div class="cv-item-info">
+                        <h3>${cv.filename}</h3>
+                        <div style="display:flex;gap:0.5rem;flex-wrap:wrap;margin-top:0.25rem">
+                            ${processedBadge}${vectorizedBadge}
+                        </div>
+                    </div>
+                </div>
+                <div class="cv-item-details">
+                    <div class="cv-item-detail">📅 ${date}</div>
+                    <div class="cv-item-detail">🎯 ${cv.skill_count} kompetenser</div>
+                    <div class="cv-item-detail">💼 ${cv.experience_count} erfarenheter</div>
+                    <div class="cv-item-detail">🎓 ${cv.education_count} utbildningar</div>
+                    <div class="cv-item-detail">📜 ${cv.certification_count} certifikat</div>
+                </div>
+            </div>`;
+    }).join('');
+}
+
+function openKandidatCVDetail(cvId, kandidatId) {
+    const cv = kandCandidateCVs.find(c => c.id === cvId);
+    if (!cv) return;
+    const detail = document.getElementById('kand-cv-detail');
+    const title  = document.getElementById('kand-cv-detail-title');
+    const body   = document.getElementById('kand-cv-detail-body');
+    if (!detail) return;
+    title.textContent = cv.filename;
+    const date = cv.upload_date
+        ? new Date(cv.upload_date).toLocaleDateString('sv-SE', { year:'numeric', month:'long', day:'numeric' })
+        : '—';
+    body.innerHTML = `
+        <div class="cv-detail-stats">
+            <div class="cv-detail-stat"><strong>${cv.skill_count}</strong><span>Kompetenser</span></div>
+            <div class="cv-detail-stat"><strong>${cv.experience_count}</strong><span>Erfarenheter</span></div>
+            <div class="cv-detail-stat"><strong>${cv.education_count}</strong><span>Utbildningar</span></div>
+            <div class="cv-detail-stat"><strong>${cv.certification_count}</strong><span>Certifikat</span></div>
+        </div>
+        <div style="margin-bottom:1rem;color:var(--text-muted);font-size:0.875rem">Uppladdad: ${date}</div>
+        <div id="kand-cv-action-status"></div>
+        <div style="display:flex;gap:0.75rem;flex-wrap:wrap">
+            ${!cv.is_vectorized && cv.is_processed
+                ? `<button class="btn btn-primary" onclick="vectorizeKandidatCV(${cv.id}, ${kandidatId})">⚡ Vektorisera</button>`
+                : ''}
+            <a class="btn btn-secondary" href="${API_BASE_URL}/kandidater/${kandidatId}/cvs/${cv.id}/file" target="_blank">⬇ Ladda ner PDF</a>
+            <button class="btn btn-danger btn-sm" onclick="deleteKandidatCV(${cv.id}, ${kandidatId}, '${cv.filename.replace(/'/g, "\\'")}')">🗑 Ta bort</button>
+        </div>`;
+    detail.style.display = '';
+    detail.scrollIntoView({ behavior:'smooth', block:'nearest' });
+}
+
+function closeKandidatCVDetail() {
+    const detail = document.getElementById('kand-cv-detail');
+    if (detail) detail.style.display = 'none';
+}
+
+async function vectorizeKandidatCV(cvId, kandidatId) {
+    const statusEl = document.getElementById('kand-cv-action-status');
+    if (statusEl) { statusEl.className = 'status-message status-loading'; statusEl.textContent = '⏳ Vektoriserar...'; }
+    try {
+        const res = await apiFetch(`${API_BASE_URL}/kandidater/${kandidatId}/cvs/${cvId}/vectorize`, { method:'POST' });
+        if (!res.ok) { const e = await res.json(); throw new Error(e.detail || 'Fel'); }
+        await loadKandidatCVs(kandidatId);
+        closeKandidatCVDetail();
+    } catch (err) {
+        if (statusEl) { statusEl.className = 'status-message status-error'; statusEl.textContent = `❌ ${err.message}`; }
+    }
+}
+
+async function deleteKandidatCV(cvId, kandidatId, filename) {
+    if (!confirm(`Ta bort "${filename}"?`)) return;
+    try {
+        const res = await apiFetch(`${API_BASE_URL}/kandidater/${kandidatId}/cvs/${cvId}`, { method:'DELETE' });
+        if (!res.ok) { const e = await res.json(); throw new Error(e.detail || 'Fel'); }
+        closeKandidatCVDetail();
+        await loadKandidatCVs(kandidatId);
+    } catch (err) { alert(`❌ ${err.message}`); }
+}
+
+// ── Kandidat Education CRUD ────────────────────────────────────────────────────
+
+async function loadKandidatEducation(kandidatId) {
+    try {
+        const res = await apiFetch(`${API_BASE_URL}/kandidater/${kandidatId}/education`);
+        if (!res.ok) return;
+        const data = await res.json();
+        renderKandidatEducation(data.education || [], kandidatId);
+    } catch (err) {
+        if (err.message !== 'Inte inloggad') console.error(err);
+    }
+}
+
+function renderKandidatEducation(items, kandidatId) {
+    const container = document.getElementById('kand-education-list');
+    if (!container) return;
+    if (!items.length) {
+        container.innerHTML = '<div class="empty-hint">Inga utbildningar tillagda ännu.</div>';
+        return;
+    }
+    container.innerHTML = items.map(e => {
+        const period = [e.start_date, e.end_date].filter(Boolean).join(' – ');
+        return `
+            <div style="border:1px solid var(--border);border-radius:var(--radius);padding:0.875rem 1rem;margin-bottom:0.75rem;display:flex;justify-content:space-between;align-items:flex-start;gap:0.5rem">
+                <div>
+                    <div style="font-weight:600">${e.degree}</div>
+                    ${e.institution    ? `<div style="font-size:0.875rem;color:var(--text-muted)">${e.institution}</div>` : ''}
+                    ${e.field_of_study ? `<div style="font-size:0.875rem;color:var(--text-muted)">${e.field_of_study}</div>` : ''}
+                    ${period           ? `<div style="font-size:0.8125rem;color:var(--text-muted);margin-top:0.125rem">${period}</div>` : ''}
+                </div>
+                <button class="btn-icon btn-icon-danger" onclick="deleteKandidatEducation(${e.id}, ${kandidatId})" title="Ta bort">&times;</button>
+            </div>`;
+    }).join('');
+}
+
+async function addKandidatEducation() {
+    if (!currentKandidatId) return;
+    const degree = document.getElementById('kand-edu-degree').value.trim();
+    if (!degree) { showKandEduStatus('Examen / Utbildning krävs', 'error'); return; }
+    const body = {
+        degree,
+        institution:    document.getElementById('kand-edu-institution').value.trim() || null,
+        field_of_study: document.getElementById('kand-edu-field').value.trim()       || null,
+        start_date:     document.getElementById('kand-edu-start').value.trim()       || null,
+        end_date:       document.getElementById('kand-edu-end').value.trim()         || null,
+    };
+    try {
+        const res = await apiFetch(`${API_BASE_URL}/kandidater/${currentKandidatId}/education`, {
+            method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify(body),
+        });
+        if (!res.ok) { const e = await res.json(); throw new Error(e.detail || 'Fel'); }
+        ['kand-edu-degree','kand-edu-institution','kand-edu-field','kand-edu-start','kand-edu-end']
+            .forEach(id => document.getElementById(id).value = '');
+        showKandEduStatus('Utbildning tillagd', 'success');
+        await loadKandidatEducation(currentKandidatId);
+    } catch (err) { showKandEduStatus(err.message, 'error'); }
+}
+
+async function deleteKandidatEducation(id, kandidatId) {
+    if (!confirm('Ta bort utbildningen?')) return;
+    try {
+        const res = await apiFetch(`${API_BASE_URL}/kandidater/${kandidatId}/education/${id}`, { method:'DELETE' });
+        if (!res.ok) throw new Error('Kunde inte ta bort');
+        await loadKandidatEducation(kandidatId);
+    } catch (err) { alert(err.message); }
+}
+
+function showKandEduStatus(msg, type) {
+    const el = document.getElementById('kand-edu-status');
+    if (!el) return;
+    el.textContent = msg;
+    el.className = `status-message status-${type}`;
+    setTimeout(() => { el.textContent = ''; el.className = ''; }, 4000);
+}
+
+// ── Kandidat Certification CRUD ────────────────────────────────────────────────
+
+async function loadKandidatCertifications(kandidatId) {
+    try {
+        const res = await apiFetch(`${API_BASE_URL}/kandidater/${kandidatId}/certifications`);
+        if (!res.ok) return;
+        const data = await res.json();
+        renderKandidatCertifications(data.certifications || [], kandidatId);
+    } catch (err) {
+        if (err.message !== 'Inte inloggad') console.error(err);
+    }
+}
+
+function renderKandidatCertifications(items, kandidatId) {
+    const container = document.getElementById('kand-certifications-list');
+    if (!container) return;
+    if (!items.length) {
+        container.innerHTML = '<div class="empty-hint">Inga kurser eller certifikat tillagda ännu.</div>';
+        return;
+    }
+    container.innerHTML = items.map(c => `
+        <div style="border:1px solid var(--border);border-radius:var(--radius);padding:0.875rem 1rem;margin-bottom:0.75rem;display:flex;justify-content:space-between;align-items:flex-start;gap:0.5rem">
+            <div>
+                <div style="font-weight:600">${c.name}</div>
+                ${c.issuer ? `<div style="font-size:0.875rem;color:var(--text-muted)">${c.issuer}</div>` : ''}
+                ${c.date   ? `<div style="font-size:0.8125rem;color:var(--text-muted);margin-top:0.125rem">${c.date}</div>` : ''}
+            </div>
+            <button class="btn-icon btn-icon-danger" onclick="deleteKandidatCertification(${c.id}, ${kandidatId})" title="Ta bort">&times;</button>
+        </div>`).join('');
+}
+
+async function addKandidatCertification() {
+    if (!currentKandidatId) return;
+    const name = document.getElementById('kand-cert-name').value.trim();
+    if (!name) { showKandCertStatus('Namn krävs', 'error'); return; }
+    const body = {
+        name,
+        issuer: document.getElementById('kand-cert-issuer').value.trim() || null,
+        date:   document.getElementById('kand-cert-date').value.trim()   || null,
+    };
+    try {
+        const res = await apiFetch(`${API_BASE_URL}/kandidater/${currentKandidatId}/certifications`, {
+            method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify(body),
+        });
+        if (!res.ok) { const e = await res.json(); throw new Error(e.detail || 'Fel'); }
+        ['kand-cert-name','kand-cert-issuer','kand-cert-date'].forEach(id => document.getElementById(id).value = '');
+        showKandCertStatus('Certifikat tillagt', 'success');
+        await loadKandidatCertifications(currentKandidatId);
+    } catch (err) { showKandCertStatus(err.message, 'error'); }
+}
+
+async function deleteKandidatCertification(id, kandidatId) {
+    if (!confirm('Ta bort certifikatet?')) return;
+    try {
+        const res = await apiFetch(`${API_BASE_URL}/kandidater/${kandidatId}/certifications/${id}`, { method:'DELETE' });
+        if (!res.ok) throw new Error('Kunde inte ta bort');
+        await loadKandidatCertifications(kandidatId);
+    } catch (err) { alert(err.message); }
+}
+
+function showKandCertStatus(msg, type) {
+    const el = document.getElementById('kand-cert-status');
+    if (!el) return;
+    el.textContent = msg;
+    el.className = `status-message status-${type}`;
+    setTimeout(() => { el.textContent = ''; el.className = ''; }, 4000);
+}
+
+// ── Merge ALL CVs ─────────────────────────────────────────────────────────────
 // Merge ALL CVs
 async function mergeAllCVs() {
     showMergeStatus('⏳ Mergar alla CV:n...', 'loading');

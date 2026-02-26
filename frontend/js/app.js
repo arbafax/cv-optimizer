@@ -2503,6 +2503,39 @@ async function loadSpKompetenser() {
     }
 }
 
+async function addSpSkill() {
+    const nameEl = document.getElementById('sp-skill-name');
+    const catEl  = document.getElementById('sp-skill-category');
+    const name   = nameEl.value.trim();
+    if (!name) { showSpSkillStatus('Ange ett kompetensnamn', 'error'); return; }
+
+    try {
+        const res = await apiFetch(`${API_BASE_URL}/competence/skills`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                skill_name: name,
+                category:   catEl.value.trim() || 'Övrigt',
+            }),
+        });
+        if (!res.ok) { const e = await res.json(); throw new Error(e.detail || 'Fel'); }
+        nameEl.value = '';
+        catEl.value  = '';
+        showSpSkillStatus('Kompetens tillagd', 'success');
+        await loadSpKompetenser();
+    } catch (err) {
+        showSpSkillStatus(err.message, 'error');
+    }
+}
+
+function showSpSkillStatus(msg, type) {
+    const el = document.getElementById('sp-skill-status');
+    if (!el) return;
+    el.textContent = msg;
+    el.className = `status-message status-${type}`;
+    setTimeout(() => { el.textContent = ''; el.className = ''; }, 3500);
+}
+
 async function loadSpErfarenheter() {
     try {
         const res = await apiFetch(`${API_BASE_URL}/competence/experiences`);

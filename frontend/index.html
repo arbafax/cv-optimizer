@@ -719,6 +719,25 @@
 
         <!-- ── TAB: Kompetenser ── -->
         <div id="sp-tab-kompetenser" style="display:none">
+
+            <!-- Lägg till skill manuellt -->
+            <div class="card" style="margin-bottom:1.25rem">
+                <h3 style="margin:0 0 0.75rem">Lägg till kompetens manuellt</h3>
+                <div style="display:flex; gap:0.5rem; flex-wrap:wrap; align-items:flex-end">
+                    <div style="flex:1; min-width:160px">
+                        <label for="sp-skill-name" style="font-size:0.8125rem; color:var(--text-muted)">Kompetens</label>
+                        <input type="text" id="sp-skill-name" class="form-input" placeholder="t.ex. Python, Projektledning">
+                    </div>
+                    <div style="min-width:140px">
+                        <label for="sp-skill-category" style="font-size:0.8125rem; color:var(--text-muted)">Kategori</label>
+                        <input type="text" id="sp-skill-category" class="form-input" placeholder="t.ex. Övrigt">
+                    </div>
+                    <button class="btn btn-primary" onclick="addSpSkill()" style="white-space:nowrap">+ Lägg till</button>
+                </div>
+                <div id="sp-skill-status"></div>
+            </div>
+
+            <!-- Kompetenser -->
             <div class="card">
                 <div id="sp-skills-list">
                     <div class="empty-hint">Laddar kompetenser...</div>

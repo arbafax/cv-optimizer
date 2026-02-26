@@ -18,6 +18,9 @@ from app.services.competence_service import (
     get_certifications, add_certification, delete_certification,
 )
 from app.api.candidate_cvs import process_and_store_cv, _cv_summary, _delete_cv_and_entries
+from app.services.ai_service import AIService
+
+_ai_service = AIService()
 
 router = APIRouter(prefix="/kandidater", tags=["Kandidater"])
 

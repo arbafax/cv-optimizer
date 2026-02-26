@@ -2818,7 +2818,6 @@ function showKandidatForm(kandidat) {
      'kand-tab-btn-utbildning', 'kand-tab-btn-certifikat', 'kand-tab-btn-cv'].forEach(id => {
         document.getElementById(id).disabled = !kandidat;
     });
-    kandUploadSetup = false;
     switchKandidatTab('basinfo');
 }
 
@@ -3701,6 +3700,13 @@ function showSpCertStatus(msg, type) {
 let kandCandidateCVs = [];
 
 async function loadKandidatCVs(kandidatId) {
+    // Always hide the detail panel when (re)loading a candidate's CV list
+    const detail = document.getElementById('kand-cv-detail');
+    if (detail) {
+        detail.style.display = 'none';
+        const body = document.getElementById('kand-cv-detail-body');
+        if (body) body.innerHTML = '';
+    }
     try {
         const res = await apiFetch(`${API_BASE_URL}/kandidater/${kandidatId}/cvs`);
         if (!res.ok) return;

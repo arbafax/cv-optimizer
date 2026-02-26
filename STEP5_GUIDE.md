@@ -8,7 +8,7 @@ En genomgång av hur applikationens olika delar hänger ihop, var logiken finns 
 Webbläsare (frontend/index.html)
         │  HTTP + JWT-cookie
         ▼
-FastAPI (backend/app/main.py) — port 8000
+FastAPI (backend/app/main.py) — port 8001
         │
         ├── auth.py          JWT-utfärdning & validering
         ├── cv.py            CV-uppladdning & hantering
@@ -147,9 +147,9 @@ Se `backend/.env.example` för komplett lista. De viktigaste:
 
 ## Vanliga felscenarion
 
-**"Address already in use" (port 8000):**
+**"Address already in use" (port 8001):**
 ```bash
-lsof -ti :8000 | xargs kill -9
+lsof -ti :8001 | xargs kill -9
 ./start-backend.sh
 ```
 
@@ -160,4 +160,4 @@ UPDATE skill_entries SET category = 'Mjukvaruutveckling' WHERE category = 'Progr
 ```
 
 **CORS-fel i webbläsaren:**
-Kontrollera att `ALLOWED_ORIGINS` i `backend/.env` inkluderar den origin där frontend serveras (t.ex. `http://localhost:3000`).
+Kontrollera att `ALLOWED_ORIGINS` i `backend/.env` inkluderar den origin där frontend serveras (t.ex. `http://localhost:5501`).

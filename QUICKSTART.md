@@ -62,23 +62,23 @@ Skriptet:
 - Startar Docker-databasen automatiskt om den inte redan körs
 - Aktiverar venv och startar FastAPI-servern
 
-Backend körs på: `http://localhost:8000`
-API-dokumentation: `http://localhost:8000/docs`
+Backend körs på: `http://localhost:8001`
+API-dokumentation: `http://localhost:8001/docs`
 
 ## 6. Öppna frontend
 
 ```bash
 cd frontend
-python3 -m http.server 3000
+python3 -m http.server 5501
 ```
 
-Öppna sedan `http://localhost:3000` i webbläsaren.
+Öppna sedan `http://localhost:5501` i webbläsaren.
 
 ## Verifiera att allt fungerar
 
-1. `http://localhost:8000/health` — ska svara `{"status": "healthy"}`
-2. `http://localhost:8000/docs` — ska visa Swagger UI med alla API-endpoints
-3. `http://localhost:3000` — ska visa inloggningssidan
+1. `http://localhost:8001/health` — ska svara `{"status": "healthy"}`
+2. `http://localhost:8001/docs` — ska visa Swagger UI med alla API-endpoints
+3. `http://localhost:5501` — ska visa inloggningssidan
 
 ## Felsökning
 
@@ -102,9 +102,9 @@ docker logs cv_optimizer_db      # Läs loggar för mer info
 docker compose up -d             # Starta om om den inte körs
 ```
 
-**Port 8000 redan i bruk:**
+**Port 8001 redan i bruk:**
 ```bash
-lsof -ti :8000 | xargs kill -9
+lsof -ti :8001 | xargs kill -9
 ./start-backend.sh
 ```
 

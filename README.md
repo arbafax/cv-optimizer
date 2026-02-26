@@ -86,7 +86,7 @@ En AI-driven webbapplikation som hjälper användare att **ladda upp, strukturer
 | `GET` | `/sokprofil/` | Hämta sökprofil |
 | `PUT` | `/sokprofil/` | Spara/uppdatera sökprofil |
 
-Fullständig API-dokumentation (Swagger): `http://localhost:8000/docs`
+Fullständig API-dokumentation (Swagger): `http://localhost:8001/docs`
 
 ## Installation
 
@@ -111,7 +111,7 @@ cp backend/.env.example backend/.env
 ./start-backend.sh
 ```
 
-Frontend: öppna `frontend/index.html` direkt, eller servera med `python3 -m http.server 3000` från `frontend/`-mappen.
+Frontend: öppna `frontend/index.html` direkt, eller servera med `python3 -m http.server 5501` från `frontend/`-mappen.
 
 ## Projektstruktur
 

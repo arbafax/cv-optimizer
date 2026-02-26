@@ -191,7 +191,7 @@ async def delete_cv(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
-    """Delete a CandidateCV and its competence tree entries sourced from it."""
+    """Delete a CandidateCV record and PDF blob. Competence data is kept."""
     profile = db.query(CandidateProfile).filter(
         CandidateProfile.user_id == current_user.id
     ).first()
@@ -266,12 +266,8 @@ async def download_cv_file(
 # ── Shared delete helper (also used by kandidater.py) ────────────────────────
 
 def _delete_cv_and_entries(cv: CandidateCV, db: Session) -> None:
-    """Remove CandidateCV + education/certification entries sourced from it."""
-    db.query(CandidateEducation).filter(
-        CandidateEducation.source_cv_id == cv.id
-    ).delete()
-    db.query(CandidateCertification).filter(
-        CandidateCertification.source_cv_id == cv.id
-    ).delete()
+    """Remove CandidateCV record and PDF blob. Competence data (skills, experiences,
+    education, certifications) is kept. The DB ondelete='SET NULL' constraint
+    automatically nulls source_cv_id on any linked education/certification rows."""
     db.delete(cv)
     db.commit()

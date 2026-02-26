@@ -194,6 +194,7 @@ async function loadCVs() {
 
         allCVs = await response.json();
         displayCVs(allCVs);
+        displaySpCVs(allCVs);
         renderDashboardCVs(allCVs);
         renderCVSelectList(allCVs);
         document.getElementById('dash-cv-count').textContent = allCVs.length;
@@ -300,6 +301,107 @@ function displayCVs(cvs) {
             </div>
         `;
     }).join('');
+}
+
+// Display CVs in the sokprofil CV tab
+function displaySpCVs(cvs) {
+    const container = document.getElementById('sp-cv-list');
+    if (!container) return;
+
+    if (!cvs.length) {
+        container.innerHTML = '<div class="empty-hint">Inga CV:n uppladdade ännu</div>';
+        return;
+    }
+
+    container.innerHTML = cvs.map(cv => {
+        const displayName = cv.title || cv.structured_data.personal_info.full_name;
+        const date   = new Date(cv.upload_date).toLocaleDateString('sv-SE', { year: 'numeric', month: 'long', day: 'numeric' });
+        const skills = cv.structured_data.skills.length;
+        const exps   = cv.structured_data.work_experience.length;
+
+        return `
+            <div class="cv-item">
+                <div class="cv-item-header">
+                    <div class="cv-item-info">
+                        <h3>${displayName}</h3>
+                        <p>${cv.filename}</p>
+                    </div>
+                </div>
+                <div class="cv-item-details">
+                    <div class="cv-item-detail">📅 ${date}</div>
+                    <div class="cv-item-detail">💼 ${exps} arbetslivserfarenheter</div>
+                    <div class="cv-item-detail">🎯 ${skills} kompetenser</div>
+                </div>
+                <div class="cv-item-actions">
+                    <button class="btn btn-small btn-secondary" onclick="editTitle(${cv.id}, event)">✏️ Titel</button>
+                    <button class="btn btn-small btn-secondary" onclick="viewCV(${cv.id}, event)">👁️ Visa</button>
+                    <button class="btn btn-small btn-danger"    onclick="deleteCV(${cv.id}, event)">🗑️ Ta bort</button>
+                </div>
+            </div>
+        `;
+    }).join('');
+}
+
+// ── Sokprofil CV-tab upload ────────────────────────────────────────────────────
+
+let spCVUploadSetup = false;
+
+function setupSpCVUpload() {
+    if (spCVUploadSetup) return;
+    spCVUploadSetup = true;
+
+    const area  = document.getElementById('sp-cv-upload-area');
+    const input = document.getElementById('sp-cv-upload');
+    if (!area || !input) return;
+
+    area.addEventListener('dragover', e => { e.preventDefault(); area.classList.add('drag-over'); });
+    area.addEventListener('dragleave', () => area.classList.remove('drag-over'));
+    area.addEventListener('drop', e => {
+        e.preventDefault();
+        area.classList.remove('drag-over');
+        if (e.dataTransfer.files[0]) handleSpCVUpload(e.dataTransfer.files[0]);
+    });
+    input.addEventListener('change', () => {
+        if (input.files[0]) handleSpCVUpload(input.files[0]);
+        input.value = '';
+    });
+}
+
+async function handleSpCVUpload(file) {
+    if (!file.name.toLowerCase().endsWith('.pdf')) {
+        showSpCVUploadStatus('Endast PDF-filer är tillåtna', 'error');
+        return;
+    }
+    if (file.size > 10 * 1024 * 1024) {
+        showSpCVUploadStatus('Filen är för stor (max 10 MB)', 'error');
+        return;
+    }
+
+    const area = document.getElementById('sp-cv-upload-area');
+    if (area) area.classList.add('uploading');
+    showSpCVUploadStatus('⏳ Laddar upp och analyserar CV...', 'loading');
+
+    const formData = new FormData();
+    formData.append('file', file);
+
+    try {
+        const res = await apiFetch(`${API_BASE_URL}/cv/upload`, { method: 'POST', body: formData });
+        if (!res.ok) { const e = await res.json(); throw new Error(e.detail || 'Uppladdning misslyckades'); }
+        if (area) area.classList.remove('uploading');
+        showSpCVUploadStatus('✅ CV uppladdat och strukturerat!', 'success');
+        await loadCVs();
+    } catch (err) {
+        if (area) area.classList.remove('uploading');
+        showSpCVUploadStatus(`❌ ${err.message}`, 'error');
+    }
+}
+
+function showSpCVUploadStatus(msg, type) {
+    const el = document.getElementById('sp-cv-upload-status');
+    if (!el) return;
+    el.textContent = msg;
+    el.className = `status-message status-${type}`;
+    if (type !== 'loading') setTimeout(() => { el.textContent = ''; el.className = ''; }, 5000);
 }
 
 async function mergeCV(cvId, event) {
@@ -2381,12 +2483,13 @@ function showSokprofilStatus(msg, type) {
 }
 
 function switchSokprofilTab(tab) {
-    ['basinfo', 'kompetenser', 'erfarenheter'].forEach(t => {
+    ['basinfo', 'kompetenser', 'erfarenheter', 'cv'].forEach(t => {
         document.getElementById(`sp-tab-${t}`).style.display       = t === tab ? '' : 'none';
         document.getElementById(`sp-tab-btn-${t}`).classList.toggle('active', t === tab);
     });
     if (tab === 'kompetenser')  loadSpKompetenser();
     if (tab === 'erfarenheter') loadSpErfarenheter();
+    if (tab === 'cv') { setupSpCVUpload(); loadCVs(); }
 }
 
 async function loadSpKompetenser() {
@@ -2560,7 +2663,7 @@ function showKandidatForm(kandidat) {
     document.getElementById('kand-status').textContent = '';
 
     // Bank-fliken aktiveras bara vid redigering av befintlig kandidat
-    ['kand-tab-btn-kompetenser', 'kand-tab-btn-erfarenheter'].forEach(id => {
+    ['kand-tab-btn-kompetenser', 'kand-tab-btn-erfarenheter', 'kand-tab-btn-cv'].forEach(id => {
         document.getElementById(id).disabled = !kandidat;
     });
     kandUploadSetup = false;
@@ -2726,13 +2829,14 @@ function showKandidatStatus(msg, type) {
 let kandUploadSetup = false;
 
 function switchKandidatTab(tab) {
-    ['basinfo', 'kompetenser', 'erfarenheter'].forEach(t => {
+    ['basinfo', 'kompetenser', 'erfarenheter', 'cv'].forEach(t => {
         document.getElementById(`kand-tab-${t}`).style.display       = t === tab ? '' : 'none';
         document.getElementById(`kand-tab-btn-${t}`).classList.toggle('active', t === tab);
     });
     if (currentKandidatId) {
-        if (tab === 'kompetenser') { setupKandidatUpload(); loadKandidatBank(currentKandidatId); }
-        if (tab === 'erfarenheter') { loadKandidatBank(currentKandidatId); }
+        if (tab === 'kompetenser')  loadKandidatBank(currentKandidatId);
+        if (tab === 'erfarenheter') loadKandidatBank(currentKandidatId);
+        if (tab === 'cv')           setupKandidatUpload();
     }
 }
 

@@ -33,7 +33,8 @@ function renderKandidatList(kandidater) {
         return;
     }
 
-    container.innerHTML = kandidater.map(k => {
+    const countBar = `<div class="list-clear-bar"><span>${kandidater.length} kandidat${kandidater.length !== 1 ? 'er' : ''}</span></div>`;
+    container.innerHTML = countBar + kandidater.map(k => {
         const meta = [
             k.roles                     ? k.roles                            : null,
             k.desired_city              ? k.desired_city                     : null,
@@ -531,21 +532,21 @@ function renderKandidatExperiences(experiences) {
         }
         const period = [e.start_date, e.is_current ? 'nu' : e.end_date].filter(Boolean).join(' – ');
         const achHtml = (e.achievements || []).length
-            ? `<ul style="margin:0.375rem 0 0 1rem;padding:0;font-size:0.85rem;color:var(--text-muted)">${(e.achievements).map(a=>`<li>${esc(a)}</li>`).join('')}</ul>` : '';
-        return `<div style="border:1px solid var(--border);border-radius:var(--radius);padding:0.875rem 1rem;margin-bottom:0.75rem">
-            <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:0.5rem">
+            ? `<ul class="exp-card-ach">${(e.achievements).map(a=>`<li>${esc(a)}</li>`).join('')}</ul>` : '';
+        return `<div class="exp-card">
+            <div class="exp-card-header">
                 <div>
-                    <span style="font-size:0.75rem;font-weight:600;text-transform:uppercase;letter-spacing:0.05em;color:var(--text-muted)">${typeLabel[e.experience_type]||e.experience_type}</span>
-                    <div style="font-weight:600;margin-top:0.125rem">${esc(e.title)}</div>
-                    ${e.organization ? `<div style="font-size:0.875rem;color:var(--text-muted)">${esc(e.organization)}</div>` : ''}
-                    ${period ? `<div style="font-size:0.8125rem;color:var(--text-muted);margin-top:0.125rem">${period}</div>` : ''}
+                    <span class="exp-card-type">${typeLabel[e.experience_type]||e.experience_type}</span>
+                    <div class="exp-card-title">${esc(e.title)}</div>
+                    ${e.organization ? `<div class="exp-card-org">${esc(e.organization)}</div>` : ''}
+                    ${period ? `<div class="exp-card-period">${period}</div>` : ''}
                 </div>
-                <div style="display:flex;gap:0.25rem;flex-shrink:0">
+                <div class="exp-card-actions">
                     <button class="btn-icon" onclick="kandEditingExpId=${e.id};renderKandidatExperiences(cachedKandExps)" title="Redigera">✎</button>
                     <button class="btn-icon btn-icon-danger" onclick="deleteKandExperience(${e.id})" title="Ta bort">&times;</button>
                 </div>
             </div>
-            ${e.description ? `<div style="font-size:0.875rem;margin-top:0.5rem">${esc(e.description)}</div>` : ''}
+            ${e.description ? `<div class="exp-card-desc">${esc(e.description)}</div>` : ''}
             ${achHtml}
         </div>`;
     }).join('');
@@ -780,14 +781,14 @@ function renderKandidatEducation(items, kandidatId) {
             </div>`;
         }
         const period = [e.start_date, e.end_date].filter(Boolean).join(' – ');
-        return `<div style="border:1px solid var(--border);border-radius:var(--radius);padding:0.875rem 1rem;margin-bottom:0.75rem;display:flex;justify-content:space-between;align-items:flex-start;gap:0.5rem">
+        return `<div class="edu-card">
             <div>
-                <div style="font-weight:600">${esc(e.degree)}</div>
-                ${e.institution    ? `<div style="font-size:0.875rem;color:var(--text-muted)">${esc(e.institution)}</div>` : ''}
-                ${e.field_of_study ? `<div style="font-size:0.875rem;color:var(--text-muted)">${esc(e.field_of_study)}</div>` : ''}
-                ${period           ? `<div style="font-size:0.8125rem;color:var(--text-muted);margin-top:0.125rem">${period}</div>` : ''}
+                <div class="edu-card-title">${esc(e.degree)}</div>
+                ${e.institution    ? `<div class="edu-card-sub">${esc(e.institution)}</div>` : ''}
+                ${e.field_of_study ? `<div class="edu-card-sub">${esc(e.field_of_study)}</div>` : ''}
+                ${period           ? `<div class="edu-card-period">${period}</div>` : ''}
             </div>
-            <div style="display:flex;gap:0.25rem;flex-shrink:0">
+            <div class="exp-card-actions">
                 <button class="btn-icon" onclick="kandEditingEduId=${e.id};renderKandidatEducation(cachedKandEdu,${kandidatId})" title="Redigera">✎</button>
                 <button class="btn-icon btn-icon-danger" onclick="deleteKandidatEducation(${e.id},${kandidatId})" title="Ta bort">&times;</button>
             </div>
@@ -894,13 +895,13 @@ function renderKandidatCertifications(items, kandidatId) {
                 </div>
             </div>`;
         }
-        return `<div style="border:1px solid var(--border);border-radius:var(--radius);padding:0.875rem 1rem;margin-bottom:0.75rem;display:flex;justify-content:space-between;align-items:flex-start;gap:0.5rem">
+        return `<div class="edu-card">
             <div>
-                <div style="font-weight:600">${esc(c.name)}</div>
-                ${c.issuer ? `<div style="font-size:0.875rem;color:var(--text-muted)">${esc(c.issuer)}</div>` : ''}
-                ${c.date   ? `<div style="font-size:0.8125rem;color:var(--text-muted);margin-top:0.125rem">${c.date}</div>` : ''}
+                <div class="edu-card-title">${esc(c.name)}</div>
+                ${c.issuer ? `<div class="edu-card-sub">${esc(c.issuer)}</div>` : ''}
+                ${c.date   ? `<div class="edu-card-period">${c.date}</div>` : ''}
             </div>
-            <div style="display:flex;gap:0.25rem;flex-shrink:0">
+            <div class="exp-card-actions">
                 <button class="btn-icon" onclick="kandEditingCertId=${c.id};renderKandidatCertifications(cachedKandCerts,${kandidatId})" title="Redigera">✎</button>
                 <button class="btn-icon btn-icon-danger" onclick="deleteKandidatCertification(${c.id},${kandidatId})" title="Ta bort">&times;</button>
             </div>

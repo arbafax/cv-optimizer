@@ -58,7 +58,7 @@
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="3" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="3" width="7" height="7" rx="1.5"/><rect x="3" y="14" width="7" height="7" rx="1.5"/><rect x="14" y="14" width="7" height="7" rx="1.5"/></svg>
             Dashboard
         </a>
-        <a href="#" class="nav-item" onclick="showView('mycvs', this)">
+        <a href="#" class="nav-item" onclick="showView('sokprofil', this); loadSokprofil(); switchSokprofilTab('cv')">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>
             Mina CV:n
         </a>
@@ -237,6 +237,7 @@
                 <button id="kand-tab-btn-basinfo" class="kand-tab-btn active" onclick="switchKandidatTab('basinfo')">Basinfo</button>
                 <button id="kand-tab-btn-kompetenser" class="kand-tab-btn" onclick="switchKandidatTab('kompetenser')" disabled>Kompetenser</button>
                 <button id="kand-tab-btn-erfarenheter" class="kand-tab-btn" onclick="switchKandidatTab('erfarenheter')" disabled>Erfarenheter</button>
+                <button id="kand-tab-btn-cv" class="kand-tab-btn" onclick="switchKandidatTab('cv')" disabled>CV</button>
             </div>
 
             <!-- ── TAB: Basinfo ── -->
@@ -350,21 +351,6 @@
             <!-- ── TAB: Kompetenser ── -->
             <div id="kand-tab-kompetenser" style="display:none">
 
-                <!-- Upload zone -->
-                <div class="card" style="margin-bottom:1.25rem">
-                    <div class="upload-zone" id="kand-upload-area">
-                        <input type="file" id="kand-cv-upload" accept=".pdf" hidden>
-                        <label for="kand-cv-upload">
-                            <div class="upload-icon-wrap">
-                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
-                            </div>
-                            <p class="upload-main">Dra och släpp ett CV (PDF) här</p>
-                            <p class="upload-sub">AI extraherar kompetenser och erfarenheter automatiskt &nbsp;·&nbsp; Max 10 MB</p>
-                        </label>
-                    </div>
-                    <div id="kand-upload-status"></div>
-                </div>
-
                 <!-- Lägg till skill manuellt -->
                 <div class="card" style="margin-bottom:1.25rem">
                     <h3 style="margin:0 0 0.75rem">Lägg till kompetens manuellt</h3>
@@ -398,6 +384,25 @@
                     <div id="kand-experiences-list">
                         <div class="empty-hint">Inga erfarenheter tillagda ännu.</div>
                     </div>
+                </div>
+
+            </div>
+
+            <!-- ── TAB: CV ── -->
+            <div id="kand-tab-cv" style="display:none">
+
+                <div class="card">
+                    <div class="upload-zone" id="kand-upload-area">
+                        <input type="file" id="kand-cv-upload" accept=".pdf" hidden>
+                        <label for="kand-cv-upload">
+                            <div class="upload-icon-wrap">
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+                            </div>
+                            <p class="upload-main">Dra och släpp ett CV (PDF) här</p>
+                            <p class="upload-sub">AI extraherar kompetenser och erfarenheter automatiskt &nbsp;·&nbsp; Max 10 MB</p>
+                        </label>
+                    </div>
+                    <div id="kand-upload-status"></div>
                 </div>
 
             </div>
@@ -592,6 +597,7 @@
             <button id="sp-tab-btn-basinfo" class="kand-tab-btn active" onclick="switchSokprofilTab('basinfo')">Basinfo</button>
             <button id="sp-tab-btn-kompetenser" class="kand-tab-btn" onclick="switchSokprofilTab('kompetenser')">Kompetenser</button>
             <button id="sp-tab-btn-erfarenheter" class="kand-tab-btn" onclick="switchSokprofilTab('erfarenheter')">Erfarenheter</button>
+            <button id="sp-tab-btn-cv" class="kand-tab-btn" onclick="switchSokprofilTab('cv')">CV</button>
         </div>
 
         <!-- ── TAB: Basinfo ── -->
@@ -714,6 +720,26 @@
                 <div id="sp-experiences-list">
                     <div class="empty-hint">Laddar erfarenheter...</div>
                 </div>
+            </div>
+        </div>
+
+        <!-- ── TAB: CV ── -->
+        <div id="sp-tab-cv" style="display:none">
+            <div class="card" style="margin-bottom:1.25rem">
+                <div class="upload-zone" id="sp-cv-upload-area">
+                    <input type="file" id="sp-cv-upload" accept=".pdf" hidden>
+                    <label for="sp-cv-upload">
+                        <div class="upload-icon-wrap">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+                        </div>
+                        <p class="upload-main">Dra och släpp din PDF här</p>
+                        <p class="upload-sub">eller klicka för att välja fil &nbsp;·&nbsp; Max 10 MB</p>
+                    </label>
+                </div>
+                <div id="sp-cv-upload-status"></div>
+            </div>
+            <div id="sp-cv-list" class="cv-grid">
+                <div class="empty-hint">Inga CV:n uppladdade än</div>
             </div>
         </div>
 

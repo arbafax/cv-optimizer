@@ -217,6 +217,7 @@ function showApp() {
     if (h1 && currentUser) {
         h1.textContent = `Välkommen tillbaka, ${currentUser.name.split(' ')[0]}!`;
     }
+    showView('dashboard', document.getElementById('nav-dashboard'));
 }
 
 function updateRoleBasedNav() {

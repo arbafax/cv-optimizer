@@ -92,7 +92,7 @@ function showKandidatForm(kandidat) {
     document.getElementById('kand-roles').value        = kandidat?.roles        || '';
     document.getElementById('kand-city').value         = kandidat?.desired_city || '';
 
-    ['kand-emp-heltid', 'kand-emp-deltid', 'kand-emp-timmar'].forEach(id => {
+    ['kand-emp-heltid', 'kand-emp-deltid', 'kand-emp-timmar', 'kand-emp-fast', 'kand-emp-konsult'].forEach(id => {
         const el = document.getElementById(id);
         el.checked = (kandidat?.desired_employment || []).includes(el.value);
     });
@@ -207,7 +207,7 @@ async function saveKandidat() {
         return;
     }
 
-    const desired_employment = ['kand-emp-heltid', 'kand-emp-deltid', 'kand-emp-timmar']
+    const desired_employment = ['kand-emp-heltid', 'kand-emp-deltid', 'kand-emp-timmar', 'kand-emp-fast', 'kand-emp-konsult']
         .filter(id => document.getElementById(id).checked)
         .map(id => document.getElementById(id).value);
 

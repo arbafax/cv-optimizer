@@ -245,6 +245,9 @@ async function saveKandidat() {
         currentKandidatId = saved.id;
         document.getElementById('kandidat-form-title').textContent = `Kandidat: ${saved.public_name}`;
         document.getElementById('kand-delete-btn').style.display = '';
+        ['kand-tab-btn-kompetenser', 'kand-tab-btn-erfarenheter',
+         'kand-tab-btn-utbildning', 'kand-tab-btn-certifikat', 'kand-tab-btn-cv']
+            .forEach(id => { document.getElementById(id).disabled = false; });
         showKandidatStatus('Kandidat sparad', 'success');
     } catch (err) {
         showKandidatStatus(err.message, 'error');

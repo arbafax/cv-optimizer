@@ -580,6 +580,9 @@ async function loadSpCandidateCVs() {
         if (!res.ok) return;
         spCandidateCVs = await res.json();
         displaySpCandidateCVs(spCandidateCVs);
+        // Keep dashboard CV counter in sync (new system)
+        const dashCvCount = document.getElementById('dash-cv-count');
+        if (dashCvCount) dashCvCount.textContent = spCandidateCVs.length;
     } catch (err) {
         if (err.message !== 'Inte inloggad') console.error(err);
     }
@@ -666,6 +669,7 @@ async function vectorizeSpCV(cvId) {
         const res = await apiFetch(`${API_BASE_URL}/competence/cvs/${cvId}/vectorize`, { method:'POST' });
         if (!res.ok) { const e = await res.json(); throw new Error(e.detail || 'Fel'); }
         await loadSpCandidateCVs();
+        loadBankData();
         closeSpCVDetail();
     } catch (err) {
         if (statusEl) { statusEl.className = 'status-message status-error'; statusEl.textContent = `❌ ${err.message}`; }

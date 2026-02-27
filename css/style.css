@@ -198,6 +198,15 @@ body {
     align-items: center;
     gap: 16px;
     box-shadow: var(--shadow-sm);
+    transition: border-color 0.15s, box-shadow 0.15s, transform 0.15s;
+}
+.stat-card--link {
+    cursor: pointer;
+}
+.stat-card--link:hover {
+    border-color: var(--blue);
+    box-shadow: 0 0 0 3px rgba(59,130,246,.08), var(--shadow-sm);
+    transform: translateY(-1px);
 }
 
 .stat-icon {

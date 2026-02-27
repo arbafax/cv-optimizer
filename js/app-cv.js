@@ -133,7 +133,6 @@ async function loadCVs() {
         displaySpCVs(allCVs);
         renderDashboardCVs(allCVs);
         renderCVSelectList(allCVs);
-        document.getElementById('dash-cv-count').textContent = allCVs.length;
 
     } catch (error) {
         console.error('Error loading CVs:', error);
@@ -329,6 +328,7 @@ async function handleSpCVUpload(file) {
         if (area) area.classList.remove('uploading');
         showSpCVUploadStatus('✅ CV uppladdat och strukturerat!', 'success');
         await loadSpCandidateCVs();
+        loadBankData();
     } catch (err) {
         if (area) area.classList.remove('uploading');
         showSpCVUploadStatus(`❌ ${err.message}`, 'error');

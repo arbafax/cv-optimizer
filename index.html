@@ -148,6 +148,15 @@
                     <div class="stat-label">Kurser &amp; Cert</div>
                 </div>
             </div>
+            <div class="stat-card stat-card--link hidden" id="dash-seller-stat-card" onclick="showView('minakandidater', document.getElementById('nav-minakandidater')); loadKandidaterView()">
+                <div class="stat-icon stat-icon--amber">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 00-3-3.87"/><path d="M16 3.13a4 4 0 010 7.75"/></svg>
+                </div>
+                <div>
+                    <div class="stat-number" id="dash-kandidater-count">0</div>
+                    <div class="stat-label">Mina kandidater</div>
+                </div>
+            </div>
         </div>
 
         <!-- Action cards -->
@@ -194,16 +203,6 @@
             </div>
         </div>
 
-        <!-- CV list preview -->
-        <div class="dashboard-section">
-            <div class="section-header">
-                <h2>Dina CV:n</h2>
-                <a href="#" class="section-link" onclick="showView('sokprofil', document.querySelector('[onclick*=sokprofil]')); loadSokprofil(); switchSokprofilTab('cv')">Visa alla →</a>
-            </div>
-            <div id="dash-cv-list" class="dash-cv-list">
-                <div class="empty-hint">Inga CV:n uppladdade än</div>
-            </div>
-        </div>
     </div>
 
     <!-- ── MINA KANDIDATER VIEW ── -->

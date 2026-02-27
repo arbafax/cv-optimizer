@@ -14,7 +14,7 @@ class Settings(BaseSettings):
     # Database
     DATABASE_URL: str
     DATABASE_HOST: str = "localhost"
-    DATABASE_PORT: int = 5432
+    DATABASE_PORT: int = 5433
     DATABASE_NAME: str = "cv_optimizer"
     DATABASE_USER: str
     DATABASE_PASSWORD: str

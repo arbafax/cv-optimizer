@@ -12,6 +12,18 @@ let kandCandidateCVs  = [];
 
 // ── Kandidat list ─────────────────────────────────────────────────────────────
 
+async function loadDashKandidaterCount() {
+    try {
+        const res = await apiFetch(`${API_BASE_URL}/kandidater/`);
+        if (!res.ok) return;
+        const data = await res.json();
+        const el = document.getElementById('dash-kandidater-count');
+        if (el) el.textContent = (data.kandidater || []).length;
+    } catch (err) {
+        if (err.message !== 'Inte inloggad') console.error(err);
+    }
+}
+
 async function loadKandidaterView() {
     try {
         const res = await apiFetch(`${API_BASE_URL}/kandidater/`);
@@ -27,6 +39,8 @@ async function loadKandidaterView() {
 function renderKandidatList(kandidater) {
     const container = document.getElementById('kandidater-list');
     if (!container) return;
+    const dashEl = document.getElementById('dash-kandidater-count');
+    if (dashEl) dashEl.textContent = kandidater.length;
 
     if (!kandidater.length) {
         container.innerHTML = '<div class="empty-hint">Inga kandidater ännu. Klicka "+ Lägg till kandidat" för att komma igång.</div>';
@@ -242,12 +256,14 @@ async function saveKandidat() {
         if (!res.ok) { const e = await res.json(); throw new Error(e.detail || 'Fel'); }
 
         const saved = await res.json();
+        const isNew = !currentKandidatId;
         currentKandidatId = saved.id;
         document.getElementById('kandidat-form-title').textContent = `Kandidat: ${saved.public_name}`;
         document.getElementById('kand-delete-btn').style.display = '';
         ['kand-tab-btn-kompetenser', 'kand-tab-btn-erfarenheter',
          'kand-tab-btn-utbildning', 'kand-tab-btn-certifikat', 'kand-tab-btn-cv']
             .forEach(id => { document.getElementById(id).disabled = false; });
+        if (isNew) loadDashKandidaterCount();
         showKandidatStatus('Kandidat sparad', 'success');
     } catch (err) {
         showKandidatStatus(err.message, 'error');

@@ -262,8 +262,9 @@ function resetAllState() {
     });
 
     // Reset dashboard counters to 0
-    ['dash-cv-count', 'dash-skills-count', 'dash-exp-count', 'dash-edu-count', 'dash-cert-count']
+    ['dash-cv-count', 'dash-skills-count', 'dash-exp-count', 'dash-edu-count', 'dash-cert-count', 'dash-kandidater-count']
         .forEach(id => { const el = document.getElementById(id); if (el) el.textContent = '0'; });
+    document.getElementById('dash-seller-stat-card')?.classList.add('hidden');
 }
 
 function showAuthView() {
@@ -296,6 +297,11 @@ function updateRoleBasedNav() {
         ?.classList.toggle('hidden', !isSaljare);
     document.getElementById('nav-matchakandidater')
         ?.classList.toggle('hidden', !isSaljare);
+    document.getElementById('dash-seller-stat-card')
+        ?.classList.toggle('hidden', !isSaljare);
+    if (isSaljare && typeof loadDashKandidaterCount === 'function') {
+        loadDashKandidaterCount();
+    }
 }
 
 function renderSidebarUser() {

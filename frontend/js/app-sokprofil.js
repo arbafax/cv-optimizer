@@ -14,14 +14,14 @@ async function loadSokprofil() {
         document.getElementById('sp-roles').value        = data.roles        || '';
         document.getElementById('sp-city').value         = data.desired_city || '';
 
-        ['sp-emp-heltid', 'sp-emp-deltid', 'sp-emp-timmar'].forEach(id => {
+        ['sp-emp-heltid', 'sp-emp-deltid', 'sp-emp-timmar', 'sp-emp-fast', 'sp-emp-konsult'].forEach(id => {
             const el = document.getElementById(id);
-            el.checked = data.desired_employment.includes(el.value);
+            el.checked = (data.desired_employment || []).includes(el.value);
         });
 
         ['sp-wp-plats', 'sp-wp-hybrid', 'sp-wp-distans'].forEach(id => {
             const el = document.getElementById(id);
-            el.checked = data.desired_workplace.includes(el.value);
+            el.checked = (data.desired_workplace || []).includes(el.value);
         });
 
         document.getElementById('sp-commute').checked    = data.willing_to_commute;
@@ -33,7 +33,7 @@ async function loadSokprofil() {
 }
 
 async function saveSokprofil() {
-    const desired_employment = ['sp-emp-heltid', 'sp-emp-deltid', 'sp-emp-timmar']
+    const desired_employment = ['sp-emp-heltid', 'sp-emp-deltid', 'sp-emp-timmar', 'sp-emp-fast', 'sp-emp-konsult']
         .filter(id => document.getElementById(id).checked)
         .map(id => document.getElementById(id).value);
 

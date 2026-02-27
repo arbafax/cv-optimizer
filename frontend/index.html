@@ -54,7 +54,7 @@
     </div>
 
     <nav class="sidebar-nav">
-        <a href="#" class="nav-item active" onclick="showView('dashboard', this)">
+        <a href="#" class="nav-item active" id="nav-dashboard" onclick="showView('dashboard', this); loadCVs(); loadBankData(); loadSpCandidateCVs()">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="3" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="3" width="7" height="7" rx="1.5"/><rect x="3" y="14" width="7" height="7" rx="1.5"/><rect x="14" y="14" width="7" height="7" rx="1.5"/></svg>
             Dashboard
         </a>
@@ -103,31 +103,49 @@
 
         <!-- Stats row -->
         <div class="stats-row">
-            <div class="stat-card">
+            <div class="stat-card stat-card--link" onclick="showView('sokprofil', document.querySelector('[onclick*=sokprofil]')); loadSokprofil(); switchSokprofilTab('cv')">
                 <div class="stat-icon stat-icon--blue">
                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
                 </div>
                 <div>
                     <div class="stat-number" id="dash-cv-count">0</div>
-                    <div class="stat-label">Uppladdade CV:n</div>
+                    <div class="stat-label">Tillgängliga CV:n</div>
                 </div>
             </div>
-            <div class="stat-card">
+            <div class="stat-card stat-card--link" onclick="showView('sokprofil', document.querySelector('[onclick*=sokprofil]')); loadSokprofil(); switchSokprofilTab('kompetenser')">
                 <div class="stat-icon stat-icon--green">
                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
                 </div>
                 <div>
                     <div class="stat-number" id="dash-skills-count">0</div>
-                    <div class="stat-label">Kompetenser i banken</div>
+                    <div class="stat-label">Kompetenser</div>
                 </div>
             </div>
-            <div class="stat-card">
+            <div class="stat-card stat-card--link" onclick="showView('sokprofil', document.querySelector('[onclick*=sokprofil]')); loadSokprofil(); switchSokprofilTab('erfarenheter')">
                 <div class="stat-icon stat-icon--amber">
                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
                 </div>
                 <div>
                     <div class="stat-number" id="dash-exp-count">0</div>
                     <div class="stat-label">Erfarenheter</div>
+                </div>
+            </div>
+            <div class="stat-card stat-card--link" onclick="showView('sokprofil', document.querySelector('[onclick*=sokprofil]')); loadSokprofil(); switchSokprofilTab('utbildning')">
+                <div class="stat-icon stat-icon--blue">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M22 10v6M2 10l10-5 10 5-10 5z"/><path d="M6 12v5c3 3 9 3 12 0v-5"/></svg>
+                </div>
+                <div>
+                    <div class="stat-number" id="dash-edu-count">0</div>
+                    <div class="stat-label">Utbildning</div>
+                </div>
+            </div>
+            <div class="stat-card stat-card--link" onclick="showView('sokprofil', document.querySelector('[onclick*=sokprofil]')); loadSokprofil(); switchSokprofilTab('certifikat')">
+                <div class="stat-icon stat-icon--green">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="8" r="6"/><path d="M15.477 12.89L17 22l-5-3-5 3 1.523-9.11"/></svg>
+                </div>
+                <div>
+                    <div class="stat-number" id="dash-cert-count">0</div>
+                    <div class="stat-label">Kurser &amp; Cert</div>
                 </div>
             </div>
         </div>
@@ -139,8 +157,28 @@
                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
                 </div>
                 <div>
-                    <h3>Ladda upp nytt CV</h3>
+                    <h3>Ladda upp CV</h3>
                     <p>PDF-fil, AI strukturerar automatiskt</p>
+                </div>
+                <svg class="action-card-arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg>
+            </div>
+            <div class="action-card action-card--secondary" onclick="showView('sokprofil', document.querySelector('[onclick*=sokprofil]')); loadSokprofil(); switchSokprofilTab('profil')">
+                <div class="action-card-icon action-card-icon--green">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+                </div>
+                <div>
+                    <h3>Ändra profilen</h3>
+                    <p>Uppdatera din sökprofil och kontaktuppgifter</p>
+                </div>
+                <svg class="action-card-arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg>
+            </div>
+            <div class="action-card action-card--secondary" onclick="showView('sokprofil', document.querySelector('[onclick*=sokprofil]')); loadSokprofil(); switchSokprofilTab('erfarenheter')">
+                <div class="action-card-icon action-card-icon--green">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="2" y="7" width="20" height="14" rx="2"/><path d="M16 21V5a2 2 0 00-2-2h-4a2 2 0 00-2 2v16"/></svg>
+                </div>
+                <div>
+                    <h3>Ändra erfarenheter</h3>
+                    <p>Redigera eller lägg till erfarenheter</p>
                 </div>
                 <svg class="action-card-arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg>
             </div>
@@ -149,8 +187,8 @@
                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
                 </div>
                 <div>
-                    <h3>Matcha din kompetensbank mot jobbannons</h3>
-                    <p>AI anpassar ditt CV för jobbet</p>
+                    <h3>Sök jobb</h3>
+                    <p>Matcha din kompetensbank mot en jobbannons</p>
                 </div>
                 <svg class="action-card-arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg>
             </div>

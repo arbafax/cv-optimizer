@@ -69,7 +69,7 @@ API-dokumentation: `http://localhost:8001/docs`
 
 ```bash
 cd frontend
-python3 -m http.server 5501
+python3 serve.py
 ```
 
 Öppna sedan `http://localhost:5501` i webbläsaren.

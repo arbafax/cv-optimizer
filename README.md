@@ -111,7 +111,7 @@ cp backend/.env.example backend/.env
 ./start-backend.sh
 ```
 
-Frontend: öppna `frontend/index.html` direkt, eller servera med `python3 -m http.server 5501` från `frontend/`-mappen.
+Frontend: öppna `frontend/index.html` direkt, eller starta med `python3 serve.py` från `frontend/`-mappen.
 
 ## Projektstruktur
 

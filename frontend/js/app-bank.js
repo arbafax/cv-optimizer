@@ -34,18 +34,27 @@ async function loadBankData() {
 }
 
 function renderBankStats(stats) {
-    document.getElementById('stat-skills').textContent      = stats.total_skills ?? 0;
-    document.getElementById('stat-experiences').textContent = stats.total_experiences ?? 0;
-    document.getElementById('stat-sources').textContent     = stats.total_source_documents ?? 0;
-
-    const catCount = stats.skills_by_category
-        ? Object.keys(stats.skills_by_category).length : 0;
-    document.getElementById('stat-categories').textContent = catCount;
+    const statSkills = document.getElementById('stat-skills');
+    const statExp    = document.getElementById('stat-experiences');
+    const statSrc    = document.getElementById('stat-sources');
+    const statCat    = document.getElementById('stat-categories');
+    if (statSkills) statSkills.textContent = stats.total_skills           ?? 0;
+    if (statExp)    statExp.textContent    = stats.total_experiences      ?? 0;
+    if (statSrc)    statSrc.textContent    = stats.total_source_documents ?? 0;
+    if (statCat) {
+        const catCount = stats.skills_by_category
+            ? Object.keys(stats.skills_by_category).length : 0;
+        statCat.textContent = catCount;
+    }
 
     const dashSkills = document.getElementById('dash-skills-count');
     const dashExp    = document.getElementById('dash-exp-count');
-    if (dashSkills) dashSkills.textContent = stats.total_skills ?? 0;
-    if (dashExp)    dashExp.textContent    = stats.total_experiences ?? 0;
+    const dashEdu    = document.getElementById('dash-edu-count');
+    const dashCert   = document.getElementById('dash-cert-count');
+    if (dashSkills) dashSkills.textContent = stats.total_skills         ?? 0;
+    if (dashExp)    dashExp.textContent    = stats.total_experiences    ?? 0;
+    if (dashEdu)    dashEdu.textContent    = stats.total_education      ?? 0;
+    if (dashCert)   dashCert.textContent   = stats.total_certifications ?? 0;
 }
 
 function renderBankContent() {

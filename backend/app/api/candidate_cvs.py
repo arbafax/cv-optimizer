@@ -140,6 +140,7 @@ def _cv_summary(cv: CandidateCV, db: Session) -> dict:
         "upload_date"  : cv.upload_date.isoformat() if cv.upload_date else None,
         "is_processed" : cv.is_processed,
         "is_vectorized": cv.is_vectorized,
+        "has_pdf"      : cv.file_data is not None,
         "skill_count"  : skill_count,
         "experience_count": exp_count,
         "education_count" : edu_count,

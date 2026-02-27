@@ -201,7 +201,73 @@ async function loadCurrentUser() {
     }
 }
 
+function resetAllState() {
+    // ── app-state.js ──────────────────────────────────────────────────────────
+    selectedCV          = null;
+    allCVs              = [];
+    lastMatchResult     = null;
+    lastJobDesc         = '';
+    lastGeneratedCV     = null;
+    lastMatchKandidatId = null;
+
+    spEditingSkillId   = null; spEditingExpId   = null;
+    spEditingEduId     = null; spEditingCertId  = null;
+    kandEditingSkillId = null; kandEditingExpId = null;
+    kandEditingEduId   = null; kandEditingCertId = null;
+
+    cachedSpSkills   = []; cachedSpExps   = []; cachedSpEdu   = []; cachedSpCerts   = [];
+    cachedKandSkills = []; cachedKandExps = []; cachedKandEdu = []; cachedKandCerts = [];
+
+    // ── app-bank.js ───────────────────────────────────────────────────────────
+    if (typeof bankSkills            !== 'undefined') bankSkills            = [];
+    if (typeof bankExperiences       !== 'undefined') bankExperiences       = [];
+    if (typeof activeBankTab         !== 'undefined') activeBankTab         = 'skills';
+    if (typeof selectedExperienceIds !== 'undefined') selectedExperienceIds = new Set();
+
+    // ── app-sokprofil.js ──────────────────────────────────────────────────────
+    if (typeof spCandidateCVs !== 'undefined') spCandidateCVs = [];
+
+    // ── app-kandidater.js ─────────────────────────────────────────────────────
+    if (typeof currentKandidatId !== 'undefined') currentKandidatId = null;
+    if (typeof kandidaterCache   !== 'undefined') kandidaterCache   = [];
+    if (typeof kandUploadSetup   !== 'undefined') kandUploadSetup   = false;
+    if (typeof kandCandidateCVs  !== 'undefined') kandCandidateCVs  = [];
+
+    // ── DOM: hide / clear persistent panels ───────────────────────────────────
+    const spDetail = document.getElementById('sp-cv-detail');
+    if (spDetail) spDetail.style.display = 'none';
+
+    const optResult = document.getElementById('optimize-result');
+    if (optResult) { optResult.innerHTML = ''; optResult.classList.add('hidden'); }
+
+    const genCV = document.getElementById('generated-cv-output');
+    if (genCV) genCV.classList.add('hidden');
+
+    if (jobDescription) jobDescription.value = '';
+
+    const bankContent = document.getElementById('bank-content');
+    if (bankContent) bankContent.innerHTML = '';
+
+    // Clear sokprofil list containers (DOM survives between logins — must be emptied)
+    ['sp-skills-list', 'sp-experiences-list', 'sp-education-list', 'sp-certifications-list',
+     'kand-skills-list', 'kand-experiences-list', 'kand-education-list', 'kand-certifications-list']
+        .forEach(id => { const el = document.getElementById(id); if (el) el.innerHTML = ''; });
+
+    // Reset sokprofil tab back to basinfo so no stale tab content is visible on next login
+    ['basinfo', 'kompetenser', 'erfarenheter', 'utbildning', 'certifikat', 'cv'].forEach(t => {
+        const tabEl = document.getElementById(`sp-tab-${t}`);
+        const btnEl = document.getElementById(`sp-tab-btn-${t}`);
+        if (tabEl) tabEl.style.display = t === 'basinfo' ? '' : 'none';
+        if (btnEl) btnEl.classList.toggle('active', t === 'basinfo');
+    });
+
+    // Reset dashboard counters to 0
+    ['dash-cv-count', 'dash-skills-count', 'dash-exp-count', 'dash-edu-count', 'dash-cert-count']
+        .forEach(id => { const el = document.getElementById(id); if (el) el.textContent = '0'; });
+}
+
 function showAuthView() {
+    resetAllState();
     document.getElementById('view-auth').classList.remove('hidden');
     document.getElementById('sidebar').classList.add('hidden');
     document.getElementById('main-content').classList.add('hidden');
@@ -218,6 +284,9 @@ function showApp() {
         h1.textContent = `Välkommen tillbaka, ${currentUser.name.split(' ')[0]}!`;
     }
     showView('dashboard', document.getElementById('nav-dashboard'));
+    loadCVs();
+    loadBankData();
+    loadSpCandidateCVs();
 }
 
 function updateRoleBasedNav() {
@@ -319,7 +388,5 @@ function showAuthError(msg) {
 async function handleLogout() {
     await fetch(`${API_BASE_URL}/auth/logout`, { method: 'POST', credentials: 'include' });
     currentUser = null;
-    allCVs = []; bankSkills = []; bankExperiences = [];
-    lastMatchResult = null; lastJobDesc = ''; lastGeneratedCV = null; lastMatchKandidatId = null;
     showAuthView();
 }

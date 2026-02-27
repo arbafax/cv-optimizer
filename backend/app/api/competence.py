@@ -130,6 +130,12 @@ async def get_bank_stats(
     total_exp = db.query(CandidateExperienceEntry).filter(
         CandidateExperienceEntry.candidate_profile_id == pid
     ).count()
+    total_edu = db.query(CandidateEducation).filter(
+        CandidateEducation.candidate_profile_id == pid
+    ).count()
+    total_cert = db.query(CandidateCertification).filter(
+        CandidateCertification.candidate_profile_id == pid
+    ).count()
 
     all_sources: set = set()
     for row in db.query(CandidateSkillEntry.source_cv_ids).filter(
@@ -149,6 +155,8 @@ async def get_bank_stats(
     return {
         "total_skills"          : total_skills,
         "total_experiences"     : total_exp,
+        "total_education"       : total_edu,
+        "total_certifications"  : total_cert,
         "total_source_documents": len(all_sources),
         "skills_by_category"    : skills_by_category,
     }

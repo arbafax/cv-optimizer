@@ -83,7 +83,7 @@ body {
 .brand-cv { font-size: 20px; font-weight: 700; color: var(--brand-accent); letter-spacing: -.5px; }
 .brand-match { font-size: 20px; font-weight: 700; color: #ffffff; letter-spacing: -.5px; }
 .brand-sub { font-size: 11px; color: #4b5268; margin-top: 3px; font-weight: 400; }
-
+.auth-brand .brand-match { color: #000;}
 .sidebar-nav {
     flex: 1;
     display: flex;

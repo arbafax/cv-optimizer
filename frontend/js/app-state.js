@@ -283,7 +283,7 @@ function showApp() {
     renderSidebarUser();
     const h1 = document.querySelector('#view-dashboard .view-header h1');
     if (h1 && currentUser) {
-        h1.textContent = `Välkommen tillbaka, ${currentUser.name.split(' ')[0]}!`;
+        h1.textContent = `Välkommen, ${currentUser.name.split(' ')[0]}!`;
     }
     showView('dashboard', document.getElementById('nav-dashboard'));
     loadCVs();

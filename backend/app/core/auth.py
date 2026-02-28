@@ -10,6 +10,16 @@ from app.core.config import settings
 from app.core.database import get_db
 
 
+# ── System roles ──────────────────────────────────────────────────────────────
+
+class SystemRole:
+    KANDIDAT    = "Kandidat"
+    SALJARE     = "Säljare"
+    REKRYTERARE = "Rekryterare"
+
+    ALL = {KANDIDAT, SALJARE, REKRYTERARE}
+
+
 def hash_password(plain: str) -> str:
     return _bcrypt.hashpw(plain.encode(), _bcrypt.gensalt()).decode()
 
@@ -48,3 +58,27 @@ def get_current_user(request: Request, db: Session = Depends(get_db)):
         raise HTTPException(status_code=401, detail="Användaren hittades inte")
 
     return user
+
+
+# ── Role guard dependency ─────────────────────────────────────────────────────
+
+def require_role(*roles: str):
+    """
+    FastAPI dependency that enforces one or more system roles (OR logic).
+    Usage:
+        @router.get("/endpoint")
+        async def my_endpoint(user: User = Depends(require_role(SystemRole.SALJARE))):
+            ...
+
+        # Multiple roles (user needs at least one):
+        async def my_endpoint(user: User = Depends(require_role(SystemRole.SALJARE, SystemRole.REKRYTERARE))):
+    """
+    required = set(roles)
+
+    def _check(user=Depends(get_current_user)):
+        user_roles = set(user.roles.split(",")) if user.roles else set()
+        if not required & user_roles:
+            raise HTTPException(status_code=403, detail="Åtkomst nekad")
+        return user
+
+    return _check

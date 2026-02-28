@@ -94,6 +94,11 @@ async function saveAccountRoles() {
         currentUser = await res.json();
         updateRoleBasedNav();
         showAccountStatus('account-roles-status', 'Roller sparade', 'success');
+        // Navigate to dashboard so all role-gated elements are immediately visible/hidden
+        setTimeout(() => {
+            showView('dashboard', document.getElementById('nav-dashboard'));
+            window.scrollTo(0, 0);
+        }, 800);
     } catch (err) {
         showAccountStatus('account-roles-status', err.message, 'error');
     }

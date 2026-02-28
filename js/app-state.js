@@ -264,7 +264,8 @@ function resetAllState() {
     // Reset dashboard counters to 0
     ['dash-cv-count', 'dash-skills-count', 'dash-exp-count', 'dash-edu-count', 'dash-cert-count', 'dash-kandidater-count']
         .forEach(id => { const el = document.getElementById(id); if (el) el.textContent = '0'; });
-    document.getElementById('dash-seller-stat-card')?.classList.add('hidden');
+    // Hide all role-gated elements (will be re-shown by applyRoleVisibility() after login)
+    document.querySelectorAll('[data-requires-role]').forEach(el => el.classList.add('hidden'));
 }
 
 function showAuthView() {
@@ -290,18 +291,18 @@ function showApp() {
     loadSpCandidateCVs();
 }
 
-function updateRoleBasedNav() {
+function applyRoleVisibility() {
     const roles = currentUser?.roles || [];
-    const isSaljare = roles.includes('Säljare');
-    document.getElementById('nav-minakandidater')
-        ?.classList.toggle('hidden', !isSaljare);
-    document.getElementById('nav-matchakandidater')
-        ?.classList.toggle('hidden', !isSaljare);
-    document.getElementById('dash-seller-stat-card')
-        ?.classList.toggle('hidden', !isSaljare);
-    if (isSaljare && typeof loadDashKandidaterCount === 'function') {
+    document.querySelectorAll('[data-requires-role]').forEach(el => {
+        el.classList.toggle('hidden', !el.dataset.requiresRole.split(' ').some(r => roles.includes(r)));
+    });
+    if (roles.includes('Säljare') && typeof loadDashKandidaterCount === 'function') {
         loadDashKandidaterCount();
     }
+}
+
+function updateRoleBasedNav() {
+    applyRoleVisibility();
 }
 
 function renderSidebarUser() {

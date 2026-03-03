@@ -437,10 +437,11 @@ Personens skills: {skills_text}"""
 
         system_prompt = f"""Du är en expert på rekrytering och CV-optimering.
 En person har sökt ett jobb och fått matchningspoängen {overall_score}/100.
-Din uppgift är att ge konkreta förslag på hur de kan höja sin matchningspoäng.
+Din uppgift är att ge konkreta förslag på hur de kan höja sin matchningspoäng, samt skriva en säljande pitch för kandidaten.
 
 Svara EXAKT med JSON i detta format:
 {{
+  "pitch": "<2-4 meningar som säljer kandidaten till arbetsgivaren. Lyft fram kandidatens starkaste kompetenser, erfarenheter och prestationer som är relevanta för just detta jobb. Formulera det som om du presenterar kandidaten för en rekryterare — engagerande och konkret.>",
   "suggested_skills": [
     {{"skill_name": "<namn>", "category": "<kategori>", "reason": "<varför detta ökar matchningen>"}}
   ],
@@ -450,6 +451,7 @@ Svara EXAKT med JSON i detta format:
 }}
 
 Regler:
+- pitch: 2-4 meningar, säljande och specifik. Använd konkreta detaljer från erfarenheter och prestationer. Skriv på svenska.
 - suggested_skills: max 8 skills som saknas men som direkt ökar matchningen. Föreslå INTE skills som redan finns i kompetensbanken.
 - tips: max 8 konkreta tips för erfarenheter eller formuleringar. Ge specifika exempel på omformuleringar när det är möjligt. Sortera med högst impact först.
 - Svara på svenska."""

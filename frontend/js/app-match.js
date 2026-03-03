@@ -247,6 +247,7 @@ async function handleTips() {
 function displayTips(data, overallScore) {
     const body = document.getElementById('tips-body');
 
+    const pitch           = data.pitch ?? '';
     const suggestedSkills = data.suggested_skills ?? [];
     const tips            = data.tips ?? [];
 
@@ -274,6 +275,12 @@ function displayTips(data, overallScore) {
     `).join('');
 
     body.innerHTML = `
+        ${pitch ? `
+        <div class="tips-section tips-section--pitch">
+            <h3 class="tips-section-title">Pitch</h3>
+            <p class="tips-pitch-text">${esc(pitch)}</p>
+        </div>` : ''}
+
         <div class="tips-score-row">
             <span class="tips-score-label">Nuvarande matchning</span>
             <span class="tips-score-value ${scoreColor(overallScore)}">${overallScore} / 100</span>

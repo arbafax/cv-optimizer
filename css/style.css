@@ -1651,6 +1651,20 @@ body {
     margin-bottom: 28px;
 }
 
+.tips-section--pitch {
+    background: var(--bg-secondary);
+    border-left: 3px solid var(--blue);
+    border-radius: var(--r-md);
+    padding: 16px 18px;
+}
+
+.tips-pitch-text {
+    font-size: 15px;
+    line-height: 1.65;
+    color: var(--text-primary);
+    margin: 0;
+}
+
 .tips-section-title {
     font-size: 12px;
     font-weight: 700;

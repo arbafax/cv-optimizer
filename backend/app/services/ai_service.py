@@ -101,6 +101,7 @@ Viktigt:
 - För datum, använd format som finns i CV:t (t.ex. "2020-01", "Jan 2020", etc.)
 - Gruppera achievements och teknologier korrekt
 - Identifiera och separera olika sektioner noggrant
+- Behåll all information på originalspråket i CV:t — översätt ingenting
 - Svara ENDAST med JSON, ingen extra text"""
 
             user_prompt = f"Här är CV-texten att strukturera:\n\n{cv_text}"
@@ -250,10 +251,16 @@ Optimera CV:t för denna jobbannons."""
             f"- {s['skill_name']} ({s['category']})" for s in skills
         ) or "(inga skills)"
 
-        exp_list = "\n".join(
-            f"- [ID:{e['id']}] {e['title']}"
-            + (f" på {e['organization']}" if e.get('organization') else "")
-            + (f" ({e['start_date']}–{e.get('end_date') or 'nu'})" if e.get('start_date') else "")
+        exp_list = "\n\n".join(
+            f"[ID:{e['id']}] {e['title']}"
+            + (f" på {e['organization']}" if e.get("organization") else "")
+            + (f" ({e['start_date']}–{e.get('end_date') or 'nu'})" if e.get("start_date") else "")
+            + (f"\nBeskrivning: {e['description']}" if e.get("description") else "")
+            + (
+                "\nPrestationer:\n" + "\n".join(f"- {a}" for a in e["achievements"])
+                if e.get("achievements")
+                else ""
+            )
             for e in experiences
         ) or "(inga erfarenheter)"
 
@@ -295,7 +302,7 @@ Regler:
 - Extrahera alltid job_info från annonsen. Sätt null om informationen saknas.
 - Bygg profile_fit ENDAST om personens preferenser skickas med. Inkludera en rad per preferens som är satt. Sätt match=null om jobbets värde är okänt.
 - overall_score ska påverkas av hur väl jobbvillkoren stämmer med preferenserna – en stor avvikelse (t.ex. fel ort) sänker poängen.
-- Inkludera ENDAST skills och erfarenheter som är relevanta för jobbet (score >= 1).
+- Inkludera ENDAST skills och erfarenheter som är relevanta för jobbet (score >= 25). Uteslut det som inte bidrar.
 - Lägg till i missing_skills alla tekniker, verktyg och kompetenser som annonsen efterfrågar men saknas i kompetensbanken.
 - Sortera skills och experiences med högst poäng först."""
 
@@ -452,8 +459,8 @@ Svara EXAKT med JSON i detta format:
 
 Regler:
 - pitch: 2-4 meningar, säljande och specifik. Använd konkreta detaljer från erfarenheter och prestationer. Skriv på svenska.
-- suggested_skills: max 8 skills som saknas men som direkt ökar matchningen. Föreslå INTE skills som redan finns i kompetensbanken.
-- tips: max 8 konkreta tips för erfarenheter eller formuleringar. Ge specifika exempel på omformuleringar när det är möjligt. Sortera med högst impact först.
+- suggested_skills: max 6 skills som saknas men som direkt ökar matchningen. Föreslå INTE skills som redan finns i kompetensbanken. Hellre 3 träffsäkra än 6 generiska.
+- tips: max 6 konkreta tips för erfarenheter eller formuleringar. Ge specifika exempel på omformuleringar när det är möjligt. Inkludera bara tips som verkligen tillför värde — hellre 3 skarpa än 6 vaga. Sortera med högst impact först.
 - Svara på svenska."""
 
         user_prompt = f"""Jobbannons:
@@ -504,7 +511,7 @@ Din uppgift är att:
 Svara EXAKT med JSON:
 {"achievements": ["<prestation 1>", "<prestation 2>", ...]}
 
-Svara på svenska."""
+Svara på samma språk som prestationerna är skrivna på."""
 
         user_prompt = f"Erfarenhet{context}:\n\n{items}"
 

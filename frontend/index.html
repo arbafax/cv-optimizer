@@ -630,12 +630,20 @@
                     <div class="char-count" id="mk-char-count">0 tecken</div>
                 </div>
 
+                <button id="mk-rank-btn" class="btn btn-secondary btn-full" disabled onclick="rankAllKandidater()">
+                    <span class="btn-text">Ranka alla kandidater</span>
+                    <span class="btn-loading hidden"><span class="spinner-small"></span> Söker...</span>
+                </button>
+
+                <div class="mk-btn-divider">eller välj specifik kandidat</div>
+
                 <button id="mk-match-btn" class="btn btn-primary btn-full" disabled onclick="matchKandidatJob()">
-                    <span class="btn-text">AI-matcha kandidat mot jobb</span>
+                    <span class="btn-text">Detaljerad analys</span>
                     <span class="btn-loading hidden"><span class="spinner-small"></span> Analyserar...</span>
                 </button>
             </div>
 
+            <div id="mk-ranking" class="optimize-result hidden"></div>
             <div id="mk-result" class="optimize-result hidden"></div>
         </div>
     </div>

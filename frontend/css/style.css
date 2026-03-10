@@ -2505,6 +2505,154 @@ body {
     color: var(--text-secondary);
 }
 
+/* Matcha mot kandidater – rank button divider */
+.mk-btn-divider {
+    text-align: center;
+    font-size: 12px;
+    color: var(--text-secondary);
+    margin: 10px 0;
+    position: relative;
+}
+
+.mk-btn-divider::before,
+.mk-btn-divider::after {
+    content: '';
+    position: absolute;
+    top: 50%;
+    width: 30%;
+    height: 1px;
+    background: var(--border);
+}
+
+.mk-btn-divider::before { left: 0; }
+.mk-btn-divider::after  { right: 0; }
+
+/* Ranking list */
+.mk-ranking-note {
+    font-size: 13px;
+    color: var(--text-secondary);
+    margin: 0 0 14px 0;
+}
+
+.mk-ranking-empty {
+    font-size: 14px;
+    color: var(--text-secondary);
+    padding: 12px 0;
+}
+
+.mk-rank-list {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.mk-rank-card {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 12px 14px;
+    border: 1px solid var(--border);
+    border-radius: var(--r-md);
+    background: var(--bg-primary);
+    cursor: pointer;
+    transition: background 0.15s, border-color 0.15s;
+}
+
+.mk-rank-card:hover {
+    background: var(--bg-secondary);
+    border-color: var(--blue);
+}
+
+.mk-rank-card--nodata {
+    cursor: default;
+    opacity: 0.6;
+}
+
+.mk-rank-card--nodata:hover {
+    background: var(--bg-primary);
+    border-color: var(--border);
+}
+
+.mk-rank-num {
+    font-size: 13px;
+    font-weight: 700;
+    color: var(--text-secondary);
+    min-width: 20px;
+    text-align: center;
+}
+
+.mk-rank-info {
+    flex: 1;
+    min-width: 0;
+}
+
+.mk-rank-name {
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--text-primary);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.mk-rank-roles {
+    font-size: 12px;
+    color: var(--text-secondary);
+    margin-top: 2px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.mk-rank-score {
+    text-align: right;
+    min-width: 80px;
+}
+
+.mk-rank-pct {
+    font-size: 15px;
+    font-weight: 700;
+    color: var(--text-primary);
+    margin-bottom: 4px;
+}
+
+.mk-bar-track {
+    height: 6px;
+    background: var(--bg-secondary);
+    border-radius: 3px;
+    overflow: hidden;
+}
+
+.mk-bar-fill {
+    height: 100%;
+    border-radius: 3px;
+    transition: width 0.4s ease;
+}
+
+.mk-bar--green { background: var(--green); }
+.mk-bar--amber { background: #f59e0b; }
+.mk-bar--red   { background: #ef4444; }
+
+.mk-rank-nodata-label {
+    font-size: 12px;
+    color: var(--text-secondary);
+    font-style: italic;
+}
+
+.mk-back-btn {
+    background: none;
+    border: none;
+    color: var(--blue);
+    font-size: 13px;
+    cursor: pointer;
+    padding: 0 0 14px 0;
+    display: block;
+}
+
+.mk-back-btn:hover {
+    text-decoration: underline;
+}
+
 .mk-result-header {
     font-size: 18px;
     font-weight: 600;

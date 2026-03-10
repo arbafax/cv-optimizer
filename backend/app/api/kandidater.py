@@ -1,7 +1,7 @@
 from fastapi import APIRouter, Depends, HTTPException, UploadFile, File
 from pydantic import BaseModel
 from sqlalchemy.orm import Session
-from sqlalchemy import func
+from sqlalchemy import func, text
 
 from app.core.database import get_db
 from app.core.auth import get_current_user
@@ -868,3 +868,130 @@ async def generate_cv_for_kandidat(
         "experiences": timeline,
         "skills":      body.skills,
     }
+
+
+# ── Multi-match: ranka alla kandidater via parallella LLM-analyser ────────────
+#
+# NOTE – framtida arkitektur:
+# När jobbdatabasen byggs ut bör jobbannonser chunkas och vektoriseras i samma
+# struktur som kandidatprofilerna (skills + erfarenheter → separata vektorer).
+# Det ger symmetrisk vektorsökning i båda riktningar:
+#   kandidat → relevanta jobb  OCH  jobbannons → matchande kandidater
+# Pgvector-infrastrukturen (embedding-kolumner) är redan på plats och behålls.
+
+class MultiMatchRequest(BaseModel):
+    job_description: str
+
+
+@router.post("/multi-match")
+async def multi_match_kandidater(
+    body: MultiMatchRequest,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    """Ranka alla säljarens kandidater mot en jobbannons via parallella LLM-analyser.
+    Returnerar fullständiga matchresultat per kandidat så att frontend kan cacha dem.
+    """
+    import asyncio
+
+    # 1. Hämta alla kandidater + kompetensdata från DB (synkront, snabbt)
+    links = db.query(SellerCandidate).filter(
+        SellerCandidate.seller_user_id == current_user.id
+    ).all()
+    candidate_ids = [l.candidate_profile_id for l in links]
+    if not candidate_ids:
+        return {"candidates": []}
+
+    kandidater_data = []
+    for cid in candidate_ids:
+        kandidat = db.query(CandidateProfile).filter(CandidateProfile.id == cid).first()
+        if not kandidat:
+            continue
+        skills = (
+            db.query(CandidateSkillEntry)
+            .filter(CandidateSkillEntry.candidate_profile_id == cid)
+            .order_by(CandidateSkillEntry.category, CandidateSkillEntry.skill_name)
+            .all()
+        )
+        experiences = (
+            db.query(CandidateExperienceEntry)
+            .filter(CandidateExperienceEntry.candidate_profile_id == cid)
+            .order_by(CandidateExperienceEntry.start_date.desc())
+            .all()
+        )
+        kandidater_data.append({
+            "id":    cid,
+            "name":  kandidat.public_name or "(Inget namn)",
+            "roles": kandidat.roles,
+            "has_data": bool(skills or experiences),
+            "skills_data": [
+                {"skill_name": s.skill_name, "category": s.category or "Övrigt"}
+                for s in skills
+            ],
+            "experiences_data": [
+                {
+                    "id":           e.id,
+                    "title":        e.title,
+                    "organization": e.organization,
+                    "start_date":   e.start_date,
+                    "end_date":     e.end_date,
+                    "description":  e.description,
+                    "achievements": e.achievements or [],
+                }
+                for e in experiences
+            ],
+            "experience_objs": experiences,
+            "seeker_profile": {
+                "roles":              kandidat.roles,
+                "desired_city":       kandidat.desired_city,
+                "desired_employment": kandidat.desired_employment.split(",") if kandidat.desired_employment else [],
+                "desired_workplace":  kandidat.desired_workplace.split(",")  if kandidat.desired_workplace  else [],
+                "willing_to_commute": kandidat.willing_to_commute,
+            },
+        })
+
+    # 2. Kör alla LLM-analyser parallellt — varje anrop i egen tråd
+    async def match_one(kd: dict) -> dict:
+        if not kd["has_data"]:
+            return {"id": kd["id"], "name": kd["name"], "roles": kd["roles"],
+                    "score": 0, "match_result": None}
+
+        result = await asyncio.to_thread(
+            _ai_service.match_competences_to_job,
+            skills=kd["skills_data"],
+            experiences=kd["experiences_data"],
+            job_title="",
+            job_description=body.job_description,
+            seeker_profile=kd["seeker_profile"],
+        )
+
+        # Berika erfarenheter med fullständig profildata
+        exp_by_id = {e.id: e for e in kd["experience_objs"]}
+        enriched  = []
+        for item in result.get("experiences", []):
+            exp = exp_by_id.get(item["id"])
+            if exp:
+                enriched.append({
+                    **item,
+                    "title":           exp.title,
+                    "organization":    exp.organization,
+                    "start_date":      exp.start_date,
+                    "end_date":        exp.end_date,
+                    "is_current":      exp.is_current,
+                    "experience_type": exp.experience_type,
+                })
+        result["experiences"] = enriched
+
+        return {
+            "id":           kd["id"],
+            "name":         kd["name"],
+            "roles":        kd["roles"],
+            "score":        result.get("overall_score", 0),
+            "match_result": result,
+        }
+
+    results = list(await asyncio.gather(*[match_one(kd) for kd in kandidater_data]))
+
+    # 3. Sortera bäst matchning (högst overall_score) först
+    results.sort(key=lambda r: r["score"], reverse=True)
+    return {"candidates": results}

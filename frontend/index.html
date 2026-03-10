@@ -609,7 +609,7 @@
         <div class="view-header">
             <div>
                 <h1>Matcha mot kandidater</h1>
-                <p class="view-subtitle">Välj en kandidat och klistra in en jobbannons – AI matchar kandidatens kompetensbank mot jobbet.</p>
+                <p class="view-subtitle">Välj en eller flera kandidater och klistra in en jobbannons – AI matchar kompetensbanken mot jobbet.</p>
             </div>
         </div>
 
@@ -618,10 +618,10 @@
                 <h2 class="card-title">Jobbannons</h2>
 
                 <div class="form-group">
-                    <label for="mk-kandidat-select">Välj kandidat</label>
-                    <select id="mk-kandidat-select" onchange="updateMatchKandidatBtn()">
-                        <option value="">– Välj kandidat –</option>
-                    </select>
+                    <label>Välj kandidater</label>
+                    <div id="mk-kandidat-list" class="mk-kandidat-list">
+                        <span class="mk-kandidat-empty">Inga kandidater ännu</span>
+                    </div>
                 </div>
 
                 <div class="form-group">

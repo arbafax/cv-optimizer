@@ -2456,6 +2456,64 @@ body {
     flex-shrink: 0;
 }
 
+/* Matcha mot kandidater – checkbox list */
+.mk-kandidat-list {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    max-height: 220px;
+    overflow-y: auto;
+    border: 1px solid var(--border);
+    border-radius: var(--r-md);
+    padding: 6px 4px;
+    background: var(--bg-primary);
+}
+
+.mk-kandidat-item {
+    display: flex;
+    align-items: center;
+    gap: 9px;
+    padding: 7px 10px;
+    border-radius: var(--r-sm);
+    cursor: pointer;
+    font-size: 14px;
+    color: var(--text-primary);
+    user-select: none;
+    transition: background 0.15s;
+}
+
+.mk-kandidat-item:hover {
+    background: var(--bg-secondary);
+}
+
+.mk-kandidat-item input[type="checkbox"] {
+    width: 16px;
+    height: 16px;
+    accent-color: var(--blue);
+    cursor: pointer;
+    flex-shrink: 0;
+}
+
+.mk-kandidat-role {
+    color: var(--text-secondary);
+    font-size: 13px;
+}
+
+.mk-kandidat-empty {
+    padding: 10px;
+    font-size: 14px;
+    color: var(--text-secondary);
+}
+
+.mk-result-header {
+    font-size: 18px;
+    font-weight: 600;
+    color: var(--text-primary);
+    margin: 0 0 16px 0;
+    padding-bottom: 12px;
+    border-bottom: 1px solid var(--border);
+}
+
 /* Toggle switch */
 
 .toggle-row {

@@ -145,15 +145,21 @@ async function loadMatchKandidatView() {
         const res = await apiFetch(`${API_BASE_URL}/kandidater/`);
         if (!res.ok) return;
         const data = await res.json();
-        const sel = document.getElementById('mk-kandidat-select');
-        if (!sel) return;
-        const current = sel.value;
-        sel.innerHTML = '<option value="">– Välj kandidat –</option>' +
-            (data.kandidater || []).map(k => {
+        const list = document.getElementById('mk-kandidat-list');
+        if (!list) return;
+        const kandidater = data.kandidater || [];
+        if (kandidater.length === 0) {
+            list.innerHTML = '<span class="mk-kandidat-empty">Inga kandidater ännu</span>';
+        } else {
+            list.innerHTML = kandidater.map(k => {
                 const name  = k.public_name || '(Inget namn)';
-                const label = k.roles ? `${name} (${k.roles})` : name;
-                return `<option value="${k.id}"${k.id == current ? ' selected' : ''}>${label}</option>`;
+                const label = k.roles ? `${name} <span class="mk-kandidat-role">(${k.roles})</span>` : name;
+                return `<label class="mk-kandidat-item">
+                    <input type="checkbox" value="${k.id}" data-name="${name}" onchange="updateMatchKandidatBtn()">
+                    ${label}
+                </label>`;
             }).join('');
+        }
         updateMatchKandidatBtn();
     } catch (err) {
         if (err.message !== 'Inte inloggad') console.error(err);
@@ -161,20 +167,24 @@ async function loadMatchKandidatView() {
 }
 
 function updateMatchKandidatBtn() {
-    const sel  = document.getElementById('mk-kandidat-select');
+    const list = document.getElementById('mk-kandidat-list');
     const txt  = document.getElementById('mk-job-description');
     const btn  = document.getElementById('mk-match-btn');
-    if (btn) btn.disabled = !sel?.value || !txt?.value.trim();
+    const anyChecked = list ? list.querySelectorAll('input[type="checkbox"]:checked').length > 0 : false;
+    if (btn) btn.disabled = !anyChecked || !txt?.value.trim();
 }
 
 async function matchKandidatJob() {
-    const sel  = document.getElementById('mk-kandidat-select');
+    const list = document.getElementById('mk-kandidat-list');
     const txt  = document.getElementById('mk-job-description');
     const btn  = document.getElementById('mk-match-btn');
     const res  = document.getElementById('mk-result');
 
-    const kandidatId = sel?.value;
-    const jobDesc    = txt?.value.trim();
+    const checked      = list ? [...list.querySelectorAll('input[type="checkbox"]:checked')] : [];
+    const firstChecked = checked[0];
+    const kandidatId   = firstChecked?.value;
+    const kandidatName = firstChecked?.dataset.name || '';
+    const jobDesc      = txt?.value.trim();
     if (!kandidatId || !jobDesc) return;
 
     btn.disabled = true;
@@ -199,6 +209,9 @@ async function matchKandidatJob() {
         lastJobDesc         = jobDesc;
         lastMatchKandidatId = Number(kandidatId);
         displayMatchResult(result, res);
+        if (kandidatName) {
+            res.insertAdjacentHTML('afterbegin', `<h2 class="mk-result-header">${kandidatName}</h2>`);
+        }
         setTimeout(() => res.scrollIntoView({ behavior: 'smooth', block: 'start' }), 100);
 
     } catch (err) {

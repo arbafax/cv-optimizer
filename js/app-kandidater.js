@@ -140,6 +140,10 @@ function showKandidatListPanel() {
 
 // ── Matcha mot kandidater ─────────────────────────────────────────────────────
 
+// Cache för fullständiga matchresultat från senaste ranknings-körning.
+// Nyckel: kandidat-ID (number), värde: match_result-objekt från BE.
+let mkResultCache = {};
+
 async function loadMatchKandidatView() {
     try {
         const res = await apiFetch(`${API_BASE_URL}/kandidater/`);
@@ -167,60 +171,177 @@ async function loadMatchKandidatView() {
 }
 
 function updateMatchKandidatBtn() {
-    const list = document.getElementById('mk-kandidat-list');
-    const txt  = document.getElementById('mk-job-description');
-    const btn  = document.getElementById('mk-match-btn');
+    const list       = document.getElementById('mk-kandidat-list');
+    const txt        = document.getElementById('mk-job-description');
+    const matchBtn   = document.getElementById('mk-match-btn');
+    const rankBtn    = document.getElementById('mk-rank-btn');
+    const hasText    = !!txt?.value.trim();
     const anyChecked = list ? list.querySelectorAll('input[type="checkbox"]:checked').length > 0 : false;
-    if (btn) btn.disabled = !anyChecked || !txt?.value.trim();
+    if (matchBtn) matchBtn.disabled = !anyChecked || !hasText;
+    if (rankBtn)  rankBtn.disabled  = !hasText;
 }
 
-async function matchKandidatJob() {
+// ── Ranka alla kandidater (vektorsökning) ─────────────────────────────────────
+
+async function rankAllKandidater() {
+    const txt     = document.getElementById('mk-job-description');
+    const rankBtn = document.getElementById('mk-rank-btn');
+    const ranking = document.getElementById('mk-ranking');
+    const result  = document.getElementById('mk-result');
+    const jobDesc = txt?.value.trim();
+    if (!jobDesc) return;
+
+    rankBtn.disabled = true;
+    rankBtn.querySelector('.btn-text').style.display = 'none';
+    rankBtn.querySelector('.btn-loading').classList.remove('hidden');
+    ranking.classList.add('hidden');
+    result.classList.add('hidden');
+
+    try {
+        const res = await apiFetch(`${API_BASE_URL}/kandidater/multi-match`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ job_description: jobDesc }),
+        });
+        if (!res.ok) {
+            const err = await res.json();
+            throw new Error(err.detail || 'Rankning misslyckades');
+        }
+        const data = await res.json();
+        // Bygg cache: id → fullständigt matchresultat
+        mkResultCache = {};
+        (data.candidates || []).forEach(c => {
+            if (c.match_result) mkResultCache[c.id] = c.match_result;
+        });
+        renderRankingList(data.candidates || []);
+    } catch (err) {
+        ranking.innerHTML = `<div class="status-message status-error">❌ Fel: ${err.message}</div>`;
+        ranking.classList.remove('hidden');
+    } finally {
+        rankBtn.disabled = false;
+        rankBtn.querySelector('.btn-text').style.display = 'inline';
+        rankBtn.querySelector('.btn-loading').classList.add('hidden');
+        updateMatchKandidatBtn();
+    }
+}
+
+function renderRankingList(candidates) {
+    const ranking = document.getElementById('mk-ranking');
+    if (!ranking) return;
+
+    if (candidates.length === 0) {
+        ranking.innerHTML = '<p class="mk-ranking-empty">Inga kandidater att ranka.</p>';
+        ranking.classList.remove('hidden');
+        return;
+    }
+
+    const cards = candidates.map((c, i) => {
+        if (c.score === null) {
+            return `<div class="mk-rank-card mk-rank-card--nodata">
+                <span class="mk-rank-num">${i + 1}</span>
+                <div class="mk-rank-info">
+                    <div class="mk-rank-name">${esc(c.name)}</div>
+                    ${c.roles ? `<div class="mk-rank-roles">${esc(c.roles)}</div>` : ''}
+                </div>
+                <span class="mk-rank-nodata-label">Otillräcklig data</span>
+            </div>`;
+        }
+        const barClass = c.score >= 60 ? 'mk-bar--green' : c.score >= 35 ? 'mk-bar--amber' : 'mk-bar--red';
+        return `<div class="mk-rank-card" onclick="matchKandidatJob(${c.id}, '${esc(c.name)}')">
+            <span class="mk-rank-num">${i + 1}</span>
+            <div class="mk-rank-info">
+                <div class="mk-rank-name">${esc(c.name)}</div>
+                ${c.roles ? `<div class="mk-rank-roles">${esc(c.roles)}</div>` : ''}
+            </div>
+            <div class="mk-rank-score">
+                <div class="mk-rank-pct">${c.score}%</div>
+                <div class="mk-bar-track"><div class="mk-bar-fill ${barClass}" style="width:${c.score}%"></div></div>
+            </div>
+        </div>`;
+    }).join('');
+
+    ranking.innerHTML = `
+        <h2 class="mk-result-header">Rankning — ${candidates.filter(c => c.score !== null).length} kandidater</h2>
+        <p class="mk-ranking-note">Matchningspoäng (AI-analys). Klicka på en kandidat för att se detaljerat resultat.</p>
+        <div class="mk-rank-list">${cards}</div>
+    `;
+    ranking.classList.remove('hidden');
+}
+
+// ── Detaljerad analys (LLM) ───────────────────────────────────────────────────
+
+async function matchKandidatJob(overrideId = null, overrideName = null) {
     const list = document.getElementById('mk-kandidat-list');
     const txt  = document.getElementById('mk-job-description');
     const btn  = document.getElementById('mk-match-btn');
     const res  = document.getElementById('mk-result');
 
-    const checked      = list ? [...list.querySelectorAll('input[type="checkbox"]:checked')] : [];
-    const firstChecked = checked[0];
-    const kandidatId   = firstChecked?.value;
-    const kandidatName = firstChecked?.dataset.name || '';
-    const jobDesc      = txt?.value.trim();
+    let kandidatId, kandidatName;
+    if (overrideId !== null) {
+        kandidatId   = overrideId;
+        kandidatName = overrideName || '';
+    } else {
+        const checked  = list ? [...list.querySelectorAll('input[type="checkbox"]:checked')] : [];
+        const first    = checked[0];
+        kandidatId     = first?.value;
+        kandidatName   = first?.dataset.name || '';
+    }
+
+    const jobDesc = txt?.value.trim();
     if (!kandidatId || !jobDesc) return;
 
-    btn.disabled = true;
-    btn.querySelector('.btn-text').style.display = 'none';
-    btn.querySelector('.btn-loading').classList.remove('hidden');
+    // Visa laddning på rätt knapp beroende på hur funktionen anropades
+    const activeBtn = overrideId !== null ? null : btn;
+    if (activeBtn) {
+        activeBtn.disabled = true;
+        activeBtn.querySelector('.btn-text').style.display = 'none';
+        activeBtn.querySelector('.btn-loading').classList.remove('hidden');
+    }
     res.classList.add('hidden');
 
     try {
-        const response = await apiFetch(`${API_BASE_URL}/kandidater/${kandidatId}/match-job`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ job_title: '', job_description: jobDesc }),
-        });
+        let result = mkResultCache[Number(kandidatId)] || null;
 
-        if (!response.ok) {
-            const err = await response.json();
-            throw new Error(err.detail || 'Matchning misslyckades');
+        if (!result) {
+            // Ingen cachad data — gör ett nytt API-anrop
+            const response = await apiFetch(`${API_BASE_URL}/kandidater/${kandidatId}/match-job`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ job_title: '', job_description: jobDesc }),
+            });
+            if (!response.ok) {
+                const err = await response.json();
+                throw new Error(err.detail || 'Matchning misslyckades');
+            }
+            result = await response.json();
         }
 
-        const result = await response.json();
         lastMatchResult     = result;
         lastJobDesc         = jobDesc;
         lastMatchKandidatId = Number(kandidatId);
+
         displayMatchResult(result, res);
         if (kandidatName) {
-            res.insertAdjacentHTML('afterbegin', `<h2 class="mk-result-header">${kandidatName}</h2>`);
+            res.insertAdjacentHTML('afterbegin', `<h2 class="mk-result-header">${esc(kandidatName)}</h2>`);
         }
+        // Om vi kom från rankning, lägg till en "tillbaka"-länk
+        const ranking = document.getElementById('mk-ranking');
+        if (overrideId !== null && ranking && !ranking.classList.contains('hidden')) {
+            res.insertAdjacentHTML('afterbegin',
+                `<button class="mk-back-btn" onclick="document.getElementById('mk-result').classList.add('hidden')">← Tillbaka till rankning</button>`);
+        }
+        res.classList.remove('hidden');
         setTimeout(() => res.scrollIntoView({ behavior: 'smooth', block: 'start' }), 100);
 
     } catch (err) {
         res.innerHTML = `<div class="status-message status-error">❌ Fel: ${err.message}</div>`;
         res.classList.remove('hidden');
     } finally {
-        btn.disabled = false;
-        btn.querySelector('.btn-text').style.display = 'inline';
-        btn.querySelector('.btn-loading').classList.add('hidden');
+        if (activeBtn) {
+            activeBtn.disabled = false;
+            activeBtn.querySelector('.btn-text').style.display = 'inline';
+            activeBtn.querySelector('.btn-loading').classList.add('hidden');
+        }
         updateMatchKandidatBtn();
     }
 }

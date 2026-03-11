@@ -37,6 +37,6 @@ fi
 
 source "$VENV_DIR/bin/activate"
 
-echo "Startar backend på http://localhost:8000 ..."
+echo "Startar backend på http://localhost:8001 ..."
 cd "$BACKEND_DIR"
 python -m app.main

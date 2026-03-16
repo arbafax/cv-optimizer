@@ -78,6 +78,8 @@ sv: {
     'account.save_roles':           'Spara roller',
     'account.language_title':       'Språk',
     'account.language_desc':        'Välj ditt föredragna gränssnittsspråk.',
+    'account.save_language':        'Spara språk',
+    'account.language_saved':       'Språk sparat',
 
     // Tabs (shared by sp- and kand-)
     'tab.basinfo':                  'Basinfo',
@@ -279,6 +281,8 @@ en: {
     'account.save_roles':           'Save roles',
     'account.language_title':       'Language',
     'account.language_desc':        'Choose your preferred interface language.',
+    'account.save_language':        'Save language',
+    'account.language_saved':       'Language saved',
 
     'tab.basinfo':                  'Basic info',
     'tab.kompetenser':              'Skills',
@@ -468,6 +472,8 @@ no: {
     'account.save_roles':           'Lagre roller',
     'account.language_title':       'Språk',
     'account.language_desc':        'Velg ditt foretrukne grensesnittsspråk.',
+    'account.save_language':        'Lagre språk',
+    'account.language_saved':       'Språk lagret',
 
     'tab.basinfo':                  'Basisinfo',
     'tab.kompetenser':              'Kompetanser',

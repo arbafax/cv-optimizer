@@ -2,20 +2,38 @@
 // Depends on: app-state.js (apiFetch, API_BASE_URL, currentUser, t, esc)
 
 // ── State ─────────────────────────────────────────────────────────────────────
-let _qmCurrentQuestion = null;   // question being shown in modal
-let _padminEditingId   = null;   // question id being edited in admin form
+let _padminEditingId = null;   // question id being edited in admin form
 
 
 // ════════════════════════════════════════════════════════════════════════════
 // KANDIDAT — "Min person" view
 // ════════════════════════════════════════════════════════════════════════════
 
+// Cache: questionId → { question, answer | null }
+let _pqData = {};
+
 async function loadMyPerson() {
-    const res = await apiFetch(`${API_BASE_URL}/personality/answers`);
-    if (!res.ok) return;
-    const data = await res.json();
-    _renderPersonProgress(data.answered, data.total);
-    _renderPersonAnswers(data.answers);
+    const [qRes, aRes] = await Promise.all([
+        apiFetch(`${API_BASE_URL}/personality/questions`),
+        apiFetch(`${API_BASE_URL}/personality/answers`),
+    ]);
+    if (!qRes.ok || !aRes.ok) return;
+
+    const questions              = await qRes.json();
+    const { answered, total, answers } = await aRes.json();
+
+    // Build answer map keyed by question_id
+    const answerMap = {};
+    for (const a of answers) answerMap[a.question_id] = a;
+
+    // Build merged cache
+    _pqData = {};
+    for (const q of questions) {
+        _pqData[q.id] = { question: q, answer: answerMap[q.id] || null };
+    }
+
+    _renderPersonProgress(answered, total);
+    _renderAllQuestions(questions, answerMap);
 }
 
 function _renderPersonProgress(answered, total) {
@@ -26,183 +44,135 @@ function _renderPersonProgress(answered, total) {
     if (txt) txt.textContent = `${answered} / ${total}`;
 }
 
-function _renderPersonAnswers(answers) {
+function _renderAllQuestions(questions, answerMap) {
     const el = document.getElementById('person-answers-list');
     if (!el) return;
-    if (!answers.length) {
-        el.innerHTML = `<p class="text-muted" style="text-align:center;padding:24px">${t('person.no_answers')}</p>`;
+    if (!questions.length) {
+        el.innerHTML = `<p class="text-muted" style="text-align:center;padding:24px">${t('person.no_questions_yet')}</p>`;
         return;
     }
 
-    // Group by category
+    // Group by category, preserving order
     const groups = {};
-    for (const a of answers) {
-        const cat = a.category || '–';
+    for (const q of questions) {
+        const cat = q.category || '–';
         if (!groups[cat]) groups[cat] = [];
-        groups[cat].push(a);
+        groups[cat].push(q);
     }
 
-    el.innerHTML = Object.entries(groups).map(([cat, items]) => `
+    el.innerHTML = Object.entries(groups).map(([cat, qs]) => `
         <div class="card" style="margin-bottom:16px">
-            <h3 class="card-title" style="margin-bottom:12px">${esc(cat)}</h3>
-            ${items.map(a => _answerCardHtml(a)).join('')}
+            <h3 class="card-title" style="margin-bottom:4px">${esc(cat)}</h3>
+            ${qs.map(q => _pqRowHtml(q, answerMap[q.id] || null)).join('')}
         </div>
     `).join('');
 }
 
-function _answerCardHtml(a) {
-    const likertStr = a.likert_score ? `<span class="personality-likert">${a.likert_score}/5</span>` : '';
+function _pqRowHtml(q, answer) {
+    const answered  = !!answer;
+    const likertBadge = answered && answer.likert_score
+        ? `<span class="pq-likert-badge">${answer.likert_score}/5</span>`
+        : '';
+    const answerBlock = answered
+        ? `<div class="pq-answer-text" id="pq-ans-${q.id}">${esc(answer.answer_text)}${likertBadge}</div>`
+        : `<div class="pq-unanswered" id="pq-ans-${q.id}">–</div>`;
+
     return `
-        <div class="personality-answer-card" id="pa-card-${a.id}">
-            <div class="personality-answer-q">${esc(a.question_text)}</div>
-            ${a.context ? `<div class="personality-answer-ctx">${esc(a.context)}</div>` : ''}
-            <div class="personality-answer-row">
-                <div class="personality-answer-text" id="pa-text-${a.id}">${esc(a.answer_text)}</div>
-                ${likertStr}
-                <button class="btn-icon" onclick="editPersonAnswer(${a.id}, ${a.question_id})"
-                    title="${t('person.edit_answer')}">&#9998;</button>
+        <div class="pq-row${answered ? '' : ' pq-row--unanswered'}" id="pq-row-${q.id}">
+            <div class="pq-row-body">
+                <div class="pq-question">${esc(q.question_text)}</div>
+                ${q.context ? `<div class="pq-context">${esc(q.context)}</div>` : ''}
+                ${answerBlock}
             </div>
-            <div id="pa-edit-${a.id}"></div>
+            <div class="pq-row-actions" id="pq-actions-${q.id}">
+                <button class="btn-icon" onclick="editPQ(${q.id})"
+                    title="${t(answered ? 'person.edit_answer' : 'person.add_answer')}">&#9998;</button>
+            </div>
+            <div class="pq-edit-form hidden" id="pq-edit-${q.id}"></div>
         </div>`;
 }
 
-function editPersonAnswer(answerId, questionId) {
-    const container = document.getElementById(`pa-edit-${answerId}`);
-    const textEl    = document.getElementById(`pa-text-${answerId}`);
-    if (!container || !textEl) return;
-    const currentText = textEl.textContent;
+function editPQ(questionId) {
+    const entry = _pqData[questionId];
+    if (!entry) return;
+    const { question: q, answer } = entry;
 
-    container.innerHTML = `
-        <textarea class="form-input" id="pa-edit-ta-${answerId}" rows="3"
-            style="width:100%;margin-top:8px;resize:vertical">${esc(currentText)}</textarea>
-        <div style="display:flex;gap:8px;margin-top:8px;justify-content:flex-end">
-            <button class="btn btn-secondary btn-sm"
-                onclick="cancelPersonEdit(${answerId})">${t('person.cancel')}</button>
-            <button class="btn btn-primary btn-sm"
-                onclick="savePersonAnswer(${answerId}, ${questionId})">${t('person.save_answer')}</button>
+    // Hide edit button while form is open
+    document.getElementById(`pq-actions-${questionId}`)?.classList.add('hidden');
+
+    const currentText   = answer?.answer_text || '';
+    const currentLikert = answer?.likert_score || null;
+    const hasLikert     = !!q.big_five_trait;
+
+    const likertHtml = hasLikert ? `
+        <div style="margin-bottom:8px">
+            <p style="font-size:0.8rem;color:var(--text-muted);margin-bottom:6px" data-i18n="person.likert_label">${t('person.likert_label')}</p>
+            <div style="display:flex;gap:8px">
+                ${[1,2,3,4,5].map(v => `
+                    <label class="likert-btn">
+                        <input type="radio" name="pq-likert-${questionId}" value="${v}"${currentLikert === v ? ' checked' : ''}> ${v}
+                    </label>`).join('')}
+            </div>
+        </div>` : '';
+
+    const formEl = document.getElementById(`pq-edit-${questionId}`);
+    formEl.innerHTML = `
+        ${likertHtml}
+        <textarea class="form-input" id="pq-ta-${questionId}" rows="3"
+            style="width:100%;resize:vertical;margin-bottom:8px"
+            maxlength="500">${esc(currentText)}</textarea>
+        <div style="display:flex;gap:8px;justify-content:flex-end">
+            <button class="btn btn-secondary btn-sm" onclick="cancelPQ(${questionId})">${t('person.cancel')}</button>
+            <button class="btn btn-primary btn-sm" onclick="savePQ(${questionId})">${t('person.save_answer')}</button>
         </div>`;
+    formEl.classList.remove('hidden');
+    document.getElementById(`pq-ta-${questionId}`)?.focus();
 }
 
-function cancelPersonEdit(answerId) {
-    const container = document.getElementById(`pa-edit-${answerId}`);
-    if (container) container.innerHTML = '';
+function cancelPQ(questionId) {
+    document.getElementById(`pq-edit-${questionId}`)?.classList.add('hidden');
+    document.getElementById(`pq-edit-${questionId}`).innerHTML = '';
+    document.getElementById(`pq-actions-${questionId}`)?.classList.remove('hidden');
 }
 
-async function savePersonAnswer(answerId, questionId) {
-    const ta = document.getElementById(`pa-edit-ta-${answerId}`);
+async function savePQ(questionId) {
+    const ta = document.getElementById(`pq-ta-${questionId}`);
     if (!ta) return;
     const text = ta.value.trim();
     if (!text) return;
 
-    const res = await apiFetch(`${API_BASE_URL}/personality/answers/${answerId}`, {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ question_id: questionId, answer_text: text }),
-    });
-    if (res.ok) {
-        const updated = await res.json();
-        const textEl = document.getElementById(`pa-text-${answerId}`);
-        if (textEl) textEl.textContent = updated.answer_text;
-        cancelPersonEdit(answerId);
-    }
-}
-
-
-// ════════════════════════════════════════════════════════════════════════════
-// "FRÅGA MIG!" MODAL
-// ════════════════════════════════════════════════════════════════════════════
-
-async function startQuestionMe() {
-    await _fetchAndShowNextQuestion();
-}
-
-async function _fetchAndShowNextQuestion() {
-    const res = await apiFetch(`${API_BASE_URL}/personality/answers/next`);
-    if (!res.ok) return;
-    const data = await res.json();
-
-    if (data.done) {
-        _showQuestionModal(null);
-        return;
-    }
-    _qmCurrentQuestion = data.question;
-    _showQuestionModal(data.question);
-}
-
-function _showQuestionModal(question) {
-    const modal = document.getElementById('question-me-modal');
-    if (!modal) return;
-
-    if (!question) {
-        // All done
-        document.getElementById('qm-question-text').textContent = t('person.all_done');
-        document.getElementById('qm-context-text').textContent  = '';
-        document.getElementById('qm-category').textContent      = '';
-        document.getElementById('qm-answer-text').value         = '';
-        document.querySelectorAll('input[name="qm-likert"]').forEach(r => r.checked = false);
-        modal.classList.remove('hidden');
-        return;
-    }
-
-    document.getElementById('qm-category').textContent      = question.category || '';
-    document.getElementById('qm-question-text').textContent  = question.question_text;
-    document.getElementById('qm-context-text').textContent   = question.context || '';
-    document.getElementById('qm-answer-text').value          = '';
-    document.getElementById('qm-char-count').textContent     = '0 / 500';
-    document.getElementById('qm-error').classList.add('hidden');
-    document.querySelectorAll('input[name="qm-likert"]').forEach(r => r.checked = false);
-
-    // Show likert only for Big Five trait questions
-    const hasTraint = !!question.big_five_trait;
-    document.getElementById('qm-likert-section').classList.toggle('hidden', !hasTraint);
-
-    modal.classList.remove('hidden');
-}
-
-function closeQuestionMe() {
-    const modal = document.getElementById('question-me-modal');
-    if (modal) modal.classList.add('hidden');
-    _qmCurrentQuestion = null;
-    loadMyPerson();
-}
-
-async function skipQuestion() {
-    await _fetchAndShowNextQuestion();
-}
-
-async function submitQuestionMe() {
-    if (!_qmCurrentQuestion) { closeQuestionMe(); return; }
-
-    const text = document.getElementById('qm-answer-text').value.trim();
-    const errEl = document.getElementById('qm-error');
-    if (!text) {
-        errEl.textContent = t('person.answer_ph');
-        errEl.classList.remove('hidden');
-        return;
-    }
-    errEl.classList.add('hidden');
-
-    const likertInput = document.querySelector('input[name="qm-likert"]:checked');
+    const likertInput = document.querySelector(`input[name="pq-likert-${questionId}"]:checked`);
     const likert = likertInput ? parseInt(likertInput.value) : null;
 
     const res = await apiFetch(`${API_BASE_URL}/personality/answers`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-            question_id:  _qmCurrentQuestion.id,
-            answer_text:  text,
-            likert_score: likert,
-        }),
+        body: JSON.stringify({ question_id: questionId, answer_text: text, likert_score: likert }),
     });
+    if (!res.ok) return;
 
-    if (!res.ok) {
-        const err = await res.json().catch(() => ({}));
-        errEl.textContent = err.detail || 'Fel vid sparning';
-        errEl.classList.remove('hidden');
-        return;
+    const saved = await res.json();
+
+    // Update cache
+    if (_pqData[questionId]) _pqData[questionId].answer = saved;
+
+    // Update answer display inline (no full reload)
+    const ansEl = document.getElementById(`pq-ans-${questionId}`);
+    if (ansEl) {
+        const likertBadge = saved.likert_score
+            ? `<span class="pq-likert-badge">${saved.likert_score}/5</span>` : '';
+        ansEl.className   = 'pq-answer-text';
+        ansEl.innerHTML   = esc(saved.answer_text) + likertBadge;
     }
+    const row = document.getElementById(`pq-row-${questionId}`);
+    if (row) row.classList.remove('pq-row--unanswered');
 
-    await _fetchAndShowNextQuestion();
+    // Update progress bar (re-count from cache)
+    const totalQ    = Object.keys(_pqData).length;
+    const answeredQ = Object.values(_pqData).filter(e => e.answer).length;
+    _renderPersonProgress(answeredQ, totalQ);
+
+    cancelPQ(questionId);
 }
 
 
@@ -381,6 +351,103 @@ async function deleteAdminQuestion(id) {
     const res = await apiFetch(`${API_BASE_URL}/personality/questions/${id}`, { method: 'DELETE' });
     if (res.ok) await loadPersonalityAdmin();
 }
+
+// ════════════════════════════════════════════════════════════════════════════
+// PERSONALITY DESCRIPTION MODAL
+// ════════════════════════════════════════════════════════════════════════════
+
+async function generatePersonalityDescription() {
+    // Open modal in loading state
+    document.getElementById('pdesc-modal').classList.remove('hidden');
+    document.getElementById('pdesc-loading').classList.remove('hidden');
+    document.getElementById('pdesc-error').classList.add('hidden');
+    document.getElementById('pdesc-content').classList.add('hidden');
+    document.getElementById('pdesc-download-btn').classList.add('hidden');
+    document.getElementById('pdesc-raw').value = '';
+
+    const res = await apiFetch(`${API_BASE_URL}/personality/description`, { method: 'POST' });
+    document.getElementById('pdesc-loading').classList.add('hidden');
+
+    if (!res.ok) {
+        const errEl = document.getElementById('pdesc-error');
+        errEl.classList.remove('hidden');
+        try {
+            const body = await res.json();
+            const detail = body.detail || {};
+            const code = detail.code || '';
+            if (code === 'too_few_answers') {
+                const pct = detail.pct ?? '?';
+                const ans = detail.answered ?? '?';
+                const tot = detail.total ?? '?';
+                errEl.textContent = t('person.desc_err_few_answers')
+                    .replace('{pct}', pct)
+                    .replace('{ans}', ans)
+                    .replace('{tot}', tot);
+            } else if (code === 'too_few_categories') {
+                const cats = detail.categories ?? '?';
+                const need = detail.needed ?? 5;
+                errEl.textContent = t('person.desc_err_few_cats')
+                    .replace('{cats}', cats)
+                    .replace('{need}', need);
+            } else {
+                errEl.textContent = t('person.desc_err_generic') || 'Generering misslyckades.';
+            }
+        } catch {
+            errEl.textContent = t('person.desc_err_generic') || 'Generering misslyckades.';
+        }
+        return;
+    }
+
+    const { markdown } = await res.json();
+    document.getElementById('pdesc-raw').value = markdown;
+
+    const contentEl = document.getElementById('pdesc-content');
+    contentEl.innerHTML = typeof marked !== 'undefined'
+        ? marked.parse(markdown)
+        : _fallbackMd(markdown);
+    contentEl.classList.remove('hidden');
+    document.getElementById('pdesc-download-btn').classList.remove('hidden');
+}
+
+function closePdescModal() {
+    document.getElementById('pdesc-modal').classList.add('hidden');
+}
+
+function downloadPersonalityMd() {
+    const md = document.getElementById('pdesc-raw').value;
+    if (!md) return;
+    const blob = new Blob([md], { type: 'text/markdown;charset=utf-8' });
+    const url  = URL.createObjectURL(blob);
+    const a    = document.createElement('a');
+    a.href     = url;
+    a.download = 'personlighetsbeskrivning.md';
+    a.click();
+    URL.revokeObjectURL(url);
+}
+
+/** Minimal markdown → HTML fallback (no dependency) */
+function _fallbackMd(md) {
+    const lines   = md.split('\n');
+    let   html    = '';
+    let   inList  = false;
+    const inline  = s => s
+        .replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')
+        .replace(/\*\*(.+?)\*\*/g,'<strong>$1</strong>')
+        .replace(/\*(.+?)\*/g,'<em>$1</em>')
+        .replace(/_(.+?)_/g,'<em>$1</em>');
+    for (const raw of lines) {
+        const l = raw.trimEnd();
+        if (l.startsWith('### '))     { if (inList) { html += '</ul>'; inList=false; } html += `<h3>${inline(l.slice(4))}</h3>`; }
+        else if (l.startsWith('## ')) { if (inList) { html += '</ul>'; inList=false; } html += `<h2>${inline(l.slice(3))}</h2>`; }
+        else if (l.startsWith('# '))  { if (inList) { html += '</ul>'; inList=false; } html += `<h1>${inline(l.slice(2))}</h1>`; }
+        else if (/^[-*] /.test(l))    { if (!inList) { html += '<ul>'; inList=true; }  html += `<li>${inline(l.slice(2))}</li>`; }
+        else if (l === '')            { if (inList)  { html += '</ul>'; inList=false; } html += '<br>'; }
+        else                          { if (inList)  { html += '</ul>'; inList=false; } html += `<p>${inline(l)}</p>`; }
+    }
+    if (inList) html += '</ul>';
+    return html;
+}
+
 
 // ── Import modal state ────────────────────────────────────────────────────────
 let _importState = null;

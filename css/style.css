@@ -2952,32 +2952,69 @@ body {
 }
 
 /* Answer cards */
-.personality-answer-card {
+/* ── Question rows (Min person view) ── */
+.pq-row {
+    display: grid;
+    grid-template-columns: 1fr auto;
+    grid-template-rows: auto auto;
+    gap: 0 8px;
     padding: 12px 0;
     border-bottom: 1px solid var(--border);
 }
-.personality-answer-card:last-child {
-    border-bottom: none;
+.pq-row:last-child { border-bottom: none; }
+
+.pq-row-body { grid-column: 1; }
+.pq-row-actions {
+    grid-column: 2;
+    grid-row: 1;
+    display: flex;
+    align-items: flex-start;
+    padding-top: 2px;
 }
-.personality-answer-q {
+.pq-edit-form {
+    grid-column: 1 / -1;
+    padding-top: 8px;
+}
+.pq-question {
     font-weight: 500;
-    margin-bottom: 4px;
+    margin-bottom: 3px;
+    line-height: 1.4;
 }
-.personality-answer-ctx {
+.pq-context {
     font-size: 0.8rem;
     color: var(--text-muted);
-    margin-bottom: 6px;
+    margin-bottom: 5px;
 }
-.personality-answer-row {
-    display: flex;
-    align-items: center;
-    gap: 10px;
-}
-.personality-answer-text {
-    flex: 1;
-    color: var(--text-secondary);
+.pq-answer-text {
     font-size: 0.875rem;
+    color: var(--text-secondary);
+    line-height: 1.4;
 }
+.pq-unanswered {
+    font-size: 0.875rem;
+    color: var(--text-muted);
+}
+.pq-row--unanswered .pq-question { color: var(--text-secondary); }
+.pq-likert-badge {
+    display: inline-block;
+    font-size: 0.75rem;
+    font-weight: 600;
+    color: var(--blue);
+    background: color-mix(in srgb, var(--blue) 12%, transparent);
+    border-radius: var(--r-sm);
+    padding: 1px 7px;
+    margin-left: 8px;
+    vertical-align: middle;
+    white-space: nowrap;
+}
+
+/* keep old classes for any lingering references */
+.personality-answer-card { padding: 12px 0; border-bottom: 1px solid var(--border); }
+.personality-answer-card:last-child { border-bottom: none; }
+.personality-answer-q { font-weight: 500; margin-bottom: 4px; }
+.personality-answer-ctx { font-size: 0.8rem; color: var(--text-muted); margin-bottom: 6px; }
+.personality-answer-row { display: flex; align-items: center; gap: 10px; }
+.personality-answer-text { flex: 1; color: var(--text-secondary); font-size: 0.875rem; }
 .personality-likert {
     font-size: 0.8rem;
     font-weight: 600;
@@ -3022,6 +3059,69 @@ body {
 .btn-sm {
     padding: 5px 12px;
     font-size: 0.8rem;
+}
+
+/* ── Personality description modal ── */
+.pdesc-modal-card {
+    max-width: 700px;
+    display: flex;
+    flex-direction: column;
+    max-height: calc(100vh - 80px);
+}
+.pdesc-modal-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 16px;
+}
+.pdesc-modal-header h3 {
+    font-size: 1.1rem;
+    font-weight: 600;
+    margin: 0;
+}
+.pdesc-loading {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 16px;
+    padding: 32px 0;
+    color: var(--text-muted);
+    font-size: 0.9rem;
+}
+.pdesc-spinner {
+    width: 36px;
+    height: 36px;
+    border: 3px solid var(--border);
+    border-top-color: var(--blue);
+    border-radius: 50%;
+    animation: spin .8s linear infinite;
+}
+@keyframes spin { to { transform: rotate(360deg); } }
+.pdesc-content {
+    overflow-y: auto;
+    flex: 1;
+    padding-right: 4px;
+    font-size: 0.9rem;
+    line-height: 1.6;
+    border: 1px solid var(--border);
+    border-radius: var(--r);
+    padding: 16px;
+    background: var(--bg-secondary);
+    margin-bottom: 12px;
+    min-height: 200px;
+}
+.pdesc-content h1 { font-size: 1.25rem; margin: 0 0 12px; }
+.pdesc-content h2 { font-size: 1.05rem; margin: 20px 0 8px; border-bottom: 1px solid var(--border); padding-bottom: 4px; }
+.pdesc-content h3 { font-size: 0.95rem; margin: 16px 0 6px; }
+.pdesc-content p  { margin: 0 0 10px; }
+.pdesc-content ul { margin: 0 0 10px; padding-left: 20px; }
+.pdesc-content li { margin-bottom: 4px; }
+.pdesc-modal-footer {
+    display: flex;
+    justify-content: flex-end;
+    gap: 10px;
+    padding-top: 12px;
+    border-top: 1px solid var(--border);
 }
 
 /* ── Import modal ── */

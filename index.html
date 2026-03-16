@@ -591,11 +591,14 @@
             <div class="card">
                 <h2 class="card-title" data-i18n="account.language_title">Språk</h2>
                 <p class="field-desc" data-i18n="account.language_desc">Välj ditt föredragna gränssnittsspråk.</p>
-                <select id="account-language" class="form-input" style="max-width:220px">
-                    <option value="sv">🇸🇪 Svenska (SV)</option>
-                    <option value="en">🇬🇧 English (EN)</option>
-                    <option value="no">🇳🇴 Norsk (NO)</option>
-                </select>
+                <div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap">
+                    <select id="account-language" class="form-input" style="max-width:220px">
+                        <option value="sv">🇸🇪 Svenska (SV)</option>
+                        <option value="en">🇬🇧 English (EN)</option>
+                        <option value="no">🇳🇴 Norsk (NO)</option>
+                    </select>
+                    <button class="btn btn-primary" onclick="saveAccountLanguage()" data-i18n="account.save_language">Spara språk</button>
+                </div>
             </div>
         </div>
     </div>

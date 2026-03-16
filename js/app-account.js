@@ -28,8 +28,6 @@ async function saveAccount() {
     const email   = document.getElementById('account-email').value.trim();
     const phone   = document.getElementById('account-phone').value.trim();
     const address = document.getElementById('account-address').value.trim();
-    const langEl  = document.getElementById('account-language');
-    const lang    = langEl ? langEl.value : null;
 
     if (!name) { showAccountStatus('account-status', 'Namn krävs', 'error'); return; }
     if (!email) { showAccountStatus('account-status', 'E-post krävs', 'error'); return; }
@@ -38,18 +36,37 @@ async function saveAccount() {
         const res = await apiFetch(`${API_BASE_URL}/auth/me`, {
             method: 'PUT',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ name, email, phone: phone || null, address: address || null, language: lang || null }),
+            body: JSON.stringify({ name, email, phone: phone || null, address: address || null }),
         });
         if (!res.ok) {
             const err = await res.json();
             throw new Error(err.detail || 'Kunde inte spara');
         }
         currentUser = await res.json();
-        if (lang) setLanguage(lang, false);
         renderSidebarUser();
         showAccountStatus('account-status', 'Uppgifterna sparades', 'success');
     } catch (err) {
         showAccountStatus('account-status', err.message, 'error');
+    }
+}
+
+async function saveAccountLanguage() {
+    const lang = document.getElementById('account-language').value;
+    try {
+        const res = await apiFetch(`${API_BASE_URL}/auth/me`, {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ language: lang }),
+        });
+        if (!res.ok) {
+            const err = await res.json();
+            throw new Error(err.detail || 'Kunde inte spara');
+        }
+        currentUser = await res.json();
+        setLanguage(lang, false);
+        showAccountStatus('account-roles-status', t('account.language_saved') || 'Språk sparat', 'success');
+    } catch (err) {
+        showAccountStatus('account-roles-status', err.message, 'error');
     }
 }
 

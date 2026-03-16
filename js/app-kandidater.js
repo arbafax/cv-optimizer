@@ -500,8 +500,8 @@ function renderKandidatSkills(skills) {
                     }
                     return `<span class="bank-skill-chip ${typeClass(s.skill_type)}">
                         ${esc(s.skill_name)}
-                        <button class="chip-delete" style="font-size:0.85em;padding:0 1px 0 3px" onclick="kandEditingSkillId=${s.id};renderKandidatSkills(cachedKandSkills)" title="Redigera">✎</button>
-                        <button class="chip-delete" onclick="deleteKandidatSkill(${s.id})" title="Ta bort">×</button>
+                        <button class="chip-delete" style="font-size:0.85em;padding:0 1px 0 3px" onclick="kandEditingSkillId=${s.id};renderKandidatSkills(cachedKandSkills)" title="${t('action.edit')}">✎</button>
+                        <button class="chip-delete" onclick="deleteKandidatSkill(${s.id})" title="${t('action.delete')}">×</button>
                     </span>`;
                 }).join('')}
             </div>
@@ -693,8 +693,8 @@ function renderKandidatExperiences(experiences) {
                     ${period ? `<div class="exp-card-period">${period}</div>` : ''}
                 </div>
                 <div class="exp-card-actions">
-                    <button class="btn-icon" onclick="kandEditingExpId=${e.id};renderKandidatExperiences(cachedKandExps)" title="Redigera">✎</button>
-                    <button class="btn-icon btn-icon-danger" onclick="deleteKandExperience(${e.id})" title="Ta bort">&times;</button>
+                    <button class="btn-icon" onclick="kandEditingExpId=${e.id};renderKandidatExperiences(cachedKandExps)" title="${t('action.edit')}">✎</button>
+                    <button class="btn-icon btn-icon-danger" onclick="deleteKandExperience(${e.id})" title="${t('action.delete')}">&times;</button>
                 </div>
             </div>
             ${e.description ? `<div class="exp-card-desc">${esc(e.description)}</div>` : ''}
@@ -940,8 +940,8 @@ function renderKandidatEducation(items, kandidatId) {
                 ${period           ? `<div class="edu-card-period">${period}</div>` : ''}
             </div>
             <div class="exp-card-actions">
-                <button class="btn-icon" onclick="kandEditingEduId=${e.id};renderKandidatEducation(cachedKandEdu,${kandidatId})" title="Redigera">✎</button>
-                <button class="btn-icon btn-icon-danger" onclick="deleteKandidatEducation(${e.id},${kandidatId})" title="Ta bort">&times;</button>
+                <button class="btn-icon" onclick="kandEditingEduId=${e.id};renderKandidatEducation(cachedKandEdu,${kandidatId})" title="${t('action.edit')}">✎</button>
+                <button class="btn-icon btn-icon-danger" onclick="deleteKandidatEducation(${e.id},${kandidatId})" title="${t('action.delete')}">&times;</button>
             </div>
         </div>`;
     }).join('');
@@ -1053,8 +1053,8 @@ function renderKandidatCertifications(items, kandidatId) {
                 ${c.date   ? `<div class="edu-card-period">${c.date}</div>` : ''}
             </div>
             <div class="exp-card-actions">
-                <button class="btn-icon" onclick="kandEditingCertId=${c.id};renderKandidatCertifications(cachedKandCerts,${kandidatId})" title="Redigera">✎</button>
-                <button class="btn-icon btn-icon-danger" onclick="deleteKandidatCertification(${c.id},${kandidatId})" title="Ta bort">&times;</button>
+                <button class="btn-icon" onclick="kandEditingCertId=${c.id};renderKandidatCertifications(cachedKandCerts,${kandidatId})" title="${t('action.edit')}">✎</button>
+                <button class="btn-icon btn-icon-danger" onclick="deleteKandidatCertification(${c.id},${kandidatId})" title="${t('action.delete')}">&times;</button>
             </div>
         </div>`;
     }).join('');

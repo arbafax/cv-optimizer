@@ -362,14 +362,14 @@ function renderSidebarUser() {
         <div class="sidebar-user-row">
             <div class="sidebar-user-clickable"
                  onclick="showView('account', document.getElementById('nav-account')); loadAccountView()"
-                 title="Mitt konto">
+                 title="${t('action.my_account')}">
                 <div class="sidebar-avatar">${initials}</div>
                 <div class="sidebar-user-text">
                     <div class="sidebar-user-name">${currentUser.name}</div>
                     <div class="sidebar-user-email">${currentUser.email}</div>
                 </div>
             </div>
-            <button class="btn-logout" onclick="handleLogout()" title="Logga ut">
+            <button class="btn-logout" onclick="handleLogout()" title="${t('action.logout')}">
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
                     <path d="M9 21H5a2 2 0 01-2-2V5a2 2 0 012-2h4"/>
                     <polyline points="16 17 21 12 16 7"/>

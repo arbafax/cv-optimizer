@@ -79,7 +79,7 @@ function displayCVPreview(cvData) {
     cvPreview.innerHTML = `
         <div class="cv-preview-header">
             <h3>✅ CV strukturerat framgångsrikt!</h3>
-            <button class="cv-preview-close" onclick="closePreview()" title="Stäng">&times;</button>
+            <button class="cv-preview-close" onclick="closePreview()" title="${t('action.close')}">&times;</button>
         </div>
         <div class="cv-preview-section">
             <h4>Personlig information</h4>

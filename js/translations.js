@@ -89,6 +89,19 @@ sv: {
     'tab.certifikat':               'Kurser & Cert',
     'tab.cv':                       'CV',
 
+    // Actions (hover titles on icon buttons)
+    'action.edit':                  'Redigera',
+    'action.delete':                'Ta bort',
+    'action.close':                 'Stäng',
+    'action.logout':                'Logga ut',
+    'action.my_account':            'Mitt konto',
+    'action.edit_period':           'Redigera tidsperiod',
+    'action.delete_experience':     'Ta bort erfarenhet',
+    'action.click_to_edit':         'Klicka för att redigera',
+    'action.add_achievement':       'Lägg till prestation',
+    'action.improve':               'Rensa duplikat och förbättra formuleringar',
+    'action.add_skill':             'Lägg till skill',
+
     // Optimize / Match job
     'match.title':                  'Matcha jobb',
     'match.subtitle':               'Klistra in en jobbannons – AI matchar hela din kompetensbank mot jobbet.',
@@ -291,6 +304,19 @@ en: {
     'tab.certifikat':               'Courses & Certs',
     'tab.cv':                       'CV',
 
+    // Actions (hover titles on icon buttons)
+    'action.edit':                  'Edit',
+    'action.delete':                'Delete',
+    'action.close':                 'Close',
+    'action.logout':                'Log out',
+    'action.my_account':            'My account',
+    'action.edit_period':           'Edit period',
+    'action.delete_experience':     'Delete experience',
+    'action.click_to_edit':         'Click to edit',
+    'action.add_achievement':       'Add achievement',
+    'action.improve':               'Remove duplicates and improve phrasing',
+    'action.add_skill':             'Add skill',
+
     'match.title':                  'Match job',
     'match.subtitle':               'Paste a job listing – AI matches your entire skill bank against the job.',
     'match.card_title':             'Job listing',
@@ -481,6 +507,19 @@ no: {
     'tab.utbildning':               'Utdanning',
     'tab.certifikat':               'Kurs & Sertifikater',
     'tab.cv':                       'CV',
+
+    // Actions (hover titles on icon buttons)
+    'action.edit':                  'Rediger',
+    'action.delete':                'Slett',
+    'action.close':                 'Lukk',
+    'action.logout':                'Logg ut',
+    'action.my_account':            'Min konto',
+    'action.edit_period':           'Rediger tidsperiode',
+    'action.delete_experience':     'Slett erfaring',
+    'action.click_to_edit':         'Klikk for å redigere',
+    'action.add_achievement':       'Legg til prestasjon',
+    'action.improve':               'Fjern duplikater og forbedre formuleringer',
+    'action.add_skill':             'Legg til ferdighet',
 
     'match.title':                  'Match jobb',
     'match.subtitle':               'Lim inn en stillingsannonse – AI matcher hele kompetansebanken din mot jobben.',

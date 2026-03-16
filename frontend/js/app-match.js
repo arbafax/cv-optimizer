@@ -7,7 +7,7 @@
 // ── Update character count ────────────────────────────────────────────────────
 function updateCharCount() {
     const count = jobDescription.value.length;
-    charCount.textContent = `${count} tecken`;
+    charCount.textContent = `${count}${t('match.chars')}`;
 }
 
 // ── Update optimize button state ─────────────────────────────────────────────
@@ -18,7 +18,7 @@ function updateOptimizeButton() {
 // ── Match competences against job ─────────────────────────────────────────────
 async function handleOptimize() {
     if (!jobDescription.value.trim()) {
-        alert('Klistra in en jobbannons');
+        alert(t('match.paste_alert'));
         return;
     }
 
@@ -39,7 +39,7 @@ async function handleOptimize() {
 
         if (!response.ok) {
             const error = await response.json();
-            throw new Error(error.detail || 'Matchning misslyckades');
+            throw new Error(error.detail || t('match.failed'));
         }
 
         const result = await response.json();
@@ -70,7 +70,7 @@ async function handleGenerateCV() {
     if (!lastMatchResult) return;
     const genBtn = document.getElementById('gen-cv-btn');
     genBtn.disabled = true;
-    genBtn.innerHTML = '<span class="spinner-small"></span> Genererar...';
+    genBtn.innerHTML = `<span class="spinner-small"></span> ${t('match.generating')}`;
 
     const expIds = (lastMatchResult.experiences ?? [])
         .filter(e => e.score > 0)
@@ -104,7 +104,7 @@ async function handleGenerateCV() {
 
     } catch (err) {
         genBtn.disabled = false;
-        genBtn.innerHTML = 'Generera anpassat CV-utkast';
+        genBtn.innerHTML = t('match.gen_btn');
         alert('Fel: ' + err.message);
     }
 }
@@ -199,7 +199,7 @@ function closeCVGenerateModal() {
     const genBtn = document.getElementById('gen-cv-btn');
     if (genBtn) {
         genBtn.disabled = false;
-        genBtn.innerHTML = '✨ Generera anpassat CV-utkast';
+        genBtn.innerHTML = t('match.gen_btn');
     }
 }
 
@@ -240,7 +240,7 @@ async function handleTips() {
         alert('Fel: ' + err.message);
     } finally {
         tipsBtn.disabled = false;
-        tipsBtn.innerHTML = '💡 Tips';
+        tipsBtn.innerHTML = t('match.tips_btn');
     }
 }
 

@@ -2836,6 +2836,56 @@ body {
 .exp-card-desc  { font-size: 0.875rem; margin-top: 0.5rem; }
 .exp-card-ach   { margin: 0.375rem 0 0 1rem; padding: 0; font-size: 0.85rem; color: var(--text-muted); }
 
+/* ══════════════ LANGUAGE SWITCHER ══════════════ */
+
+.lang-switcher {
+    display: flex;
+    justify-content: center;
+    gap: 4px;
+    flex-wrap: wrap;
+    padding: 8px 0 0;
+    border-top: 1px solid var(--border);
+    margin-top: 8px;
+}
+
+.sidebar .lang-switcher select {
+    background: var(--sidebar-active-bg);
+    color: var(--sidebar-text);
+    border-color: #2e3248;
+}
+
+.lang-btn {
+    background: none;
+    border: 1px solid transparent;
+    border-radius: var(--r-md);
+    padding: 3px 8px;
+    font-size: 0.75rem;
+    cursor: pointer;
+    color: var(--text-muted);
+    transition: all 0.15s;
+    white-space: nowrap;
+    font-family: inherit;
+}
+
+.lang-btn:hover {
+    background: var(--bg-secondary);
+    color: var(--text-primary);
+}
+
+.lang-btn--active {
+    background: var(--bg-secondary);
+    border-color: var(--border);
+    color: var(--text-primary);
+    font-weight: 500;
+}
+
+.lang-switcher--auth {
+    justify-content: center;
+    margin-top: 16px;
+    padding-top: 0;
+    border-top: none;
+}
+
 /* ══════════════ RESPONSIVE ══════════════ */
 
 @media (max-width: 900px) {

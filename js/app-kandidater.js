@@ -205,7 +205,7 @@ async function rankAllKandidater() {
         });
         if (!res.ok) {
             const err = await res.json();
-            throw new Error(err.detail || 'Rankning misslyckades');
+            throw new Error(err.detail || t('matchk.ranking_failed'));
         }
         const data = await res.json();
         // Bygg cache: id → fullständigt matchresultat
@@ -230,7 +230,7 @@ function renderRankingList(candidates) {
     if (!ranking) return;
 
     if (candidates.length === 0) {
-        ranking.innerHTML = '<p class="mk-ranking-empty">Inga kandidater att ranka.</p>';
+        ranking.innerHTML = `<p class="mk-ranking-empty">${t('matchk.empty_ranking')}</p>`;
         ranking.classList.remove('hidden');
         return;
     }
@@ -243,7 +243,7 @@ function renderRankingList(candidates) {
                     <div class="mk-rank-name">${esc(c.name)}</div>
                     ${c.roles ? `<div class="mk-rank-roles">${esc(c.roles)}</div>` : ''}
                 </div>
-                <span class="mk-rank-nodata-label">Otillräcklig data</span>
+                <span class="mk-rank-nodata-label">${t('matchk.insufficient_data')}</span>
             </div>`;
         }
         const barClass = c.score >= 60 ? 'mk-bar--green' : c.score >= 35 ? 'mk-bar--amber' : 'mk-bar--red';
@@ -261,8 +261,8 @@ function renderRankingList(candidates) {
     }).join('');
 
     ranking.innerHTML = `
-        <h2 class="mk-result-header">Rankning — ${candidates.filter(c => c.score !== null).length} kandidater</h2>
-        <p class="mk-ranking-note">Matchningspoäng (AI-analys). Klicka på en kandidat för att se detaljerat resultat.</p>
+        <h2 class="mk-result-header">${t('matchk.ranking_title')} — ${candidates.filter(c => c.score !== null).length} ${t('matchk.candidates_suffix')}</h2>
+        <p class="mk-ranking-note">${t('matchk.ranking_note')}</p>
         <div class="mk-rank-list">${cards}</div>
     `;
     ranking.classList.remove('hidden');
@@ -328,7 +328,7 @@ async function matchKandidatJob(overrideId = null, overrideName = null) {
         const ranking = document.getElementById('mk-ranking');
         if (overrideId !== null && ranking && !ranking.classList.contains('hidden')) {
             res.insertAdjacentHTML('afterbegin',
-                `<button class="mk-back-btn" onclick="document.getElementById('mk-result').classList.add('hidden')">← Tillbaka till rankning</button>`);
+                `<button class="mk-back-btn" onclick="document.getElementById('mk-result').classList.add('hidden')">${t('matchk.back_to_ranking')}</button>`);
         }
         res.classList.remove('hidden');
         setTimeout(() => res.scrollIntoView({ behavior: 'smooth', block: 'start' }), 100);

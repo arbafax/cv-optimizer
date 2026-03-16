@@ -18,6 +18,9 @@ function loadAccountView() {
     document.getElementById('role-kandidat').checked    = roles.includes('Kandidat');
     document.getElementById('role-saljare').checked     = roles.includes('Säljare');
     document.getElementById('role-rekryterare').checked = roles.includes('Rekryterare');
+
+    const langEl = document.getElementById('account-language');
+    if (langEl) langEl.value = currentUser.language || currentLang || 'sv';
 }
 
 async function saveAccount() {
@@ -25,6 +28,8 @@ async function saveAccount() {
     const email   = document.getElementById('account-email').value.trim();
     const phone   = document.getElementById('account-phone').value.trim();
     const address = document.getElementById('account-address').value.trim();
+    const langEl  = document.getElementById('account-language');
+    const lang    = langEl ? langEl.value : null;
 
     if (!name) { showAccountStatus('account-status', 'Namn krävs', 'error'); return; }
     if (!email) { showAccountStatus('account-status', 'E-post krävs', 'error'); return; }
@@ -33,13 +38,14 @@ async function saveAccount() {
         const res = await apiFetch(`${API_BASE_URL}/auth/me`, {
             method: 'PUT',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ name, email, phone: phone || null, address: address || null }),
+            body: JSON.stringify({ name, email, phone: phone || null, address: address || null, language: lang || null }),
         });
         if (!res.ok) {
             const err = await res.json();
             throw new Error(err.detail || 'Kunde inte spara');
         }
         currentUser = await res.json();
+        if (lang) setLanguage(lang, false);
         renderSidebarUser();
         showAccountStatus('account-status', 'Uppgifterna sparades', 'success');
     } catch (err) {

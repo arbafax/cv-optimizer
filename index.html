@@ -16,33 +16,40 @@
     <div class="auth-card">
         <div class="auth-brand">
             <span class="brand-cv">CV</span><span class="brand-match">Match</span>
-            <p class="brand-sub">AI-drivet karriärverktyg</p>
+            <p class="brand-sub" data-i18n="brand.sub">AI-drivet karriärverktyg</p>
         </div>
-        <h2 id="auth-heading">Logga in</h2>
+        <h2 id="auth-heading" data-i18n="auth.login">Logga in</h2>
 
         <div id="auth-name-group" class="form-group hidden">
-            <label for="auth-name">Namn</label>
-            <input type="text" id="auth-name" class="form-input" placeholder="Ditt namn" autocomplete="name">
+            <label for="auth-name" data-i18n="auth.label_name">Namn</label>
+            <input type="text" id="auth-name" class="form-input" placeholder="Ditt namn" data-i18n-ph="auth.ph_name" autocomplete="name">
         </div>
         <div class="form-group">
-            <label for="auth-email">E-postadress</label>
-            <input type="email" id="auth-email" class="form-input" placeholder="din@epost.se" autocomplete="email"
+            <label for="auth-email" data-i18n="auth.label_email">E-postadress</label>
+            <input type="email" id="auth-email" class="form-input" placeholder="din@epost.se" data-i18n-ph="auth.ph_email" autocomplete="email"
                    onkeydown="if(event.key==='Enter') handleAuthSubmit()">
         </div>
         <div class="form-group">
-            <label for="auth-password">Lösenord</label>
-            <input type="password" id="auth-password" class="form-input" placeholder="••••••••" autocomplete="current-password"
+            <label for="auth-password" data-i18n="auth.label_password">Lösenord</label>
+            <input type="password" id="auth-password" class="form-input" placeholder="••••••••" data-i18n-ph="auth.ph_password" autocomplete="current-password"
                    onkeydown="if(event.key==='Enter') handleAuthSubmit()">
         </div>
 
         <div id="auth-error" class="auth-error hidden"></div>
 
-        <button class="btn btn-primary btn-full" id="auth-submit" onclick="handleAuthSubmit()">Logga in</button>
+        <button class="btn btn-primary btn-full" id="auth-submit" onclick="handleAuthSubmit()" data-i18n="auth.submit_login">Logga in</button>
 
         <p class="auth-toggle-text">
-            <span id="auth-toggle-msg">Inget konto?</span>
-            <a href="#" id="auth-toggle-link" onclick="toggleAuthMode(); return false;">Registrera dig</a>
+            <span id="auth-toggle-msg" data-i18n="auth.no_account">Inget konto?</span>
+            <a href="#" id="auth-toggle-link" onclick="toggleAuthMode(); return false;" data-i18n="auth.register">Registrera dig</a>
         </p>
+        <div class="lang-switcher lang-switcher--auth">
+            <select id="auth-language" class="form-input" onchange="setLanguage(this.value)" style="max-width:220px">
+                <option value="sv">🇸🇪 Svenska (SV)</option>
+                <option value="en">🇬🇧 English (EN)</option>
+                <option value="no">🇳🇴 Norsk (NO)</option>
+            </select>
+        </div>
     </div>
 </div>
 
@@ -50,33 +57,33 @@
 <aside class="sidebar hidden" id="sidebar">
     <div class="sidebar-brand">
         <span class="brand-cv">CV</span><span class="brand-match">Match</span>
-        <p class="brand-sub">AI-drivet karriärverktyg</p>
+        <p class="brand-sub" data-i18n="brand.sub">AI-drivet karriärverktyg</p>
     </div>
 
     <nav class="sidebar-nav">
         <a href="#" class="nav-item active" id="nav-dashboard" onclick="showView('dashboard', this); loadCVs(); loadBankData(); loadSpCandidateCVs()">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="3" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="3" width="7" height="7" rx="1.5"/><rect x="3" y="14" width="7" height="7" rx="1.5"/><rect x="14" y="14" width="7" height="7" rx="1.5"/></svg>
-            Dashboard
+            <span data-i18n="nav.dashboard">Dashboard</span>
         </a>
         <a href="#" class="nav-item hidden" data-requires-role="Kandidat" onclick="showView('optimize', this)">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
-            Matcha jobb
+            <span data-i18n="nav.match_job">Matcha jobb</span>
         </a>
         <a href="#" class="nav-item hidden" data-requires-role="Kandidat" onclick="showView('sokprofil', this); loadSokprofil(); switchSokprofilTab('basinfo')">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M22 19a2 2 0 01-2 2H4a2 2 0 01-2-2V5a2 2 0 012-2h5l2 3h9a2 2 0 012 2z"/></svg>
-            Min sökprofil
+            <span data-i18n="nav.my_profile">Min sökprofil</span>
         </a>
         <a href="#" class="nav-item hidden" id="nav-matchakandidater" data-requires-role="Säljare Rekryterare" onclick="showView('matchakandidater', this); loadMatchKandidatView()">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/><path d="M8 11h6M11 8v6"/></svg>
-            Matcha mot kandidater
+            <span data-i18n="nav.match_candidates">Matcha mot kandidater</span>
         </a>
         <a href="#" class="nav-item hidden" id="nav-minakandidater" data-requires-role="Säljare Rekryterare" onclick="showView('minakandidater', this); showKandidatListPanel()">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 00-3-3.87"/><path d="M16 3.13a4 4 0 010 7.75"/></svg>
-            Mina kandidater
+            <span data-i18n="nav.my_candidates">Mina kandidater</span>
         </a>
         <a href="#" class="nav-item" id="nav-account" onclick="showView('account', this); loadAccountView()">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
-            Mitt konto
+            <span data-i18n="nav.account">Mitt konto</span>
         </a>
     </nav>
 
@@ -84,7 +91,14 @@
         <div id="sidebar-user" class="sidebar-user"></div>
         <div class="sidebar-status" id="sidebar-status">
             <span class="status-dot"></span>
-            <span>Backend ansluten</span>
+            <span data-i18n="nav.backend_connected">Backend ansluten</span>
+        </div>
+        <div class="lang-switcher">
+            <select id="sidebar-language" class="form-input" onchange="setLanguage(this.value)" style="max-width:100%">
+                <option value="sv">🇸🇪 Svenska (SV)</option>
+                <option value="en">🇬🇧 English (EN)</option>
+                <option value="no">🇳🇴 Norsk (NO)</option>
+            </select>
         </div>
     </div>
 </aside>
@@ -97,7 +111,7 @@
         <div class="view-header">
             <div>
                 <h1>Välkommen </h1>
-                <p class="view-subtitle">Här är en översikt av dina CV:n och matchningar.</p>
+                <p class="view-subtitle" data-i18n="dash.subtitle">Här är en översikt av dina CV:n och matchningar.</p>
             </div>
         </div>
 
@@ -109,7 +123,7 @@
                 </div>
                 <div>
                     <div class="stat-number" id="dash-cv-count">0</div>
-                    <div class="stat-label">Tillgängliga CV:n</div>
+                    <div class="stat-label" data-i18n="dash.stat_cvs">Tillgängliga CV:n</div>
                 </div>
             </div>
             <div class="stat-card stat-card--link hidden" data-requires-role="Kandidat" onclick="showView('sokprofil', document.querySelector('[onclick*=sokprofil]')); loadSokprofil(); switchSokprofilTab('kompetenser')">
@@ -118,7 +132,7 @@
                 </div>
                 <div>
                     <div class="stat-number" id="dash-skills-count">0</div>
-                    <div class="stat-label">Kompetenser</div>
+                    <div class="stat-label" data-i18n="dash.stat_skills">Kompetenser</div>
                 </div>
             </div>
             <div class="stat-card stat-card--link hidden" data-requires-role="Kandidat" onclick="showView('sokprofil', document.querySelector('[onclick*=sokprofil]')); loadSokprofil(); switchSokprofilTab('erfarenheter')">
@@ -127,7 +141,7 @@
                 </div>
                 <div>
                     <div class="stat-number" id="dash-exp-count">0</div>
-                    <div class="stat-label">Erfarenheter</div>
+                    <div class="stat-label" data-i18n="dash.stat_exp">Erfarenheter</div>
                 </div>
             </div>
             <div class="stat-card stat-card--link hidden" data-requires-role="Kandidat" onclick="showView('sokprofil', document.querySelector('[onclick*=sokprofil]')); loadSokprofil(); switchSokprofilTab('utbildning')">
@@ -136,7 +150,7 @@
                 </div>
                 <div>
                     <div class="stat-number" id="dash-edu-count">0</div>
-                    <div class="stat-label">Utbildning</div>
+                    <div class="stat-label" data-i18n="dash.stat_edu">Utbildning</div>
                 </div>
             </div>
             <div class="stat-card stat-card--link hidden" data-requires-role="Kandidat" onclick="showView('sokprofil', document.querySelector('[onclick*=sokprofil]')); loadSokprofil(); switchSokprofilTab('certifikat')">
@@ -145,7 +159,7 @@
                 </div>
                 <div>
                     <div class="stat-number" id="dash-cert-count">0</div>
-                    <div class="stat-label">Kurser &amp; Cert</div>
+                    <div class="stat-label" data-i18n="dash.stat_cert">Kurser &amp; Cert</div>
                 </div>
             </div>
             <div class="stat-card stat-card--link hidden" id="dash-seller-stat-card" data-requires-role="Säljare" onclick="showView('minakandidater', document.getElementById('nav-minakandidater')); loadKandidaterView()">
@@ -154,7 +168,7 @@
                 </div>
                 <div>
                     <div class="stat-number" id="dash-kandidater-count">0</div>
-                    <div class="stat-label">Mina kandidater</div>
+                    <div class="stat-label" data-i18n="dash.stat_candidates">Mina kandidater</div>
                 </div>
             </div>
         </div>
@@ -166,8 +180,8 @@
                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
                 </div>
                 <div>
-                    <h3>Ladda upp CV</h3>
-                    <p>PDF-fil, AI strukturerar automatiskt</p>
+                    <h3 data-i18n="dash.action_upload_title">Ladda upp CV</h3>
+                    <p data-i18n="dash.action_upload_desc">PDF-fil, AI strukturerar automatiskt</p>
                 </div>
                 <svg class="action-card-arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg>
             </div>
@@ -176,8 +190,8 @@
                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
                 </div>
                 <div>
-                    <h3>Ändra profilen</h3>
-                    <p>Uppdatera din sökprofil och kontaktuppgifter</p>
+                    <h3 data-i18n="dash.action_profile_title">Ändra profilen</h3>
+                    <p data-i18n="dash.action_profile_desc">Uppdatera din sökprofil och kontaktuppgifter</p>
                 </div>
                 <svg class="action-card-arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg>
             </div>
@@ -186,8 +200,8 @@
                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="2" y="7" width="20" height="14" rx="2"/><path d="M16 21V5a2 2 0 00-2-2h-4a2 2 0 00-2 2v16"/></svg>
                 </div>
                 <div>
-                    <h3>Ändra erfarenheter</h3>
-                    <p>Redigera eller lägg till erfarenheter</p>
+                    <h3 data-i18n="dash.action_exp_title">Ändra erfarenheter</h3>
+                    <p data-i18n="dash.action_exp_desc">Redigera eller lägg till erfarenheter</p>
                 </div>
                 <svg class="action-card-arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg>
             </div>
@@ -196,8 +210,8 @@
                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
                 </div>
                 <div>
-                    <h3>Sök jobb</h3>
-                    <p>Matcha din kompetensbank mot en jobbannons</p>
+                    <h3 data-i18n="dash.action_job_title">Sök jobb</h3>
+                    <p data-i18n="dash.action_job_desc">Matcha din kompetensbank mot en jobbannons</p>
                 </div>
                 <svg class="action-card-arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg>
             </div>
@@ -212,10 +226,10 @@
         <div id="kandidater-list-panel">
             <div class="view-header">
                 <div>
-                    <h1>Mina kandidater</h1>
-                    <p class="view-subtitle">Hantera din pool med kandidater.</p>
+                    <h1 data-i18n="kand.title">Mina kandidater</h1>
+                    <p class="view-subtitle" data-i18n="kand.subtitle">Hantera din pool med kandidater.</p>
                 </div>
-                <button class="btn btn-primary" onclick="showKandidatForm(null)">+ Lägg till kandidat</button>
+                <button class="btn btn-primary" onclick="showKandidatForm(null)" data-i18n="kand.add_btn">+ Lägg till kandidat</button>
             </div>
             <div class="card">
                 <div id="kandidater-list">
@@ -507,70 +521,81 @@
     <div id="view-account" class="view">
         <div class="view-header">
             <div>
-                <h1>Mitt konto</h1>
-                <p class="view-subtitle">Hantera dina kontaktuppgifter och lösenord.</p>
+                <h1 data-i18n="account.title">Mitt konto</h1>
+                <p class="view-subtitle" data-i18n="account.subtitle">Hantera dina kontaktuppgifter och lösenord.</p>
             </div>
         </div>
 
         <div class="account-layout">
             <!-- Profilinformation -->
             <div class="card">
-                <h2 class="card-title">Profilinformation</h2>
+                <h2 class="card-title" data-i18n="account.profile_title">Profilinformation</h2>
                 <div class="form-group">
-                    <label for="account-name">Namn</label>
-                    <input type="text" id="account-name" placeholder="Ditt namn" autocomplete="name">
+                    <label for="account-name" data-i18n="account.label_name">Namn</label>
+                    <input type="text" id="account-name" placeholder="Ditt namn" data-i18n-ph="account.ph_name" autocomplete="name">
                 </div>
                 <div class="form-group">
-                    <label for="account-email">E-postadress</label>
-                    <input type="email" id="account-email" placeholder="din@epost.se" autocomplete="email">
+                    <label for="account-email" data-i18n="account.label_email">E-postadress</label>
+                    <input type="email" id="account-email" placeholder="din@epost.se" data-i18n-ph="account.ph_email" autocomplete="email">
                 </div>
                 <div class="form-group">
-                    <label for="account-phone">Telefonnummer</label>
-                    <input type="tel" id="account-phone" placeholder="+46 70 000 00 00" autocomplete="tel">
+                    <label for="account-phone" data-i18n="account.label_phone">Telefonnummer</label>
+                    <input type="tel" id="account-phone" placeholder="+46 70 000 00 00" data-i18n-ph="account.ph_phone" autocomplete="tel">
                 </div>
                 <div class="form-group">
-                    <label for="account-address">Postadress</label>
-                    <input type="text" id="account-address" placeholder="Gatuadress, postnummer, ort" autocomplete="street-address">
+                    <label for="account-address" data-i18n="account.label_address">Postadress</label>
+                    <input type="text" id="account-address" placeholder="Gatuadress, postnummer, ort" data-i18n-ph="account.ph_address" autocomplete="street-address">
                 </div>
                 <div id="account-status"></div>
-                <button class="btn btn-primary" onclick="saveAccount()">Spara ändringar</button>
+                <button class="btn btn-primary" onclick="saveAccount()" data-i18n="account.save">Spara ändringar</button>
             </div>
 
             <!-- Byt lösenord -->
             <div class="card">
-                <h2 class="card-title">Byt lösenord</h2>
+                <h2 class="card-title" data-i18n="account.pw_title">Byt lösenord</h2>
                 <div class="form-group">
-                    <label for="account-curr-pw">Nuvarande lösenord</label>
+                    <label for="account-curr-pw" data-i18n="account.label_curr_pw">Nuvarande lösenord</label>
                     <input type="password" id="account-curr-pw" placeholder="••••••••" autocomplete="current-password">
                 </div>
                 <div class="form-group">
-                    <label for="account-new-pw">Nytt lösenord</label>
+                    <label for="account-new-pw" data-i18n="account.label_new_pw">Nytt lösenord</label>
                     <input type="password" id="account-new-pw" placeholder="••••••••" autocomplete="new-password">
                 </div>
                 <div id="account-pw-status"></div>
-                <button class="btn btn-secondary" onclick="saveAccountPassword()">Byt lösenord</button>
+                <button class="btn btn-secondary" onclick="saveAccountPassword()" data-i18n="account.save_pw">Byt lösenord</button>
             </div>
 
             <!-- Roller -->
             <div class="card">
-                <h2 class="card-title">Roller</h2>
-                <p class="field-desc">Välj vilken eller vilka roller du har i systemet. Roller styr vilken funktionalitet som är tillgänglig.</p>
+                <h2 class="card-title" data-i18n="account.roles_title">Roller</h2>
+                <p class="field-desc" data-i18n="account.roles_desc">Välj vilken eller vilka roller du har i systemet. Roller styr vilken funktionalitet som är tillgänglig.</p>
                 <div class="checkbox-group" style="flex-direction: column; gap: 12px; margin-top: 10px;">
                     <label class="checkbox-label">
                         <input type="checkbox" id="role-kandidat" value="Kandidat">
-                        <span><strong>Kandidat</strong> — letar efter jobb och hanterar sin kompetensbank</span>
+                        <span data-i18n-html="account.role_kandidat"><strong>Kandidat</strong> — letar efter jobb och hanterar sin kompetensbank</span>
                     </label>
                     <label class="checkbox-label">
                         <input type="checkbox" id="role-saljare" value="Säljare">
-                        <span><strong>Säljare</strong> — hanterar en pool med kandidater</span>
+                        <span data-i18n-html="account.role_saljare"><strong>Säljare</strong> — hanterar en pool med kandidater</span>
                     </label>
                     <label class="checkbox-label">
                         <input type="checkbox" id="role-rekryterare" value="Rekryterare">
-                        <span><strong>Rekryterare</strong> — söker kandidater för specifika tjänster</span>
+                        <span data-i18n-html="account.role_rekryterare"><strong>Rekryterare</strong> — söker kandidater för specifika tjänster</span>
                     </label>
                 </div>
                 <div id="account-roles-status"></div>
-                <button class="btn btn-primary" onclick="saveAccountRoles()" style="margin-top: 16px;">Spara roller</button>
+                <button class="btn btn-primary" onclick="saveAccountRoles()" style="margin-top: 16px;" data-i18n="account.save_roles">Spara roller</button>
+            </div>
+
+            <!-- Språk -->
+            <div class="card">
+                <h2 class="card-title" data-i18n="account.language_title">Språk</h2>
+                <p class="field-desc" data-i18n="account.language_desc">Välj ditt föredragna gränssnittsspråk.</p>
+                <select id="account-language" class="form-input" style="max-width:220px">
+                    <option value="sv">🇸🇪 Svenska (SV)</option>
+                    <option value="en">🇬🇧 English (EN)</option>
+                    <option value="no">🇳🇴 Norsk (NO)</option>
+                </select>
             </div>
         </div>
     </div>
@@ -579,24 +604,24 @@
     <div id="view-optimize" class="view">
         <div class="view-header">
             <div>
-                <h1>Matcha jobb</h1>
-                <p class="view-subtitle">Klistra in en jobbannons – AI matchar hela din kompetensbank mot jobbet.</p>
+                <h1 data-i18n="match.title">Matcha jobb</h1>
+                <p class="view-subtitle" data-i18n="match.subtitle">Klistra in en jobbannons – AI matchar hela din kompetensbank mot jobbet.</p>
             </div>
         </div>
 
         <div class="optimize-layout">
             <div class="card">
-                <h2 class="card-title">Jobbannons</h2>
+                <h2 class="card-title" data-i18n="match.card_title">Jobbannons</h2>
 
                 <div class="form-group">
-                    <label for="job-description">Klistra in jobbannonsen</label>
-                    <textarea id="job-description" rows="10" placeholder="Klistra in hela jobbannonsen här..."></textarea>
+                    <label for="job-description" data-i18n="match.label_job">Klistra in jobbannonsen</label>
+                    <textarea id="job-description" rows="10" placeholder="Klistra in hela jobbannonsen här..." data-i18n-ph="match.ph_job"></textarea>
                     <div class="char-count" id="char-count">0 tecken</div>
                 </div>
 
                 <button id="optimize-btn" class="btn btn-primary btn-full" disabled>
-                    <span class="btn-text">AI-matcha kompetenser mot jobb</span>
-                    <span class="btn-loading hidden"><span class="spinner-small"></span> Analyserar...</span>
+                    <span class="btn-text" data-i18n="match.btn_match">AI-matcha kompetenser mot jobb</span>
+                    <span class="btn-loading hidden"><span class="spinner-small"></span><span data-i18n="match.analysing"> Analyserar...</span></span>
                 </button>
             </div>
 
@@ -608,37 +633,37 @@
     <div id="view-matchakandidater" class="view">
         <div class="view-header">
             <div>
-                <h1>Matcha mot kandidater</h1>
-                <p class="view-subtitle">Välj en eller flera kandidater och klistra in en jobbannons – AI matchar kompetensbanken mot jobbet.</p>
+                <h1 data-i18n="matchk.title">Matcha mot kandidater</h1>
+                <p class="view-subtitle" data-i18n="matchk.subtitle">Välj en eller flera kandidater och klistra in en jobbannons – AI matchar kompetensbanken mot jobbet.</p>
             </div>
         </div>
 
         <div class="optimize-layout">
             <div class="card">
-                <h2 class="card-title">Jobbannons</h2>
+                <h2 class="card-title" data-i18n="matchk.card_title">Jobbannons</h2>
 
                 <div class="form-group">
-                    <label>Välj kandidater</label>
+                    <label data-i18n="matchk.label_candidates">Välj kandidater</label>
                     <div id="mk-kandidat-list" class="mk-kandidat-list">
-                        <span class="mk-kandidat-empty">Inga kandidater ännu</span>
+                        <span class="mk-kandidat-empty" data-i18n="matchk.empty_candidates">Inga kandidater ännu</span>
                     </div>
                 </div>
 
                 <div class="form-group">
-                    <label for="mk-job-description">Klistra in jobbannonsen</label>
-                    <textarea id="mk-job-description" rows="10" placeholder="Klistra in hela jobbannonsen här..." oninput="updateMatchKandidatBtn(); document.getElementById('mk-char-count').textContent = this.value.length + ' tecken'"></textarea>
+                    <label for="mk-job-description" data-i18n="matchk.label_job">Klistra in jobbannonsen</label>
+                    <textarea id="mk-job-description" rows="10" placeholder="Klistra in hela jobbannonsen här..." data-i18n-ph="match.ph_job" oninput="updateMatchKandidatBtn(); document.getElementById('mk-char-count').textContent = this.value.length + ' tecken'"></textarea>
                     <div class="char-count" id="mk-char-count">0 tecken</div>
                 </div>
 
                 <button id="mk-rank-btn" class="btn btn-secondary btn-full" disabled onclick="rankAllKandidater()">
-                    <span class="btn-text">Ranka alla kandidater</span>
+                    <span class="btn-text" data-i18n="matchk.btn_rank">Ranka alla kandidater</span>
                     <span class="btn-loading hidden"><span class="spinner-small"></span> Söker...</span>
                 </button>
 
-                <div class="mk-btn-divider">eller välj specifik kandidat</div>
+                <div class="mk-btn-divider" data-i18n="matchk.divider">eller välj specifik kandidat</div>
 
                 <button id="mk-match-btn" class="btn btn-primary btn-full" disabled onclick="matchKandidatJob()">
-                    <span class="btn-text">Detaljerad analys</span>
+                    <span class="btn-text" data-i18n="matchk.btn_analyse">Detaljerad analys</span>
                     <span class="btn-loading hidden"><span class="spinner-small"></span> Analyserar...</span>
                 </button>
             </div>
@@ -652,19 +677,19 @@
     <div id="view-sokprofil" class="view">
         <div class="view-header">
             <div>
-                <h1>Min profil</h1>
-                <p class="view-subtitle">Hur du presenterar dig och vad du söker.</p>
+                <h1 data-i18n="profile.title">Min profil</h1>
+                <p class="view-subtitle" data-i18n="profile.subtitle">Hur du presenterar dig och vad du söker.</p>
             </div>
         </div>
 
         <!-- Tab navigation -->
         <div class="kand-tabs">
-            <button id="sp-tab-btn-basinfo" class="kand-tab-btn active" onclick="switchSokprofilTab('basinfo')">Basinfo</button>
-            <button id="sp-tab-btn-kompetenser" class="kand-tab-btn" onclick="switchSokprofilTab('kompetenser')">Kompetenser</button>
-            <button id="sp-tab-btn-erfarenheter" class="kand-tab-btn" onclick="switchSokprofilTab('erfarenheter')">Erfarenheter</button>
-            <button id="sp-tab-btn-utbildning" class="kand-tab-btn" onclick="switchSokprofilTab('utbildning')">Utbildning</button>
-            <button id="sp-tab-btn-certifikat" class="kand-tab-btn" onclick="switchSokprofilTab('certifikat')">Kurser &amp; Cert</button>
-            <button id="sp-tab-btn-cv" class="kand-tab-btn" onclick="switchSokprofilTab('cv')">CV</button>
+            <button id="sp-tab-btn-basinfo" class="kand-tab-btn active" onclick="switchSokprofilTab('basinfo')" data-i18n="tab.basinfo">Basinfo</button>
+            <button id="sp-tab-btn-kompetenser" class="kand-tab-btn" onclick="switchSokprofilTab('kompetenser')" data-i18n="tab.kompetenser">Kompetenser</button>
+            <button id="sp-tab-btn-erfarenheter" class="kand-tab-btn" onclick="switchSokprofilTab('erfarenheter')" data-i18n="tab.erfarenheter">Erfarenheter</button>
+            <button id="sp-tab-btn-utbildning" class="kand-tab-btn" onclick="switchSokprofilTab('utbildning')" data-i18n="tab.utbildning">Utbildning</button>
+            <button id="sp-tab-btn-certifikat" class="kand-tab-btn" onclick="switchSokprofilTab('certifikat')" data-i18n="tab.certifikat">Kurser &amp; Cert</button>
+            <button id="sp-tab-btn-cv" class="kand-tab-btn" onclick="switchSokprofilTab('cv')" data-i18n="tab.cv">CV</button>
         </div>
 
         <!-- ── TAB: Basinfo ── -->
@@ -965,6 +990,7 @@
     </div>
 </div>
 
+<script src="js/translations.js"></script>
 <script src="js/cv-template.js"></script>
 <script src="js/app-state.js"></script>
 <script src="js/app-cv.js"></script>

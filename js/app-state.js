@@ -19,6 +19,9 @@ let lastMatchKandidatId = null;  // null = egen bank, number = kandidat-id
 let currentUser = null;
 let authMode    = 'login'; // 'login' | 'register'
 
+// Language state
+let currentLang = localStorage.getItem('lang') || 'sv';
+
 // Edit state for inline forms
 let spEditingSkillId  = null, spEditingExpId   = null,
     spEditingEduId    = null, spEditingCertId  = null;
@@ -28,6 +31,45 @@ let kandEditingSkillId = null, kandEditingExpId = null,
 // Cached lists (for cancel without re-fetch)
 let cachedSpSkills   = [], cachedSpExps   = [], cachedSpEdu   = [], cachedSpCerts   = [];
 let cachedKandSkills = [], cachedKandExps = [], cachedKandEdu = [], cachedKandCerts = [];
+
+// ── i18n ──────────────────────────────────────────────────────────────────────
+
+function t(key) {
+    const lang = TRANSLATIONS[currentLang] || TRANSLATIONS['sv'];
+    const fallback = TRANSLATIONS['sv'];
+    return lang[key] ?? fallback[key] ?? key;
+}
+
+function applyTranslations() {
+    document.querySelectorAll('[data-i18n]').forEach(el => {
+        el.textContent = t(el.dataset.i18n);
+    });
+    document.querySelectorAll('[data-i18n-ph]').forEach(el => {
+        el.placeholder = t(el.dataset.i18nPh);
+    });
+    document.querySelectorAll('[data-i18n-html]').forEach(el => {
+        el.innerHTML = t(el.dataset.i18nHtml);
+    });
+    // Sync language dropdowns
+    document.querySelectorAll('#sidebar-language, #auth-language, #account-language').forEach(sel => {
+        sel.value = currentLang;
+    });
+}
+
+async function setLanguage(lang, persist = true) {
+    currentLang = lang;
+    localStorage.setItem('lang', lang);
+    applyTranslations();
+    if (persist && currentUser) {
+        try {
+            await apiFetch(`${API_BASE_URL}/auth/me`, {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ language: lang }),
+            });
+        } catch { /* ignore */ }
+    }
+}
 
 // ── Utilities ─────────────────────────────────────────────────────────────────
 
@@ -75,7 +117,7 @@ function displayMatchResult(result, container) {
     const jobInfo = result.job_info ?? {};
     const profileFit = result.profile_fit ?? [];
 
-    const typeLabels = { work: 'Arbete', education: 'Utbildning', certification: 'Certifiering', project: 'Projekt' };
+    const typeLabels = { work: t('tab.erfarenheter'), education: t('tab.utbildning'), certification: t('tab.certifikat'), project: 'Projekt' };
 
     const skillsHtml = skills.map(s => `
         <div class="match-item">
@@ -155,29 +197,28 @@ function displayMatchResult(result, container) {
 
         <div class="match-sections">
             <div class="match-section">
-                <h4 class="match-section-title">Matchande kompetenser (${skills.length})</h4>
-                <div class="match-list">${skillsHtml || '<p class="match-empty">Inga matchande kompetenser</p>'}</div>
+                <h4 class="match-section-title">${t('match.section_skills')} (${skills.length})</h4>
+                <div class="match-list">${skillsHtml || `<p class="match-empty">${t('match.no_missing')}</p>`}</div>
             </div>
             <div class="match-section">
-                <h4 class="match-section-title">Matchande erfarenheter (${experiences.length})</h4>
-                <div class="match-list">${expHtml || '<p class="match-empty">Inga matchande erfarenheter</p>'}</div>
+                <h4 class="match-section-title">${t('match.section_exp')} (${experiences.length})</h4>
+                <div class="match-list">${expHtml || `<p class="match-empty">${t('match.no_missing')}</p>`}</div>
             </div>
         </div>
 
         ${missing.length ? `
         <div class="match-missing-section">
-            <h4 class="match-section-title">Saknade kompetenser (${missing.length})</h4>
-            <p class="match-missing-desc">Annonsen efterfrågar dessa kompetenser som saknas i din kompetensbank:</p>
+            <h4 class="match-section-title">${t('match.section_missing')} (${missing.length})</h4>
             <div class="match-missing-chips">${missingHtml}</div>
         </div>` : ''}
 
         ${experiences.length > 0 ? `
         <div class="gen-cv-action">
             <button id="tips-btn" class="btn btn-secondary" onclick="handleTips()">
-                💡 Tips
+                ${t('match.tips_btn')}
             </button>
             <button id="gen-cv-btn" class="btn btn-primary" onclick="handleGenerateCV()">
-                Generera anpassat CV-utkast
+                ${t('match.gen_btn')}
             </button>
         </div>` : ''}
     `;
@@ -195,6 +236,10 @@ async function loadCurrentUser() {
             return;
         }
         currentUser = await res.json();
+        if (currentUser.language) {
+            currentLang = currentUser.language;
+            localStorage.setItem('lang', currentLang);
+        }
         showApp();
     } catch {
         showAuthView();
@@ -274,16 +319,18 @@ function showAuthView() {
     document.getElementById('sidebar').classList.add('hidden');
     document.getElementById('main-content').classList.add('hidden');
     document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
+    applyTranslations();
 }
 
 function showApp() {
     document.getElementById('view-auth').classList.add('hidden');
     document.getElementById('sidebar').classList.remove('hidden');
     document.getElementById('main-content').classList.remove('hidden');
+    applyTranslations();
     renderSidebarUser();
     const h1 = document.querySelector('#view-dashboard .view-header h1');
     if (h1 && currentUser) {
-        h1.textContent = `Välkommen, ${currentUser.name.split(' ')[0]}!`;
+        h1.textContent = `${t('dash.welcome')}, ${currentUser.name.split(' ')[0]}!`;
     }
     showView('dashboard', document.getElementById('nav-dashboard'));
     loadCVs();
@@ -336,11 +383,11 @@ function renderSidebarUser() {
 function toggleAuthMode() {
     authMode = authMode === 'login' ? 'register' : 'login';
     const isReg = authMode === 'register';
-    document.getElementById('auth-heading').textContent      = isReg ? 'Skapa konto' : 'Logga in';
+    document.getElementById('auth-heading').textContent      = isReg ? t('auth.register') : t('auth.login');
     document.getElementById('auth-name-group').classList.toggle('hidden', !isReg);
-    document.getElementById('auth-submit').textContent       = isReg ? 'Skapa konto' : 'Logga in';
-    document.getElementById('auth-toggle-msg').textContent   = isReg ? 'Har du ett konto?' : 'Inget konto?';
-    document.getElementById('auth-toggle-link').textContent  = isReg ? 'Logga in' : 'Registrera dig';
+    document.getElementById('auth-submit').textContent       = isReg ? t('auth.submit_register') : t('auth.submit_login');
+    document.getElementById('auth-toggle-msg').textContent   = isReg ? t('auth.has_account') : t('auth.no_account');
+    document.getElementById('auth-toggle-link').textContent  = isReg ? t('auth.login_link') : t('auth.register');
     document.getElementById('auth-error').classList.add('hidden');
 }
 
@@ -375,14 +422,18 @@ async function handleAuthSubmit() {
         });
         const data = await res.json();
 
-        if (!res.ok) { showAuthError(data.detail || 'Inloggning misslyckades'); return; }
+        if (!res.ok) { showAuthError(data.detail || t('auth.error_login')); return; }
 
         currentUser = data;
+        if (currentUser.language) {
+            currentLang = currentUser.language;
+            localStorage.setItem('lang', currentLang);
+        }
         showApp();
 
     } finally {
         btn.disabled    = false;
-        btn.textContent = authMode === 'login' ? 'Logga in' : 'Skapa konto';
+        btn.textContent = authMode === 'login' ? t('auth.submit_login') : t('auth.submit_register');
     }
 }
 

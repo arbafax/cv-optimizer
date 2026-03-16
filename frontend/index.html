@@ -81,6 +81,14 @@
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 00-3-3.87"/><path d="M16 3.13a4 4 0 010 7.75"/></svg>
             <span data-i18n="nav.my_candidates">Mina kandidater</span>
         </a>
+        <a href="#" class="nav-item hidden" data-requires-role="Kandidat" id="nav-myperson" onclick="showView('myperson', this); loadMyPerson()">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="8" r="4"/><path d="M4 20c0-4 3.6-7 8-7s8 3 8 7"/><path d="M12 15v2M10 17h4"/></svg>
+            <span data-i18n="nav.my_person">Min person</span>
+        </a>
+        <a href="#" class="nav-item hidden" data-requires-role="Admin" id="nav-personality-admin" onclick="showView('personality-admin', this); loadPersonalityAdmin()">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 010 2.83 2 2 0 01-2.83 0l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-4 0v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 01-2.83-2.83l.06-.06A1.65 1.65 0 004.68 15a1.65 1.65 0 00-1.51-1H3a2 2 0 010-4h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 012.83-2.83l.06.06A1.65 1.65 0 009 4.68a1.65 1.65 0 001-1.51V3a2 2 0 014 0v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 012.83 2.83l-.06.06A1.65 1.65 0 0019.4 9a1.65 1.65 0 001.51 1H21a2 2 0 010 4h-.09a1.65 1.65 0 00-1.51 1z"/></svg>
+            <span data-i18n="nav.personality_admin">Personlighetsfrågor</span>
+        </a>
         <a href="#" class="nav-item" id="nav-account" onclick="showView('account', this); loadAccountView()">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
             <span data-i18n="nav.account">Mitt konto</span>
@@ -582,6 +590,10 @@
                         <input type="checkbox" id="role-rekryterare" value="Rekryterare">
                         <span data-i18n-html="account.role_rekryterare"><strong>Rekryterare</strong> — söker kandidater för specifika tjänster</span>
                     </label>
+                    <label class="checkbox-label">
+                        <input type="checkbox" id="role-admin" value="Admin">
+                        <span data-i18n-html="account.role_admin"><strong>Admin</strong> — administrerar systemets frågor och inställningar</span>
+                    </label>
                 </div>
                 <div id="account-roles-status"></div>
                 <button class="btn btn-primary" onclick="saveAccountRoles()" style="margin-top: 16px;" data-i18n="account.save_roles">Spara roller</button>
@@ -599,6 +611,138 @@
                     </select>
                     <button class="btn btn-primary" onclick="saveAccountLanguage()" data-i18n="account.save_language">Spara språk</button>
                 </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ── MIN PERSON VIEW ── -->
+    <div id="view-myperson" class="view">
+        <div class="view-header">
+            <div>
+                <h1 data-i18n="person.title">Min person</h1>
+                <p class="view-subtitle" data-i18n="person.subtitle">Dina personlighetssvar och framsteg.</p>
+            </div>
+            <button class="btn btn-primary" id="btn-question-me" onclick="startQuestionMe()" data-i18n="person.question_me">Fråga mig!</button>
+        </div>
+
+        <!-- Progress -->
+        <div class="card" style="margin-bottom:20px">
+            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px">
+                <span class="card-title" style="margin:0" data-i18n="person.progress_title">Framsteg</span>
+                <span id="person-progress-text" class="text-muted" style="font-size:0.875rem">0 / 0</span>
+            </div>
+            <div class="progress-bar-track">
+                <div class="progress-bar-fill" id="person-progress-bar" style="width:0%"></div>
+            </div>
+        </div>
+
+        <!-- Answer list -->
+        <div id="person-answers-list"></div>
+    </div>
+
+    <!-- ── ADMIN: PERSONALITY QUESTIONS VIEW ── -->
+    <div id="view-personality-admin" class="view">
+        <div class="view-header">
+            <div>
+                <h1 data-i18n="padmin.title">Personlighetsfrågor</h1>
+                <p class="view-subtitle" data-i18n="padmin.subtitle">Hantera systemets personlighetsfrågor.</p>
+            </div>
+            <div style="display:flex;gap:10px">
+                <label class="btn btn-secondary" style="cursor:pointer">
+                    <input type="file" id="padmin-import-file" accept=".md" style="display:none" onchange="importPersonalityMd(this)">
+                    <span data-i18n="padmin.import_md">Importera .md</span>
+                </label>
+                <button class="btn btn-primary" onclick="showAddQuestionForm()" data-i18n="padmin.add_question">Lägg till fråga</button>
+            </div>
+        </div>
+
+        <!-- Add/Edit form -->
+        <div id="padmin-form-container"></div>
+
+        <!-- Question list -->
+        <div id="padmin-questions-list"></div>
+    </div>
+
+    <!-- ── "FRÅGA MIG!" MODAL ── -->
+    <div id="question-me-modal" class="modal-overlay-fullscreen hidden" onclick="if(event.target===this) closeQuestionMe()">
+        <div class="modal-card" style="max-width:560px">
+            <div class="modal-header">
+                <span id="qm-category" class="text-muted" style="font-size:0.8rem"></span>
+                <button class="modal-close" onclick="closeQuestionMe()" title="${t('action.close')}">&times;</button>
+            </div>
+            <div id="qm-question-text" style="font-size:1.1rem;font-weight:500;margin:16px 0 8px"></div>
+            <div id="qm-context-text" class="text-muted" style="font-size:0.85rem;margin-bottom:16px"></div>
+
+            <!-- Likert scale (only shown for Big Five trait questions) -->
+            <div id="qm-likert-section" style="margin-bottom:16px">
+                <p style="font-size:0.85rem;color:var(--text-muted);margin-bottom:8px" data-i18n="person.likert_label">Instämmande (1 = inte alls, 5 = stämmer helt)</p>
+                <div style="display:flex;gap:8px">
+                    <label class="likert-btn"><input type="radio" name="qm-likert" value="1"> 1</label>
+                    <label class="likert-btn"><input type="radio" name="qm-likert" value="2"> 2</label>
+                    <label class="likert-btn"><input type="radio" name="qm-likert" value="3"> 3</label>
+                    <label class="likert-btn"><input type="radio" name="qm-likert" value="4"> 4</label>
+                    <label class="likert-btn"><input type="radio" name="qm-likert" value="5"> 5</label>
+                </div>
+            </div>
+
+            <!-- Free text answer -->
+            <textarea id="qm-answer-text" class="form-input" rows="4"
+                style="width:100%;resize:vertical"
+                maxlength="500"
+                oninput="document.getElementById('qm-char-count').textContent = this.value.length + ' / 500'"
+                data-i18n-ph="person.answer_ph"></textarea>
+            <div id="qm-char-count" class="qm-char-count" style="margin-bottom:16px">0 / 500</div>
+
+            <div id="qm-error" class="auth-error hidden"></div>
+
+            <div style="display:flex;justify-content:space-between;gap:10px">
+                <button class="btn btn-secondary" onclick="skipQuestion()" data-i18n="person.skip">Hoppa över</button>
+                <div style="display:flex;gap:10px">
+                    <button class="btn btn-secondary" onclick="closeQuestionMe()" data-i18n="person.done_for_now">Klar för nu</button>
+                    <button class="btn btn-primary" onclick="submitQuestionMe()" data-i18n="person.save_next">Spara &amp; nästa</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ── PERSONALITY IMPORT MODAL ── -->
+    <div id="import-md-modal" class="modal-overlay-fullscreen hidden">
+        <div class="modal-card import-modal-card">
+            <h3 class="import-modal-title" data-i18n="padmin.import_title">Importerar frågor</h3>
+
+            <!-- Progress bar -->
+            <div class="progress-bar-track" style="margin:12px 0 6px">
+                <div id="import-progress-bar" class="progress-bar-fill" style="width:0%"></div>
+            </div>
+            <p id="import-status-text" class="import-status-text"></p>
+
+            <!-- Conflict area (hidden until a duplicate is found) -->
+            <div id="import-conflict" class="import-conflict hidden">
+                <p class="import-conflict-label" data-i18n="padmin.conflict_info">En liknande fråga finns redan</p>
+                <div class="import-conflict-cards">
+                    <div class="import-conflict-side">
+                        <div class="import-conflict-badge" data-i18n="padmin.existing_q">Befintlig fråga</div>
+                        <div id="import-existing-card" class="import-q-card"></div>
+                    </div>
+                    <div class="import-conflict-side">
+                        <div class="import-conflict-badge import-conflict-badge--new" data-i18n="padmin.new_q">Ny fråga</div>
+                        <div id="import-new-card" class="import-q-card"></div>
+                    </div>
+                </div>
+                <div class="import-conflict-actions">
+                    <button class="btn btn-secondary" onclick="resolveImportConflict('keep')" data-i18n="padmin.keep_existing">Behåll nuvarande</button>
+                    <button class="btn btn-primary" onclick="resolveImportConflict('use_new')" data-i18n="padmin.use_new">Använd den nya</button>
+                    <button class="btn btn-secondary" onclick="resolveImportConflict('use_both')" data-i18n="padmin.use_both">Använd bägge</button>
+                </div>
+            </div>
+
+            <!-- Done message -->
+            <p id="import-done-text" class="import-done-text hidden"></p>
+
+            <!-- Footer buttons -->
+            <div class="import-modal-footer">
+                <button id="import-cancel-btn" class="btn btn-secondary" onclick="cancelImport()" data-i18n="padmin.cancel_import">Avbryt import</button>
+                <button id="import-close-btn" class="btn btn-primary hidden" onclick="closeImportModal()" data-i18n="padmin.close_import">Stäng</button>
             </div>
         </div>
     </div>
@@ -1002,6 +1146,7 @@
 <script src="js/app-match.js"></script>
 <script src="js/app-kandidater.js"></script>
 <script src="js/app-account.js"></script>
+<script src="js/app-personality.js"></script>
 <script src="js/app.js"></script>
 </body>
 </html>

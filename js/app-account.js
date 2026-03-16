@@ -18,6 +18,7 @@ function loadAccountView() {
     document.getElementById('role-kandidat').checked    = roles.includes('Kandidat');
     document.getElementById('role-saljare').checked     = roles.includes('Säljare');
     document.getElementById('role-rekryterare').checked = roles.includes('Rekryterare');
+    document.getElementById('role-admin').checked       = roles.includes('Admin');
 
     const langEl = document.getElementById('account-language');
     if (langEl) langEl.value = currentUser.language || currentLang || 'sv';
@@ -103,6 +104,7 @@ async function saveAccountRoles() {
     if (document.getElementById('role-kandidat').checked)    roles.push('Kandidat');
     if (document.getElementById('role-saljare').checked)     roles.push('Säljare');
     if (document.getElementById('role-rekryterare').checked) roles.push('Rekryterare');
+    if (document.getElementById('role-admin').checked)       roles.push('Admin');
 
     try {
         const res = await apiFetch(`${API_BASE_URL}/auth/me`, {

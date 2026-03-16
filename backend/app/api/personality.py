@@ -13,6 +13,9 @@ from sqlalchemy.orm import Session
 
 from app.core.auth import get_current_user, require_role, SystemRole
 from app.core.database import get_db
+from app.models.candidate_bank import CandidateSkillEntry, CandidateExperienceEntry
+from app.models.candidate_cv import CandidateCV
+from app.models.candidate_profile import CandidateProfile
 from app.models.personality import PersonalityQuestion, PersonalityAnswer
 from app.models.user import User
 from app.services.ai_service import AIService
@@ -295,6 +298,7 @@ async def list_my_answers(
 
 @router.get("/answers/next")
 async def next_unanswered(
+    skip_ids: str = "",          # comma-separated question IDs to skip this session
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
 ):
@@ -305,6 +309,13 @@ async def next_unanswered(
         .filter(PersonalityAnswer.user_id == current_user.id)
         .all()
     }
+    # Merge in any IDs the frontend wants to skip this session
+    if skip_ids:
+        for part in skip_ids.split(","):
+            part = part.strip()
+            if part.isdigit():
+                answered_ids.add(int(part))
+
     next_q = (
         db.query(PersonalityQuestion)
         .filter(
@@ -432,3 +443,144 @@ async def big_five_scores(
             "n":     len(scores),
         }
     return result
+
+
+# ── KANDIDAT: Personality description ────────────────────────────────────────
+
+MIN_ANSWER_PCT  = 0.10   # must have answered at least 10 % of active questions
+MIN_CATEGORIES  = 5      # must have answers in at least 5 distinct categories
+
+
+@router.post("/description")
+async def generate_description(
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    """
+    Generate a Markdown personality description.
+    Requires ≥10 % of active questions answered AND ≥5 distinct categories.
+    """
+    answers = (
+        db.query(PersonalityAnswer)
+        .filter(PersonalityAnswer.user_id == current_user.id)
+        .all()
+    )
+    total_active = (
+        db.query(PersonalityQuestion)
+        .filter(PersonalityQuestion.is_active == True)
+        .count()
+    )
+
+    # Guard: too few answers
+    answered = len(answers)
+    if total_active > 0 and answered / total_active < MIN_ANSWER_PCT:
+        raise HTTPException(
+            status_code=422,
+            detail={
+                "code":     "too_few_answers",
+                "answered": answered,
+                "total":    total_active,
+                "pct":      round(answered / total_active * 100, 1),
+            },
+        )
+
+    # Guard: too few categories
+    categories = {
+        a.question.category
+        for a in answers
+        if a.question and a.question.category
+    }
+    if len(categories) < MIN_CATEGORIES:
+        raise HTTPException(
+            status_code=422,
+            detail={
+                "code":       "too_few_categories",
+                "categories": len(categories),
+                "needed":     MIN_CATEGORIES,
+            },
+        )
+
+    # Gather professional context
+    profile = (
+        db.query(CandidateProfile)
+        .filter(CandidateProfile.user_id == current_user.id)
+        .first()
+    )
+
+    skills:      list = []
+    experiences: list = []
+    cv_texts:    list = []
+
+    if profile:
+        skills = (
+            db.query(CandidateSkillEntry)
+            .filter(CandidateSkillEntry.candidate_profile_id == profile.id)
+            .all()
+        )
+        experiences = (
+            db.query(CandidateExperienceEntry)
+            .filter(CandidateExperienceEntry.candidate_profile_id == profile.id)
+            .order_by(CandidateExperienceEntry.start_date.desc())
+            .all()
+        )
+        cvs = (
+            db.query(CandidateCV)
+            .filter(
+                CandidateCV.candidate_profile_id == profile.id,
+                CandidateCV.is_processed == True,
+            )
+            .order_by(CandidateCV.upload_date.desc())
+            .limit(3)
+            .all()
+        )
+        cv_texts = [cv.raw_text for cv in cvs if cv.raw_text]
+
+    answers_data = [
+        {
+            "category": a.question.category if a.question else None,
+            "question": a.question.question_text if a.question else "",
+            "context":  a.question.context if a.question else None,
+            "big_five": a.question.big_five_trait if a.question else None,
+            "answer":   a.answer_text,
+            "likert":   a.likert_score,
+        }
+        for a in answers
+    ]
+
+    profile_data = {
+        "roles":              profile.roles if profile else None,
+        "desired_city":       profile.desired_city if profile else None,
+        "desired_employment": profile.desired_employment if profile else None,
+        "desired_workplace":  profile.desired_workplace if profile else None,
+        "description":        profile.description if profile else None,
+    }
+
+    skills_data = [
+        {"name": s.skill_name, "category": s.category, "type": s.skill_type}
+        for s in skills
+    ]
+
+    experiences_data = [
+        {
+            "title":        e.title,
+            "organization": e.organization,
+            "type":         e.experience_type,
+            "start":        e.start_date,
+            "end":          e.end_date,
+            "current":      e.is_current,
+            "description":  e.description,
+            "achievements": e.achievements or [],
+        }
+        for e in experiences
+    ]
+
+    md = _ai.generate_personality_description(
+        answers=answers_data,
+        profile=profile_data,
+        skills=skills_data,
+        experiences=experiences_data,
+        cv_texts=cv_texts,
+        name=current_user.name or current_user.email.split("@")[0],
+    )
+
+    return {"markdown": md}

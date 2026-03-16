@@ -622,7 +622,7 @@
                 <h1 data-i18n="person.title">Min person</h1>
                 <p class="view-subtitle" data-i18n="person.subtitle">Dina personlighetssvar och framsteg.</p>
             </div>
-            <button class="btn btn-primary" id="btn-question-me" onclick="startQuestionMe()" data-i18n="person.question_me">Fråga mig!</button>
+            <button class="btn btn-secondary" onclick="generatePersonalityDescription()" data-i18n="person.generate_desc">Personlighetsbeskrivning</button>
         </div>
 
         <!-- Progress -->
@@ -663,48 +663,6 @@
         <div id="padmin-questions-list"></div>
     </div>
 
-    <!-- ── "FRÅGA MIG!" MODAL ── -->
-    <div id="question-me-modal" class="modal-overlay-fullscreen hidden" onclick="if(event.target===this) closeQuestionMe()">
-        <div class="modal-card" style="max-width:560px">
-            <div class="modal-header">
-                <span id="qm-category" class="text-muted" style="font-size:0.8rem"></span>
-                <button class="modal-close" onclick="closeQuestionMe()" title="${t('action.close')}">&times;</button>
-            </div>
-            <div id="qm-question-text" style="font-size:1.1rem;font-weight:500;margin:16px 0 8px"></div>
-            <div id="qm-context-text" class="text-muted" style="font-size:0.85rem;margin-bottom:16px"></div>
-
-            <!-- Likert scale (only shown for Big Five trait questions) -->
-            <div id="qm-likert-section" style="margin-bottom:16px">
-                <p style="font-size:0.85rem;color:var(--text-muted);margin-bottom:8px" data-i18n="person.likert_label">Instämmande (1 = inte alls, 5 = stämmer helt)</p>
-                <div style="display:flex;gap:8px">
-                    <label class="likert-btn"><input type="radio" name="qm-likert" value="1"> 1</label>
-                    <label class="likert-btn"><input type="radio" name="qm-likert" value="2"> 2</label>
-                    <label class="likert-btn"><input type="radio" name="qm-likert" value="3"> 3</label>
-                    <label class="likert-btn"><input type="radio" name="qm-likert" value="4"> 4</label>
-                    <label class="likert-btn"><input type="radio" name="qm-likert" value="5"> 5</label>
-                </div>
-            </div>
-
-            <!-- Free text answer -->
-            <textarea id="qm-answer-text" class="form-input" rows="4"
-                style="width:100%;resize:vertical"
-                maxlength="500"
-                oninput="document.getElementById('qm-char-count').textContent = this.value.length + ' / 500'"
-                data-i18n-ph="person.answer_ph"></textarea>
-            <div id="qm-char-count" class="qm-char-count" style="margin-bottom:16px">0 / 500</div>
-
-            <div id="qm-error" class="auth-error hidden"></div>
-
-            <div style="display:flex;justify-content:space-between;gap:10px">
-                <button class="btn btn-secondary" onclick="skipQuestion()" data-i18n="person.skip">Hoppa över</button>
-                <div style="display:flex;gap:10px">
-                    <button class="btn btn-secondary" onclick="closeQuestionMe()" data-i18n="person.done_for_now">Klar för nu</button>
-                    <button class="btn btn-primary" onclick="submitQuestionMe()" data-i18n="person.save_next">Spara &amp; nästa</button>
-                </div>
-            </div>
-        </div>
-    </div>
-
     <!-- ── PERSONALITY IMPORT MODAL ── -->
     <div id="import-md-modal" class="modal-overlay-fullscreen hidden">
         <div class="modal-card import-modal-card">
@@ -743,6 +701,38 @@
             <div class="import-modal-footer">
                 <button id="import-cancel-btn" class="btn btn-secondary" onclick="cancelImport()" data-i18n="padmin.cancel_import">Avbryt import</button>
                 <button id="import-close-btn" class="btn btn-primary hidden" onclick="closeImportModal()" data-i18n="padmin.close_import">Stäng</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- ── PERSONALITY DESCRIPTION MODAL ── -->
+    <div id="pdesc-modal" class="modal-overlay-fullscreen hidden">
+        <div class="modal-card pdesc-modal-card">
+            <!-- Header -->
+            <div class="pdesc-modal-header">
+                <h3 data-i18n="person.desc_title">Personlighetsbeskrivning</h3>
+                <button class="modal-close" onclick="closePdescModal()" title="Stäng">&times;</button>
+            </div>
+
+            <!-- Loading state -->
+            <div id="pdesc-loading" class="pdesc-loading hidden">
+                <div class="pdesc-spinner"></div>
+                <p data-i18n="person.desc_generating">Genererar personlighetsbeskrivning med AI…</p>
+            </div>
+
+            <!-- Error state -->
+            <div id="pdesc-error" class="auth-error hidden"></div>
+
+            <!-- Content: rendered markdown -->
+            <div id="pdesc-content" class="pdesc-content hidden"></div>
+
+            <!-- Hidden store for raw markdown (used for download) -->
+            <textarea id="pdesc-raw" style="display:none" readonly></textarea>
+
+            <!-- Footer -->
+            <div class="pdesc-modal-footer">
+                <button id="pdesc-download-btn" class="btn btn-secondary hidden" onclick="downloadPersonalityMd()" data-i18n="person.desc_download">Ladda ner .md</button>
+                <button class="btn btn-primary" onclick="closePdescModal()" data-i18n="person.desc_close">Stäng</button>
             </div>
         </div>
     </div>
@@ -1137,6 +1127,7 @@
     </div>
 </div>
 
+<script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
 <script src="js/translations.js"></script>
 <script src="js/cv-template.js"></script>
 <script src="js/app-state.js"></script>

@@ -532,6 +532,108 @@ Extrahera ALLA frågor — missa ingen. Bevara originalspråket."""
         result = json.loads(response.choices[0].message.content)
         return result.get("questions", [])
 
+    def generate_personality_description(
+        self,
+        answers: list[dict],
+        profile: dict,
+        skills: list[dict],
+        experiences: list[dict],
+        cv_texts: list[str],
+        name: str = "Kandidat",
+    ) -> str:
+        """
+        Generate a Markdown personality description from personality Q&A,
+        the candidate profile, skills, experiences, and uploaded CV texts.
+        Returns raw Markdown (not JSON).
+        """
+        # Group answers by category
+        by_cat: dict[str, list] = {}
+        for a in answers:
+            cat = a.get("category") or "Övrigt"
+            by_cat.setdefault(cat, []).append(a)
+
+        answers_text = ""
+        for cat, items in by_cat.items():
+            answers_text += f"\n**{cat}**\n"
+            for a in items:
+                line = f"- F: {a.get('question', '')}"
+                if a.get("context"):
+                    line += f"  [{a['context']}]"
+                line += f"\n  S: {a.get('answer', '')}"
+                if a.get("likert"):
+                    line += f" (Likert {a['likert']}/5)"
+                if a.get("big_five"):
+                    line += f" [Big Five: {a['big_five']}]"
+                answers_text += line + "\n"
+
+        prof_parts = []
+        if profile.get("roles"):
+            prof_parts.append(f"Roller/titlar: {profile['roles']}")
+        if profile.get("description"):
+            prof_parts.append(f"Profilbeskrivning: {profile['description']}")
+        if profile.get("desired_city"):
+            prof_parts.append(f"Önskad ort: {profile['desired_city']}")
+
+        if skills:
+            prof_parts.append("Skills: " + ", ".join(s["name"] for s in skills[:25]))
+
+        if experiences:
+            exp_lines = "\n".join(
+                f"- {e['title']}" + (f" på {e['organization']}" if e.get("organization") else "")
+                for e in experiences[:6]
+            )
+            prof_parts.append(f"Erfarenheter:\n{exp_lines}")
+
+        prof_text = "\n".join(prof_parts) if prof_parts else "(ingen profil tillgänglig)"
+
+        cv_section = ""
+        if cv_texts:
+            cv_section = f"\n\nCV-text (utdrag ur senaste CV):\n{cv_texts[0][:2500]}"
+
+        system_prompt = """Du är en erfaren HR-konsult och organisationspsykolog.
+Din uppgift är att skriva en professionell, välgrundad personlighetsbeskrivning i Markdown-format.
+
+Underlag:
+1. Kandidatens svar på personlighetsfrågor (kategori → fråga → svar, Likert-poäng och Big Five-dimension om de finns)
+2. Kandidatens professionella bakgrund
+
+Riktlinjer:
+- Skriv i tredje person: "Personen visar…", "Kandidaten tenderar att…"
+- Basera dig STRIKT på de faktiska svaren — inga spekulationer
+- Lyft fram mönster och nyanser, inte bara upprepning av svaren
+- Om Big Five-data finns (Likert-svar för O/C/E/A/N), inkludera en kort Big Five-sektion
+- Var professionell, respektfull och konstruktiv
+- Skriv på svenska
+
+Markdown-struktur (använd ## för alla rubriker):
+# Personlighetsbeskrivning
+## Personlighetsprofil
+## Arbetslivsstil och arbetssätt
+## Interpersonella egenskaper
+## Motivation och drivkrafter
+## Sammanfattning
+
+Svara ENBART med Markdown-texten — ingen förklaring, ingen inledning."""
+
+        user_prompt = f"""Kandidat: {name}
+
+Personlighetssvar:
+{answers_text}
+---
+Professionell bakgrund:
+{prof_text}{cv_section}"""
+
+        logger.info(f"Genererar personlighetsbeskrivning ({len(answers)} svar, {len(skills)} skills)")
+        response = self.client.chat.completions.create(
+            model="gpt-4o",
+            messages=[
+                {"role": "system", "content": system_prompt},
+                {"role": "user",   "content": user_prompt},
+            ],
+            temperature=0.5,
+        )
+        return response.choices[0].message.content
+
     def improve_achievements(
         self,
         achievements: list[str],

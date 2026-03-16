@@ -486,6 +486,52 @@ Personens matchande erfarenheter:
 
         return json.loads(response.choices[0].message.content)
 
+    def extract_personality_questions(self, md_content: str) -> list[dict]:
+        """
+        Use GPT-4o to extract structured personality questions from free-form Markdown.
+        Returns a list of dicts with keys:
+          question_text, context, category, big_five_trait (O/C/E/A/N or null), big_five_dir (+1/-1 or null)
+        """
+        system_prompt = """Du är en psykologiexpert med djup kunskap om Big Five-modellen (OCEAN).
+Du får ett Markdown-dokument med personlighetsfrågor i fri form.
+
+Din uppgift är att extrahera VARJE fråga ur dokumentet och returnera dem som strukturerad JSON.
+
+För varje fråga, identifiera:
+- question_text: Själva frågan (obligatorisk)
+- context: Bakgrund eller förtydligande till frågan, om det finns (annars null)
+- category: Övergripande tema/kategori för frågan, t.ex. "Arbetsrelationer", "Stresshantering", "Kreativitet" (annars null)
+- big_five_trait: Vilken Big Five-dimension frågan primärt mäter: O (Openness), C (Conscientiousness), E (Extraversion), A (Agreeableness), N (Neuroticism). Sätt null om frågan inte tydligt tillhör en dimension.
+- big_five_dir: +1 om ett högt svar (5 på Likert) indikerar HÖG trait-nivå, -1 om högt svar indikerar LÅG trait-nivå. Null om big_five_trait är null.
+
+Svara ENBART med JSON i detta format:
+{
+  "questions": [
+    {
+      "question_text": "...",
+      "context": "..." or null,
+      "category": "..." or null,
+      "big_five_trait": "O"|"C"|"E"|"A"|"N"|null,
+      "big_five_dir": 1|-1|null
+    }
+  ]
+}
+
+Extrahera ALLA frågor — missa ingen. Bevara originalspråket."""
+
+        logger.info(f"Extracting personality questions from MD ({len(md_content)} chars)")
+        response = self.client.chat.completions.create(
+            model="gpt-4o",
+            messages=[
+                {"role": "system", "content": system_prompt},
+                {"role": "user", "content": f"Här är dokumentet:\n\n{md_content}"},
+            ],
+            temperature=0.1,
+            response_format={"type": "json_object"},
+        )
+        result = json.loads(response.choices[0].message.content)
+        return result.get("questions", [])
+
     def improve_achievements(
         self,
         achievements: list[str],

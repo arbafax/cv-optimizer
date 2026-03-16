@@ -26,11 +26,12 @@ class LoginRequest(BaseModel):
 
 
 class UpdateProfileRequest(BaseModel):
-    name:    str | None       = None
-    email:   str | None       = None
-    phone:   str | None       = None
-    address: str | None       = None
-    roles:   list[str] | None = None
+    name:     str | None       = None
+    email:    str | None       = None
+    phone:    str | None       = None
+    address:  str | None       = None
+    roles:    list[str] | None = None
+    language: str | None       = None
 
 
 class ChangePasswordRequest(BaseModel):
@@ -42,12 +43,13 @@ class ChangePasswordRequest(BaseModel):
 
 def _user_response(user: User) -> dict:
     return {
-        "id":      user.id,
-        "name":    user.name,
-        "email":   user.email,
-        "phone":   user.phone,
-        "address": user.address,
-        "roles":   user.roles.split(",") if user.roles else [],
+        "id":       user.id,
+        "name":     user.name,
+        "email":    user.email,
+        "phone":    user.phone,
+        "address":  user.address,
+        "roles":    user.roles.split(",") if user.roles else [],
+        "language": user.language or "sv",
     }
 
 
@@ -132,6 +134,8 @@ async def update_me(
         current_user.address = body.address.strip() or None
     if body.roles is not None:
         current_user.roles = ",".join(body.roles) if body.roles else None
+    if body.language is not None:
+        current_user.language = body.language
     db.commit()
     db.refresh(current_user)
     return _user_response(current_user)

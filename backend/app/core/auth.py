@@ -16,8 +16,9 @@ class SystemRole:
     KANDIDAT    = "Kandidat"
     SALJARE     = "Säljare"
     REKRYTERARE = "Rekryterare"
+    ADMIN       = "Admin"
 
-    ALL = {KANDIDAT, SALJARE, REKRYTERARE}
+    ALL = {KANDIDAT, SALJARE, REKRYTERARE, ADMIN}
 
 
 def hash_password(plain: str) -> str:

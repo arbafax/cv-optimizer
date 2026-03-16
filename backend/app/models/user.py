@@ -13,6 +13,7 @@ class User(Base):
     address         = Column(String(500), nullable=True)
     hashed_password = Column(String(255), nullable=False)
     roles           = Column(String(500), nullable=True)
+    language        = Column(String(5), nullable=True, default='sv')
     created_at      = Column(DateTime(timezone=True), server_default=func.now())
 
     def __repr__(self):

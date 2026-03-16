@@ -11,6 +11,7 @@ from app.api.auth import router as auth_router
 from app.api.candidate_profile import router as sokprofil_router
 from app.api.kandidater import router as kandidater_router
 from app.api.candidate_cvs import router as candidate_cvs_router
+from app.api.personality import router as personality_router
 
 # Import all models so Base.metadata knows about them
 # NOTE: competence_models (SkillEntry/ExperienceEntry) NOT imported — those tables are dropped
@@ -23,6 +24,7 @@ from app.models import seller_candidates as sc_models           # noqa: F401
 from app.models import candidate_cv as ccv_models               # noqa: F401
 from app.models import candidate_education as cedu_models       # noqa: F401
 from app.models import candidate_certification as ccert_models  # noqa: F401
+from app.models import personality as personality_models         # noqa: F401
 
 # Configure logging
 logging.basicConfig(
@@ -108,6 +110,18 @@ with engine.connect() as _conn:
         "ALTER TABLE candidate_experiences ADD COLUMN IF NOT EXISTS embedding vector(1536)"
     ))
 
+    # personality_questions — embedding (for job matching)
+    _conn.execute(text(
+        "ALTER TABLE personality_questions ADD COLUMN IF NOT EXISTS embedding vector(1536)"
+    ))
+
+    # personality_answers — embedding
+    _conn.execute(text(
+        "ALTER TABLE personality_answers ADD COLUMN IF NOT EXISTS embedding vector(1536)"
+    ))
+
+    # users — ensure Admin role is supported (no schema change needed; stored in roles string)
+
     _conn.commit()
 
 # ── FastAPI app ───────────────────────────────────────────────────────────────
@@ -151,6 +165,7 @@ app.include_router(competence_router, prefix="/api/v1")
 app.include_router(sokprofil_router, prefix="/api/v1")
 app.include_router(kandidater_router, prefix="/api/v1")
 app.include_router(candidate_cvs_router, prefix="/api/v1")
+app.include_router(personality_router, prefix="/api/v1")
 
 if __name__ == "__main__":
     import uvicorn

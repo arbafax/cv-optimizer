@@ -151,7 +151,7 @@ function renderSkillsTab() {
                 ${groups[cat].map(s => `
                     <span class="bank-skill-chip chip-${s.skill_type || 'default'}">
                         ${s.skill_name}
-                        <button class="chip-delete" onclick="event.stopPropagation(); deleteSkill(${s.id}, '${s.skill_name.replace(/'/g, "\\'")}')" title="Ta bort">&times;</button>
+                        <button class="chip-delete" onclick="event.stopPropagation(); deleteSkill(${s.id}, '${s.skill_name.replace(/'/g, "\\'")}')" title="${t('action.delete')}">&times;</button>
                     </span>
                 `).join('')}
             </div>
@@ -236,24 +236,24 @@ function renderExperiencesTab() {
                                         </h4>
                                         <div class="bank-exp-date-row" id="date-row-${e.id}">
                                             ${dateStr ? `<span class="bank-exp-date">${dateStr}</span>` : '<span class="bank-exp-date bank-exp-date-empty">Ingen tidsperiod</span>'}
-                                            <button class="btn-icon btn-icon-small btn-edit-period" onclick="editPeriod(${e.id}, '${e.start_date || ''}', '${e.end_date || ''}', ${e.is_current})" title="Redigera tidsperiod">&#9998;</button>
+                                            <button class="btn-icon btn-icon-small btn-edit-period" onclick="editPeriod(${e.id}, '${e.start_date || ''}', '${e.end_date || ''}', ${e.is_current})" title="${t('action.edit_period')}">&#9998;</button>
                                         </div>
                                         <div id="period-form-${e.id}"></div>
                                     </div>
                                     <div class="bank-exp-actions">
-                                        <button class="btn-icon btn-icon-danger" onclick="event.stopPropagation(); deleteExperience(${e.id}, '${e.title.replace(/'/g, "\\'")}')" title="Ta bort erfarenhet">&times;</button>
+                                        <button class="btn-icon btn-icon-danger" onclick="event.stopPropagation(); deleteExperience(${e.id}, '${e.title.replace(/'/g, "\\'")}')" title="${t('action.delete_experience')}">&times;</button>
                                     </div>
                                 </div>
                                 ${e.organization ? `<div class="bank-exp-org">${e.organization}</div>` : ''}
                                 <div class="bank-exp-desc ${e.description ? '' : 'bank-exp-desc-empty'}"
                                      onclick="editDescription(${e.id}, this)"
-                                     title="Klicka för att redigera"
+                                     title="${t('action.click_to_edit')}"
                                      id="desc-${e.id}">${e.description || '<span class="desc-placeholder">Klicka för att lägga till beskrivning...</span>'}</div>
                                 <div class="bank-exp-achievements">
                                     <div class="bank-exp-achievements-label">
                                         Huvudsakliga prestationer
-                                        <button class="btn-icon btn-icon-small" onclick="showAddAchievementForm(${e.id})" title="Lägg till prestation">+</button>
-                                        ${achievements.length > 0 ? `<button class="btn-improve-ach" onclick="improveAchievements(${e.id})" title="Rensa duplikat och förbättra formuleringar">✨ Förbättra</button>` : ''}
+                                        <button class="btn-icon btn-icon-small" onclick="showAddAchievementForm(${e.id})" title="${t('action.add_achievement')}">+</button>
+                                        ${achievements.length > 0 ? `<button class="btn-improve-ach" onclick="improveAchievements(${e.id})" title="${t('action.improve')}">✨ Förbättra</button>` : ''}
                                     </div>
                                     <div id="add-achievement-form-${e.id}"></div>
                                     <div id="improve-achievement-preview-${e.id}"></div>
@@ -263,8 +263,8 @@ function renderExperiencesTab() {
                                                 <li>
                                                     <span class="achievement-text" id="ach-text-${e.id}-${idx}">${a}</span>
                                                     <span class="achievement-actions">
-                                                        <button class="btn-icon btn-icon-small" onclick="editAchievement(${e.id}, ${idx})" title="Redigera">&#9998;</button>
-                                                        <button class="btn-icon btn-icon-small btn-icon-danger" onclick="deleteAchievement(${e.id}, ${idx})" title="Ta bort">&times;</button>
+                                                        <button class="btn-icon btn-icon-small" onclick="editAchievement(${e.id}, ${idx})" title="${t('action.edit')}">&#9998;</button>
+                                                        <button class="btn-icon btn-icon-small btn-icon-danger" onclick="deleteAchievement(${e.id}, ${idx})" title="${t('action.delete')}">&times;</button>
                                                     </span>
                                                 </li>
                                             `).join('')}
@@ -274,7 +274,7 @@ function renderExperiencesTab() {
                                 <div class="bank-exp-skills">
                                     <div class="bank-exp-skills-label">
                                         Relaterade skills
-                                        <button class="btn-icon btn-icon-small" onclick="showAddExpSkillForm(${e.id})" title="Lägg till skill">+</button>
+                                        <button class="btn-icon btn-icon-small" onclick="showAddExpSkillForm(${e.id})" title="${t('action.add_skill')}">+</button>
                                     </div>
                                     <div id="add-exp-skill-form-${e.id}"></div>
                                     ${skills.length > 0 ? `
@@ -282,7 +282,7 @@ function renderExperiencesTab() {
                                             ${skills.map((s, idx) => `
                                                 <span class="bank-skill-chip chip-technical">
                                                     ${s}
-                                                    <button class="chip-delete" onclick="event.stopPropagation(); removeExpSkill(${e.id}, ${idx}, '${s.replace(/'/g, "\\'")}')" title="Ta bort">&times;</button>
+                                                    <button class="chip-delete" onclick="event.stopPropagation(); removeExpSkill(${e.id}, ${idx}, '${s.replace(/'/g, "\\'")}')" title="${t('action.delete')}">&times;</button>
                                                 </span>
                                             `).join('')}
                                         </div>

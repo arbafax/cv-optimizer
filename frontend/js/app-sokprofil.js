@@ -170,8 +170,8 @@ function renderSpSkills(skills) {
                     }
                     return `<span class="bank-skill-chip ${typeClass(s.skill_type)}">
                         ${esc(s.skill_name)}
-                        <button class="chip-delete" style="font-size:0.85em;padding:0 1px 0 3px" onclick="spEditingSkillId=${s.id};renderSpSkills(cachedSpSkills)" title="Redigera">✎</button>
-                        <button class="chip-delete" onclick="deleteSpSkill(${s.id})" title="Ta bort">×</button>
+                        <button class="chip-delete" style="font-size:0.85em;padding:0 1px 0 3px" onclick="spEditingSkillId=${s.id};renderSpSkills(cachedSpSkills)" title="${t('action.edit')}">✎</button>
+                        <button class="chip-delete" onclick="deleteSpSkill(${s.id})" title="${t('action.delete')}">×</button>
                     </span>`;
                 }).join('')}
             </div>
@@ -277,8 +277,8 @@ function renderSpExperiences(experiences) {
                     ${period ? `<div class="exp-card-period">${period}</div>` : ''}
                 </div>
                 <div class="exp-card-actions">
-                    <button class="btn-icon" onclick="spEditingExpId=${e.id};renderSpExperiences(cachedSpExps)" title="Redigera">✎</button>
-                    <button class="btn-icon btn-icon-danger" onclick="deleteSpExperience(${e.id})" title="Ta bort">&times;</button>
+                    <button class="btn-icon" onclick="spEditingExpId=${e.id};renderSpExperiences(cachedSpExps)" title="${t('action.edit')}">✎</button>
+                    <button class="btn-icon btn-icon-danger" onclick="deleteSpExperience(${e.id})" title="${t('action.delete')}">&times;</button>
                 </div>
             </div>
             ${e.description ? `<div class="exp-card-desc">${esc(e.description)}</div>` : ''}
@@ -378,8 +378,8 @@ function renderSpEducation(items) {
                 ${period           ? `<div class="edu-card-period">${period}</div>` : ''}
             </div>
             <div class="exp-card-actions">
-                <button class="btn-icon" onclick="spEditingEduId=${e.id};renderSpEducation(cachedSpEdu)" title="Redigera">✎</button>
-                <button class="btn-icon btn-icon-danger" onclick="deleteSpEducation(${e.id})" title="Ta bort">&times;</button>
+                <button class="btn-icon" onclick="spEditingEduId=${e.id};renderSpEducation(cachedSpEdu)" title="${t('action.edit')}">✎</button>
+                <button class="btn-icon btn-icon-danger" onclick="deleteSpEducation(${e.id})" title="${t('action.delete')}">&times;</button>
             </div>
         </div>`;
     }).join('');
@@ -499,8 +499,8 @@ function renderSpCertifications(items) {
                 ${c.date   ? `<div class="edu-card-period">${c.date}</div>` : ''}
             </div>
             <div class="exp-card-actions">
-                <button class="btn-icon" onclick="spEditingCertId=${c.id};renderSpCertifications(cachedSpCerts)" title="Redigera">✎</button>
-                <button class="btn-icon btn-icon-danger" onclick="deleteSpCertification(${c.id})" title="Ta bort">&times;</button>
+                <button class="btn-icon" onclick="spEditingCertId=${c.id};renderSpCertifications(cachedSpCerts)" title="${t('action.edit')}">✎</button>
+                <button class="btn-icon btn-icon-danger" onclick="deleteSpCertification(${c.id})" title="${t('action.delete')}">&times;</button>
             </div>
         </div>`;
     }).join('');

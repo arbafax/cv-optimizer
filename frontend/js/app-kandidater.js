@@ -181,7 +181,7 @@ function updateMatchKandidatBtn() {
     if (rankBtn)  rankBtn.disabled  = !hasText;
 }
 
-// ── Ranka alla kandidater (vektorsökning) ─────────────────────────────────────
+// ── Ranka alla kandidater (parallell LLM-analys) ─────────────────────────────
 
 async function rankAllKandidater() {
     const txt     = document.getElementById('mk-job-description');

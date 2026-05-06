@@ -137,7 +137,7 @@ async function loadCVs() {
     } catch (error) {
         console.error('Error loading CVs:', error);
         if (typeof cvList !== 'undefined' && cvList) {
-            cvList.innerHTML = `<div class="empty-hint">❌ Kunde inte ladda CV:n<br><small>Kontrollera att backend körs på http://localhost:8000</small></div>`;
+            cvList.innerHTML = `<div class="empty-hint">❌ Kunde inte ladda CV:n<br><small>Kontrollera att backend körs på http://localhost:8018</small></div>`;
         }
     }
 }

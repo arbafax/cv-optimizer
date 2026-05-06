@@ -165,6 +165,8 @@ sv: {
     'padmin.q_saved':               'sparade',
     'padmin.q_skipped':             'hoppade över',
     'padmin.similarity_label':      'Likhet',
+    'padmin.similar_warning':       'Liknande fråga finns redan',
+    'padmin.save_anyway':           'Spara ändå',
 
     // Optimize / Match job
     'match.title':                  'Matcha jobb',
@@ -444,6 +446,8 @@ en: {
     'padmin.q_saved':               'saved',
     'padmin.q_skipped':             'skipped',
     'padmin.similarity_label':      'Similarity',
+    'padmin.similar_warning':       'A similar question already exists',
+    'padmin.save_anyway':           'Save anyway',
 
     'match.title':                  'Match job',
     'match.subtitle':               'Paste a job listing – AI matches your entire skill bank against the job.',
@@ -712,6 +716,8 @@ no: {
     'padmin.q_saved':               'lagret',
     'padmin.q_skipped':             'hoppet over',
     'padmin.similarity_label':      'Likhet',
+    'padmin.similar_warning':       'En lignende spørsmål finnes allerede',
+    'padmin.save_anyway':           'Lagre likevel',
 
     'match.title':                  'Match jobb',
     'match.subtitle':               'Lim inn en stillingsannonse – AI matcher hele kompetansebanken din mot jobben.',

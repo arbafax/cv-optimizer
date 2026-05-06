@@ -73,8 +73,11 @@ function _pqRowHtml(q, answer) {
     const likertBadge = answered && answer.likert_score
         ? `<span class="pq-likert-badge">${answer.likert_score}/5</span>`
         : '';
+    const answerInner = answered
+        ? (answer.answer_text ? esc(answer.answer_text) : '') + likertBadge
+        : '';
     const answerBlock = answered
-        ? `<div class="pq-answer-text" id="pq-ans-${q.id}">${esc(answer.answer_text)}${likertBadge}</div>`
+        ? `<div class="pq-answer-text" id="pq-ans-${q.id}">${answerInner}</div>`
         : `<div class="pq-unanswered" id="pq-ans-${q.id}">–</div>`;
 
     return `
@@ -115,12 +118,15 @@ function editPQ(questionId) {
             </div>
         </div>` : '';
 
+    const textareaHtml = hasLikert ? '' : `
+        <textarea class="form-input" id="pq-ta-${questionId}" rows="3"
+            style="width:100%;resize:vertical;margin-bottom:8px"
+            maxlength="500">${esc(currentText)}</textarea>`;
+
     const formEl = document.getElementById(`pq-edit-${questionId}`);
     formEl.innerHTML = `
         ${likertHtml}
-        <textarea class="form-input" id="pq-ta-${questionId}" rows="3"
-            style="width:100%;resize:vertical;margin-bottom:8px"
-            maxlength="500">${esc(currentText)}</textarea>
+        ${textareaHtml}
         <div style="display:flex;gap:8px;justify-content:flex-end">
             <button class="btn btn-secondary btn-sm" onclick="cancelPQ(${questionId})">${t('person.cancel')}</button>
             <button class="btn btn-primary btn-sm" onclick="savePQ(${questionId})">${t('person.save_answer')}</button>
@@ -137,12 +143,16 @@ function cancelPQ(questionId) {
 
 async function savePQ(questionId) {
     const ta = document.getElementById(`pq-ta-${questionId}`);
-    if (!ta) return;
-    const text = ta.value.trim();
-    if (!text) return;
-
     const likertInput = document.querySelector(`input[name="pq-likert-${questionId}"]:checked`);
     const likert = likertInput ? parseInt(likertInput.value) : null;
+
+    // Likert-only question: textarea absent — require a number to be selected
+    if (!ta) {
+        if (!likert) return;
+    }
+    const text = ta ? ta.value.trim() : '';
+    if (!ta && !text && !likert) return;  // nothing to save
+    if (ta && !text) return;              // free-text question: text required
 
     const res = await apiFetch(`${API_BASE_URL}/personality/answers`, {
         method: 'POST',
@@ -162,7 +172,7 @@ async function savePQ(questionId) {
         const likertBadge = saved.likert_score
             ? `<span class="pq-likert-badge">${saved.likert_score}/5</span>` : '';
         ansEl.className   = 'pq-answer-text';
-        ansEl.innerHTML   = esc(saved.answer_text) + likertBadge;
+        ansEl.innerHTML   = (saved.answer_text ? esc(saved.answer_text) : '') + likertBadge;
     }
     const row = document.getElementById(`pq-row-${questionId}`);
     if (row) row.classList.remove('pq-row--unanswered');
@@ -179,6 +189,16 @@ async function savePQ(questionId) {
 // ════════════════════════════════════════════════════════════════════════════
 // ADMIN — "Personlighetsfrågor" view
 // ════════════════════════════════════════════════════════════════════════════
+
+async function backfillQuestionEmbeddings() {
+    const btn = document.getElementById('padmin-backfill-btn');
+    if (btn) { btn.disabled = true; btn.textContent = '…'; }
+    const res = await apiFetch(`${API_BASE_URL}/personality/questions/backfill-embeddings`, { method: 'POST' });
+    if (btn) { btn.disabled = false; btn.textContent = 'Backfill embeddings'; }
+    if (!res.ok) { alert('Backfill misslyckades'); return; }
+    const { backfilled, skipped } = await res.json();
+    alert(`Backfill klar: ${backfilled} frågor fick embeddings, ${skipped} hoppades över.`);
+}
 
 async function loadPersonalityAdmin() {
     const res = await apiFetch(`${API_BASE_URL}/personality/questions?include_inactive=true`);
@@ -301,6 +321,7 @@ function _renderAdminForm(q) {
                 <input type="checkbox" id="pf-active" ${(!q || q.is_active) ? 'checked' : ''}>
                 <label for="pf-active">${t('padmin.label_active')}</label>
             </div>
+            <div id="pf-similar-warning"></div>
             <div style="display:flex;gap:10px;margin-top:4px">
                 <button class="btn btn-secondary" onclick="cancelAdminForm()">${t('padmin.cancel')}</button>
                 <button class="btn btn-primary" onclick="saveAdminQuestion()">${t('padmin.save')}</button>
@@ -315,9 +336,45 @@ function cancelAdminForm() {
     _padminEditingId = null;
 }
 
-async function saveAdminQuestion() {
+async function saveAdminQuestion(force = false) {
     const questionText = document.getElementById('pf-question')?.value.trim();
     if (!questionText) return;
+
+    // Duplicate check for both new and edited questions, unless forced
+    if (!force) {
+        const checkRes = await apiFetch(`${API_BASE_URL}/personality/questions/check-similar`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ question_text: questionText }),
+        });
+        if (checkRes.ok) {
+            const { matches } = await checkRes.json();
+            // When editing, exclude the question itself from matches
+            const filtered = matches.filter(m => m.id !== _padminEditingId);
+            if (filtered.length > 0) {
+                const top = filtered[0];
+                const pct = Math.round(top.similarity * 100);
+                const warnEl = document.getElementById('pf-similar-warning');
+                if (warnEl) {
+                    warnEl.innerHTML = `
+                        <div style="background:var(--warning-bg,#fff8e1);border:1px solid var(--warning-border,#ffe082);border-radius:6px;padding:12px;margin-bottom:10px">
+                            <strong style="color:#b45309">${t('padmin.similar_warning') || 'Liknande fråga finns redan'} (${pct}%)</strong>
+                            <p style="margin:6px 0 10px;font-size:0.88rem;color:var(--text)">"${esc(top.question_text)}"</p>
+                            <div style="display:flex;gap:8px">
+                                <button class="btn btn-secondary btn-sm" onclick="document.getElementById('pf-similar-warning').innerHTML=''">${t('padmin.cancel') || 'Avbryt'}</button>
+                                <button class="btn btn-primary btn-sm" onclick="saveAdminQuestion(true)">${t('padmin.save_anyway') || 'Spara ändå'}</button>
+                            </div>
+                        </div>`;
+                    warnEl.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+                }
+                return;
+            }
+        }
+    }
+
+    // Clear any warning
+    const warnEl = document.getElementById('pf-similar-warning');
+    if (warnEl) warnEl.innerHTML = '';
 
     const dirRaw = document.getElementById('pf-dir')?.value;
     const body = {

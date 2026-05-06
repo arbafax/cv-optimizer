@@ -53,7 +53,7 @@ class QuestionOut(BaseModel):
 
 class AnswerIn(BaseModel):
     question_id:  int
-    answer_text:  str
+    answer_text:  str = ""
     likert_score: Optional[int] = None   # 1–5
 
 
@@ -123,6 +123,7 @@ async def create_question(
     db: Session = Depends(get_db),
 ):
     q = PersonalityQuestion(**body.model_dump())
+    q.embedding = _ai.generate_embeddings(body.question_text)
     db.add(q)
     db.commit()
     db.refresh(q)
@@ -141,9 +142,31 @@ async def update_question(
         raise HTTPException(status_code=404, detail="Frågan hittades inte")
     for k, v in body.model_dump().items():
         setattr(q, k, v)
+    q.embedding = _ai.generate_embeddings(body.question_text)
     db.commit()
     db.refresh(q)
     return q
+
+
+@router.post("/questions/backfill-embeddings")
+async def backfill_question_embeddings(
+    current_user: User = Depends(require_role(SystemRole.ADMIN)),
+    db: Session = Depends(get_db),
+):
+    """Backfill embeddings for all questions that have NULL embedding."""
+    questions = (
+        db.query(PersonalityQuestion)
+        .filter(PersonalityQuestion.embedding == None)  # noqa: E711
+        .all()
+    )
+    updated = 0
+    for q in questions:
+        vec = _ai.generate_embeddings(q.question_text)
+        if vec:
+            q.embedding = vec
+            updated += 1
+    db.commit()
+    return {"backfilled": updated, "skipped": len(questions) - updated}
 
 
 @router.delete("/questions/{question_id}", status_code=204)
@@ -239,7 +262,7 @@ async def extract_questions_from_md(
 
 class SimilarCheckIn(BaseModel):
     question_text: str
-    threshold: float = 0.75
+    threshold: float = 0.70
 
 
 @router.post("/questions/check-similar")
@@ -249,19 +272,38 @@ async def check_similar_question(
     db: Session = Depends(get_db),
 ):
     """
-    Return up to 3 existing active questions whose text is similar
-    to the given question_text (uses difflib SequenceMatcher).
+    Return up to 3 existing active questions semantically similar to the given
+    question_text.  Uses OpenAI embeddings + cosine similarity (pgvector) when
+    possible; falls back to difflib for questions without stored embeddings.
+    Threshold is treated as cosine similarity (1 – cosine_distance).
     """
     existing = (
         db.query(PersonalityQuestion)
         .filter(PersonalityQuestion.is_active == True)
         .all()
     )
-    candidate = body.question_text.lower().strip()
+
+    # Try to embed the incoming question for semantic comparison
+    query_vec = _ai.generate_embeddings(body.question_text)
+
+    candidate_text = body.question_text.lower().strip()
     matches = []
+
     for q in existing:
-        ratio = SequenceMatcher(None, candidate, q.question_text.lower().strip()).ratio()
-        if ratio >= body.threshold:
+        if query_vec and q.embedding is not None:
+            # Cosine similarity: 1 - cosine_distance
+            # pgvector stores embeddings as list; compute in Python
+            vec_a = query_vec
+            vec_b = list(q.embedding)
+            dot   = sum(a * b for a, b in zip(vec_a, vec_b))
+            mag_a = sum(a * a for a in vec_a) ** 0.5
+            mag_b = sum(b * b for b in vec_b) ** 0.5
+            sim   = dot / (mag_a * mag_b) if mag_a and mag_b else 0.0
+        else:
+            # Fallback: character-level similarity with a looser threshold
+            sim = SequenceMatcher(None, candidate_text, q.question_text.lower().strip()).ratio()
+
+        if sim >= body.threshold:
             matches.append({
                 "id":             q.id,
                 "question_text":  q.question_text,
@@ -269,8 +311,9 @@ async def check_similar_question(
                 "category":       q.category,
                 "big_five_trait": q.big_five_trait,
                 "big_five_dir":   q.big_five_dir,
-                "similarity":     round(ratio, 2),
+                "similarity":     round(sim, 2),
             })
+
     matches.sort(key=lambda x: x["similarity"], reverse=True)
     return {"matches": matches[:3]}
 

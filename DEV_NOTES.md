@@ -16,29 +16,32 @@ Start with scetching a plan for the implementation. Present the plan.
 
 # NOTERINGAR
 
-ONELINER to start BACKEND
-kill $(lsof -ti:5432) 2>/dev/null; 
-kill $(lsof -ti:5433) 2>/dev/null; 
-kill $(lsof -ti:8000) 2>/dev/null; 
-kill $(lsof -ti:8001) 2>/dev/null; sleep 1; cd /Users/hencar/Utveckling/my/cv-optimizer/backend && ../venv/bin/uvicorn app.main:app --host 0.0.0.0 --port 8001 &
+### 1 ONELINER to start DATABASE (Docker, port 5433)
+cd /Users/hencar/Utveckling/my/cv-optimizer && docker compose up -d
 
-VERIFY BACKEND IS UP
-sleep 4 && curl -s http://localhost:8001/docs | head -5
+### 2 VERIFY DATABASE IS UP
+docker compose ps postgres
 
-ONELINER to start FRONTEND
-cd /Users/hencar/Utveckling/my/cv-optimizer/frontend && python -m http.server 5501
-cd /Users/hencar/Utveckling/my/cv-optimizer/frontend && python serve.py
+### 3 ONELINER to (re-)start BACKEND
+kill $(lsof -ti:8018) 2>/dev/null; sleep 1; cd /Users/hencar/Utveckling/my/cv-optimizer/backend && ../venv/bin/uvicorn app.main:app --host 0.0.0.0 --port 8018 &
 
 
+### 4 VERIFY BACKEND IS UP
+sleep 4 && curl -s http://localhost:8018/docs | head -5
 
-ONLINER to RESTART BACKEND
-kill $(lsof -ti:8001) 2>/dev/null; sleep 1; cd /Users/hencar/Utveckling/my/cv-optimizer/backend && ../venv/bin/uvicorn app.main:app --host 0.0.0.0 --port 8001 &
 
-ONELINER to RESTART FRONTEND
+### 5 ONELINER to start FRONTEND
 kill $(lsof -ti:5501) 2>/dev/null; sleep 1; cd /Users/hencar/Utveckling/my/cv-optimizer/frontend && python serve.py &
 
 
-VISA LOGGEN FRPN DOCKER
+ONLINER to RESTART BACKEND
+kill $(lsof -ti:8018) 2>/dev/null; sleep 1; cd /Users/hencar/Utveckling/my/cv-optimizer/backend && ../venv/bin/uvicorn app.main:app --host 0.0.0.0 --port 8018 &
+
+ONELINER to RESTART FRONTEND
+
+
+
+VISA LOGGEN FRÅN DOCKER
 docker compose logs --tail=50 2>/dev/null || true
 
 

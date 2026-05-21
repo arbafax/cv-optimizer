@@ -634,6 +634,128 @@ Professionell bakgrund:
         )
         return response.choices[0].message.content
 
+    def generate_loghouse_cv(
+        self,
+        job_description: str,
+        experiences_data: list[dict],
+        skills: list[dict],
+        profile: dict,
+        personality_answers: list[dict],
+        education: list[dict],
+        cv_texts: list[str],
+    ) -> dict:
+        """
+        Genererar ett Log House-formaterat CV-utkast anpassat till en jobbannons.
+        Returnerar strukturerad JSON med page_1 och page_2 enligt mallen.
+        """
+        exp_text = "\n\n".join(
+            f"[{e.get('title', '')}]"
+            + (f" på {e['organization']}" if e.get("organization") else "")
+            + (f" ({e.get('start_date', '')}–{e.get('end_date') or 'nu'})" if e.get("start_date") else "")
+            + (f"\nBeskrivning: {e['description']}" if e.get("description") else "")
+            + (
+                "\nPrestationer:\n" + "\n".join(f"- {a}" for a in e["achievements"])
+                if e.get("achievements")
+                else ""
+            )
+            for e in experiences_data
+        ) or "(inga erfarenheter)"
+
+        skills_text = ", ".join(s.get("skill_name", s) if isinstance(s, dict) else s for s in skills) or "(inga)"
+
+        answers_text = "\n".join(
+            f"- [{a.get('category', '')}] {a.get('question', '')}: {a.get('answer', '')}"
+            for a in personality_answers
+            if a.get("answer")
+        ) or "(inga svar)"
+
+        edu_text = "\n".join(
+            f"- {e.get('year_start', '')}–{e.get('year_end', '')} {e.get('degree', '')} {e.get('institution', '')}"
+            for e in education
+        ) or "(ingen utbildning)"
+
+        cv_excerpt = cv_texts[0][:2000] if cv_texts else ""
+        name = profile.get("name") or profile.get("full_name") or ""
+
+        system_prompt = """Du är en expert på CV-skrivning för konsultbranschen, specialiserad på Log House-mallen.
+Du skapar ett professionellt CV-utkast anpassat till en specifik jobbannons.
+
+Svara ENBART med JSON i exakt detta format:
+{
+  "page_1": {
+    "ingress": [
+      "<stycke 1: positionering och kärnvärde, 3-4 meningar, tredje person>",
+      "<stycke 2: arbetssätt och drivkraft, 3-4 meningar>",
+      "<stycke 3: tydlig avgränsning/USP, 2-3 meningar>"
+    ],
+    "kompetenser": [
+      {"rubrik": "<1-3 ord>", "beskrivning": "<40-70 ord, löptext, konkret>"},
+      {"rubrik": "<1-3 ord>", "beskrivning": "<40-70 ord>"},
+      {"rubrik": "<1-3 ord>", "beskrivning": "<40-70 ord>"}
+    ]
+  },
+  "page_2": {
+    "branscher": "<kommaseparerade branscher kandidaten har erfarenhet av>",
+    "sammanfattning": [
+      {"rubrik": "<kompetensrubrik från sida 1>,", "text": "<40-80 ord, narrativt, tredje person>"},
+      {"rubrik": "<kompetensrubrik>,", "text": "<40-80 ord>"},
+      {"rubrik": "<kompetensrubrik>,", "text": "<40-80 ord>"}
+    ],
+    "verktyg": [
+      {"kategori": "Samarbete", "items": ["<verktyg>", ...]},
+      {"kategori": "Dokumentation", "items": ["<verktyg>", ...]},
+      {"kategori": "Processer och standarder", "items": ["<ramverk>", ...]}
+    ],
+    "uppdrag": [
+      {
+        "rubrik": "<BOLAGSNAMN – ROLLTITEL – PERIOD (versaler)>",
+        "punkter": ["<aktivitet med verb>", "<aktivitet>", "<aktivitet>"]
+      }
+    ],
+    "utbildning": [
+      {"period": "<årtalet eller period>", "utbildning": "<namn>", "anordnare": "<institution>"}
+    ]
+  }
+}
+
+Regler:
+- Skriv alltid i tredje person (undvik "jag/du" – använd förnamnet eller "kandidaten")
+- Anpassa innehållet till jobbannonsens krav utan att hitta på fakta
+- Max 3 kompetenser, välj de mest relevanta för jobbet
+- Uppdragslistan: nyaste uppdrag först, max 5 uppdrag, 3-5 bullet points per uppdrag
+- Använd kandidatens faktiska data – lägg inte till kompetenser som inte finns
+- Alla texter på svenska"""
+
+        user_prompt = f"""Kandidat: {name}
+
+Jobbannons:
+{job_description[:3000]}
+
+---
+Erfarenheter:
+{exp_text}
+
+Skills: {skills_text}
+
+Utbildning:
+{edu_text}
+
+Personlighetssvar (urval):
+{answers_text[:1500]}
+{"" if not cv_excerpt else f"{chr(10)}CV-text (utdrag):{chr(10)}{cv_excerpt}"}"""
+
+        logger.info(f"Genererar Log House CV för {name}")
+        response = self.client.chat.completions.create(
+            model="gpt-4o",
+            messages=[
+                {"role": "system", "content": system_prompt},
+                {"role": "user", "content": user_prompt},
+            ],
+            temperature=0.4,
+            response_format={"type": "json_object"},
+        )
+        return json.loads(response.choices[0].message.content)
+
     def improve_achievements(
         self,
         achievements: list[str],

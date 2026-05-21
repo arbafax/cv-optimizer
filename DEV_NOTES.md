@@ -16,7 +16,7 @@ Start with scetching a plan for the implementation. Present the plan.
 
 # NOTERINGAR
 
-### 1 ONELINER to start DATABASE (Docker, port 5433)
+### 1 ONELINER to start DATABASE (Docker, port 5434)
 cd /Users/hencar/Utveckling/my/cv-optimizer && docker compose up -d
 
 ### 2 VERIFY DATABASE IS UP

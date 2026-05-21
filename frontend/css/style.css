@@ -3225,3 +3225,92 @@ body {
     border-top: 1px solid var(--border);
     padding-top: 14px;
 }
+
+/* ── Log House CV Modal ──────────────────────────────────────────────────── */
+.lh-cv-page {
+    padding-bottom: 24px;
+    margin-bottom: 24px;
+    border-bottom: 2px solid var(--border);
+}
+.lh-cv-page--2 {
+    border-bottom: none;
+}
+.lh-cv-section {
+    margin-bottom: 20px;
+}
+.lh-cv-section-title {
+    font-size: 1rem;
+    font-weight: 700;
+    margin-bottom: 8px;
+    color: var(--text);
+}
+.lh-cv-accent {
+    color: #8B4513;
+}
+.lh-cv-komp-table {
+    width: 100%;
+    border-collapse: collapse;
+}
+.lh-cv-komp-table td {
+    padding: 6px 10px 6px 0;
+    vertical-align: top;
+    font-size: 0.9rem;
+    line-height: 1.5;
+}
+.lh-cv-komp-title {
+    font-weight: 600;
+    width: 160px;
+    color: #8B4513;
+    white-space: nowrap;
+}
+.lh-cv-komp-desc {
+    color: var(--text);
+}
+.lh-cv-branscher {
+    font-size: 0.9rem;
+    margin-bottom: 16px;
+    color: var(--text-muted);
+}
+.lh-cv-tool-row {
+    font-size: 0.88rem;
+    margin-bottom: 4px;
+    line-height: 1.5;
+}
+.lh-cv-tool-cat {
+    font-weight: 600;
+}
+.lh-cv-uppdrag {
+    margin-bottom: 14px;
+}
+.lh-cv-uppdrag-title {
+    font-weight: 700;
+    font-size: 0.88rem;
+    letter-spacing: 0.02em;
+    margin-bottom: 4px;
+}
+.lh-cv-uppdrag ul {
+    margin: 0;
+    padding-left: 18px;
+}
+.lh-cv-uppdrag li {
+    font-size: 0.88rem;
+    line-height: 1.6;
+    margin-bottom: 2px;
+}
+.lh-cv-edu-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 0.88rem;
+}
+.lh-cv-edu-table td {
+    padding: 3px 10px 3px 0;
+    vertical-align: top;
+}
+.lh-cv-edu-period {
+    white-space: nowrap;
+    color: var(--text-muted);
+    width: 100px;
+}
+.lh-cv-edu-org {
+    color: var(--text-muted);
+}

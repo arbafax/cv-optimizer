@@ -203,6 +203,168 @@ function closeCVGenerateModal() {
     }
 }
 
+// ── Generate Log House CV ────────────────────────────────────────────────────
+let lastLHCV = null;
+
+async function handleGenerateLHCV() {
+    if (!lastMatchResult) return;
+    const btn = document.getElementById('gen-lh-cv-btn');
+    btn.disabled = true;
+    btn.innerHTML = `<span class="spinner-small"></span> ${t('match.generating')}`;
+
+    const expIds = (lastMatchResult.experiences ?? []).filter(e => e.score > 0).map(e => e.id);
+    const skills = (lastMatchResult.skills ?? []).filter(s => s.score > 0).map(s => s.skill_name);
+
+    try {
+        const response = await apiFetch(`${API_BASE_URL}/competence/generate-loghouse-cv`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                job_description: lastJobDesc,
+                matched_experience_ids: expIds,
+                skills,
+            }),
+        });
+        if (!response.ok) {
+            const err = await response.json();
+            throw new Error(err.detail || 'Kunde inte generera CV');
+        }
+        lastLHCV = await response.json();
+        displayLHCV(lastLHCV);
+    } catch (err) {
+        alert('Fel: ' + err.message);
+    } finally {
+        btn.disabled = false;
+        btn.innerHTML = t('match.gen_lh_btn');
+    }
+}
+
+function displayLHCV(data) {
+    const p1 = data.page_1 || {};
+    const p2 = data.page_2 || {};
+
+    const ingressHtml = (p1.ingress || []).map(s => `<p>${s}</p>`).join('');
+
+    const kompHtml = (p1.kompetenser || []).map(k => `
+        <tr>
+            <td class="lh-cv-komp-title">${k.rubrik}</td>
+            <td class="lh-cv-komp-desc">${k.beskrivning}</td>
+        </tr>`).join('');
+
+    const summHtml = (p2.sammanfattning || []).map(s => `
+        <p><strong>${s.rubrik}</strong> ${s.text}</p>`).join('');
+
+    const verktygHtml = (p2.verktyg || []).map(v =>
+        `<div class="lh-cv-tool-row"><span class="lh-cv-tool-cat">${v.kategori}:</span> ${(v.items || []).join(', ')}</div>`
+    ).join('');
+
+    const uppdragHtml = (p2.uppdrag || []).map(u => `
+        <div class="lh-cv-uppdrag">
+            <div class="lh-cv-uppdrag-title">${u.rubrik}</div>
+            <ul>${(u.punkter || []).map(p => `<li>${p}</li>`).join('')}</ul>
+        </div>`).join('');
+
+    const eduHtml = (p2.utbildning || []).map(e =>
+        `<tr><td class="lh-cv-edu-period">${e.period}</td><td>${e.utbildning}</td><td class="lh-cv-edu-org">${e.anordnare}</td></tr>`
+    ).join('');
+
+    document.getElementById('lh-cv-body').innerHTML = `
+        <div class="lh-cv-page">
+            <div class="lh-cv-section">
+                <h3 class="lh-cv-section-title">Profil</h3>
+                ${ingressHtml}
+            </div>
+            ${kompHtml ? `
+            <div class="lh-cv-section">
+                <h3 class="lh-cv-section-title lh-cv-accent">Kompetenser</h3>
+                <table class="lh-cv-komp-table">${kompHtml}</table>
+            </div>` : ''}
+        </div>
+
+        <div class="lh-cv-page lh-cv-page--2">
+            ${p2.branscher ? `<div class="lh-cv-branscher"><strong>Branscher:</strong> ${p2.branscher}</div>` : ''}
+
+            ${summHtml ? `
+            <div class="lh-cv-section">
+                <h3 class="lh-cv-section-title lh-cv-accent">Sammanfattning</h3>
+                ${summHtml}
+            </div>` : ''}
+
+            ${verktygHtml ? `
+            <div class="lh-cv-section">
+                <h3 class="lh-cv-section-title lh-cv-accent">Verktyg o dyl.</h3>
+                ${verktygHtml}
+            </div>` : ''}
+
+            ${uppdragHtml ? `
+            <div class="lh-cv-section">
+                <h3 class="lh-cv-section-title lh-cv-accent">Beskrivning av uppdragen</h3>
+                ${uppdragHtml}
+            </div>` : ''}
+
+            ${eduHtml ? `
+            <div class="lh-cv-section">
+                <h3 class="lh-cv-section-title lh-cv-accent">Utbildning</h3>
+                <table class="lh-cv-edu-table">${eduHtml}</table>
+            </div>` : ''}
+        </div>
+    `;
+    document.getElementById('lh-cv-modal').classList.remove('hidden');
+}
+
+function closeLHCVModal() {
+    document.getElementById('lh-cv-modal').classList.add('hidden');
+}
+
+function downloadLHCVAsMarkdown() {
+    if (!lastLHCV) return;
+    const p1 = lastLHCV.page_1 || {};
+    const p2 = lastLHCV.page_2 || {};
+
+    const lines = [];
+
+    (p1.ingress || []).forEach(s => lines.push(s, ''));
+
+    if ((p1.kompetenser || []).length) {
+        lines.push('## Kompetenser', '');
+        p1.kompetenser.forEach(k => lines.push(`**${k.rubrik}**`, k.beskrivning, ''));
+    }
+
+    if (p2.branscher) lines.push(`**Branscher:** ${p2.branscher}`, '');
+
+    if ((p2.sammanfattning || []).length) {
+        lines.push('## Sammanfattning', '');
+        p2.sammanfattning.forEach(s => lines.push(`**${s.rubrik}** ${s.text}`, ''));
+    }
+
+    if ((p2.verktyg || []).length) {
+        lines.push('## Verktyg', '');
+        p2.verktyg.forEach(v => lines.push(`**${v.kategori}:** ${(v.items || []).join(', ')}`, ''));
+    }
+
+    if ((p2.uppdrag || []).length) {
+        lines.push('## Uppdrag', '');
+        p2.uppdrag.forEach(u => {
+            lines.push(`### ${u.rubrik}`, '');
+            (u.punkter || []).forEach(p => lines.push(`- ${p}`));
+            lines.push('');
+        });
+    }
+
+    if ((p2.utbildning || []).length) {
+        lines.push('## Utbildning', '');
+        p2.utbildning.forEach(e => lines.push(`- ${e.period} — ${e.utbildning}, ${e.anordnare}`));
+    }
+
+    const blob = new Blob([lines.join('\n')], { type: 'text/markdown;charset=utf-8' });
+    const url  = URL.createObjectURL(blob);
+    const a    = document.createElement('a');
+    a.href     = url;
+    a.download = 'loghouse-cv.md';
+    a.click();
+    URL.revokeObjectURL(url);
+}
+
 // ── Tips ──────────────────────────────────────────────────────────────────────
 
 async function handleTips() {

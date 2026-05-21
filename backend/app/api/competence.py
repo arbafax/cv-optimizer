@@ -63,6 +63,12 @@ class ImprovementTipsRequest(BaseModel):
     matched_experience_ids: list[int] = []
 
 
+class GenerateLHCVRequest(BaseModel):
+    job_description: str
+    matched_experience_ids: list[int]
+    skills: list[str] = []
+
+
 class UpdateDescriptionRequest(BaseModel):
     description: str
 
@@ -615,6 +621,93 @@ async def generate_cv(
         "experiences": timeline,
         "skills":      body.skills,
     }
+
+
+@router.post("/generate-loghouse-cv")
+async def generate_loghouse_cv(
+    body: GenerateLHCVRequest,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    """Genererar ett Log House-formaterat CV-utkast anpassat till jobbannons."""
+    from app.services.ai_service import AIService
+    from app.models.personality import PersonalityQuestion, PersonalityAnswer
+
+    profile = _get_or_create_profile(current_user.id, db)
+
+    exp_by_id = {
+        e.id: e
+        for e in db.query(CandidateExperienceEntry).filter(
+            CandidateExperienceEntry.candidate_profile_id == profile.id
+        ).all()
+    }
+    experiences_data = [
+        {
+            "id":           exp.id,
+            "title":        exp.title,
+            "organization": exp.organization,
+            "start_date":   exp.start_date,
+            "end_date":     exp.end_date,
+            "is_current":   exp.is_current,
+            "description":  exp.description,
+            "achievements": exp.achievements or [],
+        }
+        for eid in body.matched_experience_ids
+        if (exp := exp_by_id.get(eid))
+    ]
+
+    skills_data = db.query(CandidateSkillEntry).filter(
+        CandidateSkillEntry.candidate_profile_id == profile.id
+    ).all()
+    skills = [{"skill_name": s.skill_name, "category": s.category} for s in skills_data]
+
+    edu_list = [
+        {
+            "year_start":   e.get("start_date", ""),
+            "year_end":     e.get("end_date", ""),
+            "degree":       e.get("degree", ""),
+            "institution":  e.get("institution", ""),
+        }
+        for e in get_education(profile.id, db)
+    ]
+
+    answers = (
+        db.query(PersonalityAnswer, PersonalityQuestion)
+        .join(PersonalityQuestion, PersonalityAnswer.question_id == PersonalityQuestion.id)
+        .filter(PersonalityAnswer.user_id == current_user.id)
+        .all()
+    )
+    personality_answers = [
+        {
+            "question":  q.question_text,
+            "answer":    a.answer_text,
+            "category":  q.category,
+        }
+        for a, q in answers
+        if a.answer_text
+    ]
+
+    cv_texts = [
+        cv.original_text for cv in
+        db.query(CV).filter(CV.user_id == current_user.id).order_by(CV.upload_date.desc()).limit(1).all()
+        if cv.original_text
+    ]
+
+    profile_dict = {
+        "name":  profile.public_name or current_user.email,
+    }
+
+    ai = AIService()
+    result = ai.generate_loghouse_cv(
+        job_description=body.job_description,
+        experiences_data=experiences_data,
+        skills=skills,
+        profile=profile_dict,
+        personality_answers=personality_answers,
+        education=edu_list,
+        cv_texts=cv_texts,
+    )
+    return result
 
 
 @router.post("/improvement-tips")

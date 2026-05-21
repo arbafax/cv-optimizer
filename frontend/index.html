@@ -612,6 +612,33 @@
                     <button class="btn btn-primary" onclick="saveAccountLanguage()" data-i18n="account.save_language">Spara språk</button>
                 </div>
             </div>
+
+            <!-- AI-inställningar -->
+            <div class="card">
+                <h2 class="card-title">AI-inställningar</h2>
+                <p class="field-desc">Välj AI-leverantör och ange din API-nyckel. Nyckeln lagras lokalt i webbläsaren.</p>
+                <div class="form-group">
+                    <label>AI-leverantör</label>
+                    <select id="ai-provider" class="form-input" style="max-width:220px" onchange="onAIProviderChange()">
+                        <option value="openai">OpenAI (GPT-4o)</option>
+                        <option value="anthropic">Anthropic (Claude)</option>
+                        <option value="gemini">Google Gemini</option>
+                        <option value="ollama">Ollama (lokal)</option>
+                    </select>
+                </div>
+                <div id="ai-key-group" class="form-group">
+                    <label id="ai-key-label">OpenAI API-nyckel</label>
+                    <input type="password" id="ai-api-key" placeholder="sk-..." autocomplete="off" class="form-input">
+                </div>
+                <div id="ai-ollama-group" class="form-group hidden">
+                    <label>Ollama URL</label>
+                    <input type="text" id="ai-ollama-url" value="http://localhost:11434" class="form-input" style="max-width:260px">
+                    <label style="margin-top:8px">Ollama modell</label>
+                    <input type="text" id="ai-ollama-model" value="llama3" class="form-input" style="max-width:200px">
+                </div>
+                <div id="ai-settings-status"></div>
+                <button class="btn btn-primary" onclick="saveAISettings()" style="margin-top:8px">Spara AI-inställningar</button>
+            </div>
         </div>
     </div>
 
@@ -1195,6 +1222,12 @@
 </div>
 
 <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+<!-- Browser-only infrastructure (loaded before app-state.js) -->
+<script src="js/db.js"></script>
+<script src="js/ai.js"></script>
+<script src="js/embeddings.js"></script>
+<script src="js/pdf-extract.js"></script>
+<script src="js/competence-svc.js"></script>
 <script src="js/translations.js"></script>
 <script src="js/cv-template.js"></script>
 <script src="js/app-state.js"></script>

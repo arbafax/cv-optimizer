@@ -22,6 +22,8 @@ function loadAccountView() {
 
     const langEl = document.getElementById('account-language');
     if (langEl) langEl.value = currentUser.language || currentLang || 'sv';
+
+    loadAISettings();
 }
 
 async function saveAccount() {
@@ -136,4 +138,56 @@ function showAccountStatus(elId, msg, type) {
     el.textContent = msg;
     el.style.display = 'flex';
     setTimeout(() => { el.style.display = 'none'; }, 4000);
+}
+
+// ── AI-inställningar (browser-only) ──────────────────────────────────────────
+
+async function loadAISettings() {
+    const s = await cvDb.settings.getAll();
+    const provider = s.ai_provider || 'openai';
+    const provEl = document.getElementById('ai-provider');
+    if (provEl) provEl.value = provider;
+
+    const keyEl = document.getElementById('ai-api-key');
+    if (keyEl) {
+        const keyMap = { openai: s.openai_key, anthropic: s.anthropic_key, gemini: s.gemini_key };
+        keyEl.value = keyMap[provider] || '';
+    }
+
+    const ollamaUrl = document.getElementById('ai-ollama-url');
+    const ollamaModel = document.getElementById('ai-ollama-model');
+    if (ollamaUrl) ollamaUrl.value = s.ollama_url || 'http://localhost:11434';
+    if (ollamaModel) ollamaModel.value = s.ollama_model || 'llama3';
+
+    onAIProviderChange();
+}
+
+function onAIProviderChange() {
+    const provider = document.getElementById('ai-provider')?.value || 'openai';
+    const keyGroup = document.getElementById('ai-key-group');
+    const keyLabel = document.getElementById('ai-key-label');
+    const ollamaGroup = document.getElementById('ai-ollama-group');
+
+    const labels = { openai: 'OpenAI API-nyckel', anthropic: 'Anthropic API-nyckel', gemini: 'Gemini API-nyckel', ollama: '' };
+    if (keyLabel) keyLabel.textContent = labels[provider] || 'API-nyckel';
+    if (keyGroup) keyGroup.classList.toggle('hidden', provider === 'ollama');
+    if (ollamaGroup) ollamaGroup.classList.toggle('hidden', provider !== 'ollama');
+}
+
+async function saveAISettings() {
+    const provider = document.getElementById('ai-provider')?.value || 'openai';
+    await cvDb.settings.set('ai_provider', provider);
+
+    if (provider !== 'ollama') {
+        const key = document.getElementById('ai-api-key')?.value?.trim() || '';
+        const keyMap = { openai: 'openai_key', anthropic: 'anthropic_key', gemini: 'gemini_key' };
+        if (keyMap[provider]) await cvDb.settings.set(keyMap[provider], key);
+    } else {
+        const url = document.getElementById('ai-ollama-url')?.value?.trim() || 'http://localhost:11434';
+        const model = document.getElementById('ai-ollama-model')?.value?.trim() || 'llama3';
+        await cvDb.settings.set('ollama_url', url);
+        await cvDb.settings.set('ollama_model', model);
+    }
+
+    showAccountStatus('ai-settings-status', 'AI-inställningar sparade', 'success');
 }

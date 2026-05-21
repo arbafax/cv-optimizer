@@ -20,6 +20,12 @@ async function loadSokprofil() {
             const el = document.getElementById(id);
             el.checked = (data.desired_employment || []).includes(el.value);
         });
+        document.querySelectorAll('.sp-domain-desired').forEach(el => {
+            el.checked = (data.desired_domains || []).includes(el.value);
+        });
+        document.querySelectorAll('.sp-domain-unwanted').forEach(el => {
+            el.checked = (data.unwanted_domains || []).includes(el.value);
+        });
 
         ['sp-wp-plats', 'sp-wp-hybrid', 'sp-wp-distans'].forEach(id => {
             const el = document.getElementById(id);
@@ -43,6 +49,11 @@ async function saveSokprofil() {
         .filter(id => document.getElementById(id).checked)
         .map(id => document.getElementById(id).value);
 
+    const desired_domains = Array.from(document.querySelectorAll('.sp-domain-desired:checked'))
+        .map(el => el.value);
+    const unwanted_domains = Array.from(document.querySelectorAll('.sp-domain-unwanted:checked'))
+        .map(el => el.value);
+
     try {
         const res = await apiFetch(`${API_BASE_URL}/sokprofil/`, {
             method: 'PUT',
@@ -55,6 +66,8 @@ async function saveSokprofil() {
                 desired_city:       document.getElementById('sp-city').value.trim()          || null,
                 desired_employment,
                 desired_workplace,
+                desired_domains,
+                unwanted_domains,
                 willing_to_commute: document.getElementById('sp-commute').checked,
                 searchable:         document.getElementById('sp-searchable').checked,
                 available_from:     document.getElementById('sp-available-from').value || null,

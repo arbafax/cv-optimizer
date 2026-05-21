@@ -220,6 +220,9 @@ function displayMatchResult(result, container) {
             <button id="gen-cv-btn" class="btn btn-primary" onclick="handleGenerateCV()">
                 ${t('match.gen_btn')}
             </button>
+            <button id="gen-lh-cv-btn" class="btn btn-primary" onclick="handleGenerateLHCV()">
+                ${t('match.gen_lh_btn')}
+            </button>
         </div>` : ''}
     `;
 

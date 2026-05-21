@@ -1104,6 +1104,28 @@
     </div>
 </div>
 
+<!-- ════════════════════════════════ LOG HOUSE CV MODAL ════════════════════════════════ -->
+<div id="lh-cv-modal" class="modal hidden">
+    <div class="modal-overlay" onclick="closeLHCVModal()"></div>
+    <div class="modal-content modal-content--wide">
+        <div class="modal-header">
+            <h2>Log House CV-utkast</h2>
+            <div class="modal-header-actions">
+                <button class="btn btn-secondary btn-sm" onclick="downloadLHCVAsMarkdown()">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" width="15" height="15"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+                    Spara som markdown
+                </button>
+                <button class="btn btn-secondary btn-sm" onclick="window.print()">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" width="15" height="15"><polyline points="6 9 6 2 18 2 18 9"/><path d="M6 18H4a2 2 0 01-2-2v-5a2 2 0 012-2h16a2 2 0 012 2v5a2 2 0 01-2 2h-2"/><rect x="6" y="14" width="12" height="8"/></svg>
+                    Skriv ut / Spara PDF
+                </button>
+                <button class="modal-close" onclick="closeLHCVModal()">&times;</button>
+            </div>
+        </div>
+        <div class="modal-body" id="lh-cv-body"></div>
+    </div>
+</div>
+
 <!-- ════════════════════════════════ TIPS MODAL ════════════════════════════════ -->
 <div id="tips-modal" class="modal hidden">
     <div class="modal-overlay" onclick="closeTipsModal()"></div>

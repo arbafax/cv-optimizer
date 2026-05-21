@@ -509,6 +509,8 @@ async def match_job(
         "desired_city":       profile.desired_city,
         "desired_employment": profile.desired_employment.split(",") if profile.desired_employment else [],
         "desired_workplace":  profile.desired_workplace.split(",")  if profile.desired_workplace  else [],
+        "desired_domains":    profile.desired_domains.split(",")    if profile.desired_domains    else [],
+        "unwanted_domains":   profile.unwanted_domains.split(",")   if profile.unwanted_domains   else [],
         "willing_to_commute": profile.willing_to_commute,
     }
 

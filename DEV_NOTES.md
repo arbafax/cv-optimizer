@@ -37,7 +37,9 @@ kill $(lsof -ti:5501) 2>/dev/null; sleep 1; cd /Users/hencar/Utveckling/my/cv-op
 ONLINER to RESTART BACKEND
 kill $(lsof -ti:8018) 2>/dev/null; sleep 1; cd /Users/hencar/Utveckling/my/cv-optimizer/backend && ../venv/bin/uvicorn app.main:app --host 0.0.0.0 --port 8018 &
 
-ONELINER to RESTART FRONTEND
+## Stopping Backend and frontend
+kill $(lsof -ti:8018) 2>/dev/null && echo "Backend (8018) stoppad"
+kill $(lsof -ti:5501) 2>/dev/null && echo "Frontend (5501) stoppad"
 
 
 

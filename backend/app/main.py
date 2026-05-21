@@ -85,6 +85,12 @@ with engine.connect() as _conn:
     _conn.execute(text(
         "ALTER TABLE candidate_profiles ADD COLUMN IF NOT EXISTS description TEXT"
     ))
+    _conn.execute(text(
+        "ALTER TABLE candidate_profiles ADD COLUMN IF NOT EXISTS desired_domains VARCHAR(1000)"
+    ))
+    _conn.execute(text(
+        "ALTER TABLE candidate_profiles ADD COLUMN IF NOT EXISTS unwanted_domains VARCHAR(1000)"
+    ))
 
     # candidate_skills — embedding + source_cv_ids + unique constraint
     _conn.execute(text(

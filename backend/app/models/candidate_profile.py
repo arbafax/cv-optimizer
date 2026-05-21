@@ -16,6 +16,8 @@ class CandidateProfile(Base):
     desired_city       = Column(String(255), nullable=True)
     desired_employment = Column(String(200), nullable=True)    # kommasep: Heltid,Deltid,Timmar
     desired_workplace  = Column(String(200), nullable=True)    # kommasep: På plats,Hybrid,Distans
+    desired_domains    = Column(String(1000), nullable=True)   # kommasep: IT & Data, Vård & omsorg, …
+    unwanted_domains   = Column(String(1000), nullable=True)   # kommasep: domäner att undvika
     willing_to_commute = Column(Boolean, nullable=False, default=False, server_default="false")
     searchable         = Column(Boolean, nullable=False, default=False, server_default="false")
     available_from     = Column(String(20), nullable=True)   # ISO-datum: YYYY-MM-DD

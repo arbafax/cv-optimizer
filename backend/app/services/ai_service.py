@@ -276,7 +276,8 @@ Svara ENDAST med JSON i exakt detta format:
     "city": "<ort där jobbet är, eller null om okänt>",
     "employment_type": "<Heltid|Deltid|null>",
     "duration": "<Tillsvidare|Tidsbegränsat|null>",
-    "workplace": "<På plats|Hybrid|Distans|null>"
+    "workplace": "<På plats|Hybrid|Distans|null>",
+    "domain": "<jobbets bransch/domän, t.ex. 'IT & Data', 'Vård & omsorg', 'Finans & bank', 'Bygg & fastighet', 'Handel & e-handel', 'Skola & utbildning', 'Verkstadsindustri', 'Logistik & transport', 'Energi & miljö', 'Offentlig förvaltning', 'Life science & pharma', 'Telekom', 'Media & kommunikation', 'Juridik' — välj det som passar bäst, eller null>"
   },
   "profile_fit": [
     {
@@ -301,7 +302,9 @@ Svara ENDAST med JSON i exakt detta format:
 Regler:
 - Extrahera alltid job_info från annonsen. Sätt null om informationen saknas.
 - Bygg profile_fit ENDAST om personens preferenser skickas med. Inkludera en rad per preferens som är satt. Sätt match=null om jobbets värde är okänt.
-- overall_score ska påverkas av hur väl jobbvillkoren stämmer med preferenserna – en stor avvikelse (t.ex. fel ort) sänker poängen.
+- overall_score ska påverkas av hur väl jobbvillkoren stämmer med preferenserna – en stor avvikelse (t.ex. fel ort eller icke-önskad domän) sänker poängen markant.
+- Om jobbets domän finns i icke-önskade domäner: sätt match=false och sänk overall_score med minst 20 poäng.
+- Om jobbets domän finns i önskade domäner: sätt match=true, detta är ett plus men påverkar inte poängen negativt.
 - Inkludera ENDAST skills och erfarenheter som är relevanta för jobbet (score >= 25). Uteslut det som inte bidrar.
 - Lägg till i missing_skills alla tekniker, verktyg och kompetenser som annonsen efterfrågar men saknas i kompetensbanken.
 - Sortera skills och experiences med högst poäng först."""
@@ -317,6 +320,10 @@ Regler:
                 parts.append(f"Önskad anställningsform: {', '.join(seeker_profile['desired_employment'])}")
             if seeker_profile.get("desired_workplace"):
                 parts.append(f"Önskad arbetsplats: {', '.join(seeker_profile['desired_workplace'])}")
+            if seeker_profile.get("desired_domains"):
+                parts.append(f"Önskade domäner: {', '.join(seeker_profile['desired_domains'])}")
+            if seeker_profile.get("unwanted_domains"):
+                parts.append(f"Icke-önskade domäner: {', '.join(seeker_profile['unwanted_domains'])}")
             if seeker_profile.get("willing_to_commute"):
                 parts.append("Resbar: Ja")
             if parts:

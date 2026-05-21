@@ -18,6 +18,8 @@ class SokprofilRequest(BaseModel):
     desired_city:       str | None  = None
     desired_employment: list[str]   = []
     desired_workplace:  list[str]   = []
+    desired_domains:    list[str]   = []
+    unwanted_domains:   list[str]   = []
     willing_to_commute: bool        = False
     searchable:         bool        = False
     available_from:     str | None  = None
@@ -32,6 +34,8 @@ def _to_dict(p: CandidateProfile) -> dict:
         "desired_city":       p.desired_city,
         "desired_employment": p.desired_employment.split(",") if p.desired_employment else [],
         "desired_workplace":  p.desired_workplace.split(",")  if p.desired_workplace  else [],
+        "desired_domains":    p.desired_domains.split(",")    if p.desired_domains    else [],
+        "unwanted_domains":   p.unwanted_domains.split(",")   if p.unwanted_domains   else [],
         "willing_to_commute": p.willing_to_commute,
         "searchable":         p.searchable,
         "available_from":     p.available_from,
@@ -56,6 +60,8 @@ async def get_sokprofil(
             "desired_city":       None,
             "desired_employment": [],
             "desired_workplace":  [],
+            "desired_domains":    [],
+            "unwanted_domains":   [],
             "willing_to_commute": False,
             "searchable":         False,
             "available_from":     None,
@@ -88,6 +94,8 @@ async def save_sokprofil(
     p.desired_city       = body.desired_city.strip()       if body.desired_city       else None
     p.desired_employment = ",".join(body.desired_employment) if body.desired_employment else None
     p.desired_workplace  = ",".join(body.desired_workplace)  if body.desired_workplace  else None
+    p.desired_domains    = ",".join(body.desired_domains)    if body.desired_domains    else None
+    p.unwanted_domains   = ",".join(body.unwanted_domains)   if body.unwanted_domains   else None
     p.willing_to_commute = body.willing_to_commute
     p.searchable         = body.searchable
     p.available_from     = body.available_from or None

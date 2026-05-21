@@ -2816,6 +2816,10 @@ body {
     padding: 0.875rem 1rem;
     margin-bottom: 0.75rem;
 }
+.exp-card--selected {
+    border-color: var(--blue);
+    background: var(--blue-light, #eef4ff);
+}
 .exp-card-header {
     display: flex;
     justify-content: space-between;

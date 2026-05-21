@@ -69,6 +69,10 @@ class GenerateLHCVRequest(BaseModel):
     skills: list[str] = []
 
 
+class MergeExperiencesRequest(BaseModel):
+    experience_ids: list[int]
+
+
 class UpdateDescriptionRequest(BaseModel):
     description: str
 
@@ -620,6 +624,92 @@ async def generate_cv(
         "pitch":       ai_result.get("pitch", ""),
         "experiences": timeline,
         "skills":      body.skills,
+    }
+
+
+@router.post("/experiences/merge")
+async def merge_experiences(
+    body: MergeExperiencesRequest,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    """Slår ihop 2+ erfarenheter till en med AI-assisterad merge av titlar, beskrivning och prestationer."""
+    from app.services.ai_service import AIService
+
+    if len(body.experience_ids) < 2:
+        raise HTTPException(status_code=400, detail="Minst 2 erfarenheter krävs för sammanslagning")
+
+    profile = _get_or_create_profile(current_user.id, db)
+
+    experiences = db.query(CandidateExperienceEntry).filter(
+        CandidateExperienceEntry.id.in_(body.experience_ids),
+        CandidateExperienceEntry.candidate_profile_id == profile.id,
+    ).all()
+
+    if len(experiences) != len(body.experience_ids):
+        raise HTTPException(status_code=404, detail="En eller flera erfarenheter hittades inte")
+
+    exp_data = [
+        {
+            "id":           e.id,
+            "title":        e.title,
+            "organization": e.organization,
+            "start_date":   e.start_date,
+            "end_date":     e.end_date,
+            "is_current":   e.is_current,
+            "experience_type": e.experience_type,
+            "description":  e.description,
+            "achievements": e.achievements or [],
+            "related_skills": e.related_skills or [],
+        }
+        for e in experiences
+    ]
+
+    ai = AIService()
+    merged = ai.merge_experiences(exp_data)
+
+    # Kombinera skills: union av alla
+    all_skills = []
+    seen = set()
+    for e in exp_data:
+        for s in e["related_skills"]:
+            sl = s.lower()
+            if sl not in seen:
+                seen.add(sl)
+                all_skills.append(s)
+
+    # Kombinera source_cv_ids
+    all_source_ids = list({
+        cid
+        for e in experiences
+        for cid in (e.source_cv_ids or [])
+    })
+
+    new_exp = CandidateExperienceEntry(
+        candidate_profile_id = profile.id,
+        title                = merged["title"],
+        organization         = merged.get("organization") or exp_data[0]["organization"],
+        start_date           = merged.get("start_date") or exp_data[0]["start_date"],
+        end_date             = merged.get("end_date") or exp_data[0]["end_date"],
+        is_current           = merged.get("is_current", exp_data[0]["is_current"]),
+        experience_type      = exp_data[0]["experience_type"],
+        description          = merged.get("description"),
+        achievements         = merged.get("achievements", []),
+        related_skills       = all_skills,
+        source_cv_ids        = all_source_ids,
+    )
+    db.add(new_exp)
+
+    for e in experiences:
+        db.delete(e)
+
+    db.commit()
+    db.refresh(new_exp)
+
+    return {
+        "merged_count": len(experiences),
+        "title":        new_exp.title,
+        "id":           new_exp.id,
     }
 
 

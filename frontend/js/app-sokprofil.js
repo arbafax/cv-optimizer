@@ -2,6 +2,8 @@
 // SÖKPROFIL / MIN PROFIL (sp-* prefix)
 // ════════════════════════════════════════════════════
 
+let spSelectedExpIds = new Set();
+
 async function loadSokprofil() {
     try {
         const res  = await apiFetch(`${API_BASE_URL}/sokprofil/`);
@@ -238,8 +240,15 @@ function renderSpExperiences(experiences) {
     }
     const typeLabel = { work: 'Arbete', education: 'Utbildning', certification: 'Certifiering', project: 'Projekt' };
     const sel = (val, opt) => opt === val ? 'selected' : '';
+    const mergeBar = `
+        <div class="bank-merge-bar ${spSelectedExpIds.size >= 2 ? 'visible' : ''}" id="sp-merge-bar">
+            <span>${spSelectedExpIds.size} valda</span>
+            <button class="btn btn-primary btn-small" onclick="mergeSpExperiences()"
+                    ${spSelectedExpIds.size < 2 ? 'disabled' : ''}>Slå ihop valda</button>
+            <button class="btn btn-ghost btn-small" onclick="spSelectedExpIds.clear();renderSpExperiences(cachedSpExps)">Avmarkera</button>
+        </div>`;
     const clearBarExp = `<div class="list-clear-bar"><span>${experiences.length} erfarenhet${experiences.length !== 1 ? 'er' : ''}</span><button class="btn btn-danger btn-sm" onclick="clearSpExperiences()">Rensa alla</button></div>`;
-    container.innerHTML = clearBarExp + experiences.map(e => {
+    container.innerHTML = mergeBar + clearBarExp + experiences.map(e => {
         if (e.id === spEditingExpId) {
             const achText = (e.achievements || []).join('\n');
             return `<div style="border:1px solid var(--blue);border-radius:var(--radius);padding:0.875rem 1rem;margin-bottom:0.75rem">
@@ -268,13 +277,21 @@ function renderSpExperiences(experiences) {
         const period = [e.start_date, e.is_current ? 'nu' : e.end_date].filter(Boolean).join(' – ');
         const achHtml = (e.achievements || []).length
             ? `<ul class="exp-card-ach">${(e.achievements).map(a=>`<li>${esc(a)}</li>`).join('')}</ul>` : '';
-        return `<div class="exp-card">
+        const checked = spSelectedExpIds.has(e.id);
+        return `<div class="exp-card ${checked ? 'exp-card--selected' : ''}">
             <div class="exp-card-header">
-                <div>
-                    <span class="exp-card-type">${typeLabel[e.experience_type]||e.experience_type}</span>
-                    <div class="exp-card-title">${esc(e.title)}</div>
-                    ${e.organization ? `<div class="exp-card-org">${esc(e.organization)}</div>` : ''}
-                    ${period ? `<div class="exp-card-period">${period}</div>` : ''}
+                <div style="display:flex;align-items:flex-start;gap:10px">
+                    <label class="bank-exp-checkbox" style="margin-top:4px">
+                        <input type="checkbox" ${checked ? 'checked' : ''}
+                               onchange="spToggleExpSelection(${e.id})">
+                        <span class="bank-exp-checkmark"></span>
+                    </label>
+                    <div>
+                        <span class="exp-card-type">${typeLabel[e.experience_type]||e.experience_type}</span>
+                        <div class="exp-card-title">${esc(e.title)}</div>
+                        ${e.organization ? `<div class="exp-card-org">${esc(e.organization)}</div>` : ''}
+                        ${period ? `<div class="exp-card-period">${period}</div>` : ''}
+                    </div>
                 </div>
                 <div class="exp-card-actions">
                     <button class="btn-icon" onclick="spEditingExpId=${e.id};renderSpExperiences(cachedSpExps)" title="${t('action.edit')}">✎</button>
@@ -285,6 +302,42 @@ function renderSpExperiences(experiences) {
             ${achHtml}
         </div>`;
     }).join('');
+}
+
+function spToggleExpSelection(id) {
+    if (spSelectedExpIds.has(id)) {
+        spSelectedExpIds.delete(id);
+    } else {
+        spSelectedExpIds.add(id);
+    }
+    renderSpExperiences(cachedSpExps);
+}
+
+async function mergeSpExperiences() {
+    if (spSelectedExpIds.size < 2) return;
+    const ids = Array.from(spSelectedExpIds);
+
+    const mergeBar = document.getElementById('sp-merge-bar');
+    if (mergeBar) mergeBar.innerHTML = '<span class="spinner-small"></span> Slår ihop med AI…';
+
+    try {
+        const res = await apiFetch(`${API_BASE_URL}/competence/experiences/merge`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ experience_ids: ids }),
+        });
+        if (!res.ok) {
+            const err = await res.json();
+            throw new Error(err.detail || 'Sammanslagning misslyckades');
+        }
+        const data = await res.json();
+        spSelectedExpIds.clear();
+        await loadSpErfarenheter();
+        alert(`✅ ${data.merged_count} erfarenheter sammanslagna till "${data.title}"`);
+    } catch (err) {
+        alert('❌ ' + err.message);
+        renderSpExperiences(cachedSpExps);
+    }
 }
 
 async function saveSpExperience(id) {

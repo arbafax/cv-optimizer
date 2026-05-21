@@ -634,6 +634,58 @@ Professionell bakgrund:
         )
         return response.choices[0].message.content
 
+    def merge_experiences(self, experiences: list[dict]) -> dict:
+        """
+        Slår ihop 2+ erfarenheter (samma tjänst, olika CV-vinklingar) till en.
+        Returnerar merged title, organization, start_date, end_date, is_current,
+        description och achievements.
+        """
+        exp_text = "\n\n---\n".join(
+            f"Titel: {e['title']}"
+            + (f"\nArbetsgivare: {e['organization']}" if e.get("organization") else "")
+            + (f"\nPeriod: {e.get('start_date', '')}–{e.get('end_date') or ('nu' if e.get('is_current') else '')}")
+            + (f"\nBeskrivning: {e['description']}" if e.get("description") else "")
+            + (
+                "\nPrestationer:\n" + "\n".join(f"- {a}" for a in e["achievements"])
+                if e.get("achievements") else ""
+            )
+            for e in experiences
+        )
+
+        system_prompt = """Du är en expert på CV-skrivning.
+Du får flera versioner av samma tjänst från olika CV:n (olika vinklingar mot olika jobb).
+Din uppgift är att slå ihop dem till en sammanhållen, informationsrik erfarenhetspost.
+
+Svara ENBART med JSON:
+{
+  "title": "<sammanslagna titlar om de skiljer sig, annars den gemensamma titeln>",
+  "organization": "<arbetsgivaren – välj den mest fullständiga varianten>",
+  "start_date": "<ÅÅÅÅ-MM, välj det tidigaste om de skiljer sig>",
+  "end_date": "<ÅÅÅÅ-MM, välj det senaste om de skiljer sig, null om pågående>",
+  "is_current": <true|false>,
+  "description": "<sammanslagen beskrivning, 3-6 meningar, fånga alla perspektiv>",
+  "achievements": ["<prestation 1>", "<prestation 2>", ...]
+}
+
+Regler:
+- Om titlarna är olika, konkatenera med " / " (t.ex. "Projektledare / Agil Coach")
+- Beskrivningen ska fånga de olika vinklingarna utan att upprepa sig
+- Prestationer: kombinera alla unika prestationer, ta bort exakta duplikat, behåll nära duplikat i bästa formulering
+- Sortera prestationer med de mest konkreta och mätbara först
+- Bevara originalspråket (svenska)"""
+
+        logger.info(f"Slår ihop {len(experiences)} erfarenheter med AI")
+        response = self.client.chat.completions.create(
+            model="gpt-4o",
+            messages=[
+                {"role": "system", "content": system_prompt},
+                {"role": "user", "content": f"Slå ihop dessa erfarenheter:\n\n{exp_text}"},
+            ],
+            temperature=0.2,
+            response_format={"type": "json_object"},
+        )
+        return json.loads(response.choices[0].message.content)
+
     def generate_loghouse_cv(
         self,
         job_description: str,

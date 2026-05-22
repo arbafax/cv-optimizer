@@ -1149,10 +1149,16 @@ function _showAppShell(firstTime = false) {
 async function loadWelcomePage() {
     const el = document.getElementById('welcomepage-md-content');
     if (!el) return;
-    const lang = currentLang in { sv: 1, en: 1, no: 1 } ? currentLang : 'sv';
+
+    const renderer = new marked.Renderer();
+    renderer.link = ({ href, title, text }) =>
+        `<a href="${href}" target="_blank" rel="noopener noreferrer"${title ? ` title="${title}"` : ''}>${text}</a>`;
+
+    const file = currentLang !== 'sv' ? `welcome.${currentLang}.md` : 'welcome.md';
     try {
-        const res = await fetch(`welcome.${lang}.md`);
-        el.innerHTML = marked.parse(await res.text());
+        let res = await fetch(file);
+        if (!res.ok) res = await fetch('welcome.md');
+        el.innerHTML = marked.parse(await res.text(), { renderer });
     } catch {
         el.innerHTML = '<p>Kunde inte ladda välkomsttexten.</p>';
     }

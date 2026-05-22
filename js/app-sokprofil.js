@@ -665,20 +665,24 @@ function displaySpCandidateCVs(cvs) {
         const date = cv.upload_date
             ? new Date(cv.upload_date).toLocaleDateString('sv-SE', { year:'numeric', month:'short', day:'numeric' })
             : '—';
-        const processedBadge  = cv.is_processed
+        const processedBadge = cv.is_processed
             ? '<span class="cv-badge cv-badge--green">✓ Behandlad</span>'
             : '<span class="cv-badge cv-badge--blue">Ej behandlad</span>';
-        const vectorizedBadge = cv.is_vectorized
-            ? '<span class="cv-badge cv-badge--green">✓ Vektoriserad</span>'
-            : '';
+        const safeName = cv.filename.replace(/'/g, "\\'");
         return `
-            <div class="cv-item" onclick="openSpCVDetail(${cv.id})" style="cursor:pointer">
+            <div class="cv-item">
                 <div class="cv-item-header">
                     <div class="cv-item-info">
                         <h3>${cv.filename}</h3>
                         <div style="display:flex;gap:0.5rem;flex-wrap:wrap;margin-top:0.25rem">
-                            ${processedBadge}${vectorizedBadge}
+                            ${processedBadge}
                         </div>
+                    </div>
+                    <div style="display:flex;gap:0.5rem;align-items:center;flex-shrink:0">
+                        <button class="btn btn-secondary btn-sm" onclick="downloadCVFile(${cv.id})">⬇ Ladda ner PDF</button>
+                        <button class="btn btn-icon btn-danger btn-sm" title="Ta bort" onclick="deleteSpCV(${cv.id}, '${safeName}')">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14H6L5 6"/><path d="M10 11v6M14 11v6"/><path d="M9 6V4h6v2"/></svg>
+                        </button>
                     </div>
                 </div>
                 <div class="cv-item-details">
@@ -692,55 +696,7 @@ function displaySpCandidateCVs(cvs) {
     }).join('');
 }
 
-function openSpCVDetail(cvId) {
-    const cv = spCandidateCVs.find(c => c.id === cvId);
-    if (!cv) return;
-    const detail = document.getElementById('sp-cv-detail');
-    const title  = document.getElementById('sp-cv-detail-title');
-    const body   = document.getElementById('sp-cv-detail-body');
-    if (!detail) return;
-    title.textContent = cv.filename;
-    const date = cv.upload_date
-        ? new Date(cv.upload_date).toLocaleDateString('sv-SE', { year:'numeric', month:'long', day:'numeric' })
-        : '—';
-    body.innerHTML = `
-        <div class="cv-detail-stats">
-            <div class="cv-detail-stat"><strong>${cv.skill_count}</strong><span>Kompetenser</span></div>
-            <div class="cv-detail-stat"><strong>${cv.experience_count}</strong><span>Erfarenheter</span></div>
-            <div class="cv-detail-stat"><strong>${cv.education_count}</strong><span>Utbildningar</span></div>
-            <div class="cv-detail-stat"><strong>${cv.certification_count}</strong><span>Certifikat</span></div>
-        </div>
-        <div style="margin-bottom:1rem;color:var(--text-muted);font-size:0.875rem">Uppladdad: ${date}</div>
-        <div id="sp-cv-action-status"></div>
-        <div style="display:flex;gap:0.75rem;flex-wrap:wrap">
-            ${!cv.is_vectorized && cv.is_processed
-                ? `<button class="btn btn-primary" onclick="vectorizeSpCV(${cv.id})">⚡ Vektorisera</button>`
-                : ''}
-            <button class="btn btn-secondary" onclick="downloadCVFile(${cv.id})">⬇ Ladda ner PDF</button>
-            <button class="btn btn-danger btn-sm" onclick="deleteSpCV(${cv.id}, '${cv.filename.replace(/'/g, "\\'")}')">🗑 Ta bort</button>
-        </div>`;
-    detail.style.display = '';
-    detail.scrollIntoView({ behavior:'smooth', block:'nearest' });
-}
 
-function closeSpCVDetail() {
-    const detail = document.getElementById('sp-cv-detail');
-    if (detail) detail.style.display = 'none';
-}
-
-async function vectorizeSpCV(cvId) {
-    const statusEl = document.getElementById('sp-cv-action-status');
-    if (statusEl) { statusEl.className = 'status-message status-loading'; statusEl.textContent = '⏳ Vektoriserar...'; }
-    try {
-        const res = await apiFetch(`${API_BASE_URL}/competence/cvs/${cvId}/vectorize`, { method:'POST' });
-        if (!res.ok) { const e = await res.json(); throw new Error(e.detail || 'Fel'); }
-        await loadSpCandidateCVs();
-        loadBankData();
-        closeSpCVDetail();
-    } catch (err) {
-        if (statusEl) { statusEl.className = 'status-message status-error'; statusEl.textContent = `❌ ${err.message}`; }
-    }
-}
 
 async function deleteSpCV(cvId, filename) {
     if (!confirm(`Ta bort "${filename}"? Kompetenser och utbildningar kopplade enbart till detta CV tas också bort.`)) return;

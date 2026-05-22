@@ -30,13 +30,12 @@ async function saveAccount() {
     const address = document.getElementById('account-address').value.trim();
 
     if (!name) { showAccountStatus('account-status', 'Namn krävs', 'error'); return; }
-    if (!email) { showAccountStatus('account-status', 'E-post krävs', 'error'); return; }
 
     try {
         const res = await apiFetch(`${API_BASE_URL}/auth/me`, {
             method: 'PUT',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ name, email, phone: phone || null, address: address || null }),
+            body: JSON.stringify({ name, email: email || null, phone: phone || null, address: address || null }),
         });
         if (!res.ok) {
             const err = await res.json();
@@ -44,6 +43,8 @@ async function saveAccount() {
         }
         currentUser = await res.json();
         renderSidebarUser();
+        const h1 = document.querySelector('#view-dashboard .view-header h1');
+        if (h1) h1.textContent = `${t('dash.welcome')}, ${currentUser.name.split(' ')[0]}!`;
         showAccountStatus('account-status', 'Uppgifterna sparades', 'success');
     } catch (err) {
         showAccountStatus('account-status', err.message, 'error');
@@ -283,6 +284,7 @@ async function saveAISettings() {
 
         showAccountStatus('ai-settings-status', t('account.ai_saved') || 'AI-inställningar sparade', 'success');
         await loadAISettings();
+        if (typeof updateMatchWarning === 'function') updateMatchWarning();
     } catch (err) {
         console.error('[saveAISettings] failed:', err);
         showAccountStatus('ai-settings-status', err.message || 'Fel vid sparande', 'error');

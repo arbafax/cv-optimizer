@@ -1392,6 +1392,8 @@ body {
 .status-error   { background: var(--red-light);   color: #991b1b; border: 1px solid #fca5a5; }
 .status-loading { background: var(--blue-light);  color: #1e40af; border: 1px solid var(--blue-mid); }
 
+.warning-banner { background: #fffbeb; color: #92400e; border: 1px solid #fcd34d; border-radius: 6px; padding: 10px 14px; margin-bottom: 12px; font-size: 0.9rem; }
+
 /* ══════════════ SPINNER ══════════════ */
 
 .spinner, .spinner-small {

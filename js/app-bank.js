@@ -27,6 +27,7 @@ async function loadBankData() {
 
         renderBankStats(stats);
         renderBankContent();
+        if (typeof updateMatchWarning === 'function') updateMatchWarning();
 
     } catch (err) {
         console.warn('Kunde inte ladda kompetensbank:', err.message);

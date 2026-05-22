@@ -49,6 +49,7 @@ function applyTranslations() {
     document.querySelectorAll('#sidebar-language, #auth-language, #account-language').forEach(sel => {
         sel.value = currentLang;
     });
+    if (typeof updateMatchWarning === 'function') updateMatchWarning();
 }
 
 async function setLanguage(lang, persist = true) {

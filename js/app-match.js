@@ -10,9 +10,44 @@ function updateCharCount() {
     charCount.textContent = `${count}${t('match.chars')}`;
 }
 
+// ── Show/hide warnings and gate button on match view ─────────────────────────
+let _matchLlmReady = false;
+
+function _bankIsEmpty() {
+    return (!bankSkills || bankSkills.length === 0) &&
+           (!bankExperiences || bankExperiences.length === 0);
+}
+
+async function _llmIsConfigured() {
+    try {
+        const s = await cvDb.settings.getAll();
+        if (!s.ai_provider) return false;
+        if (s.ai_provider === 'ollama') return Boolean(s.ollama_url);
+        const key = { openai: s.openai_key, anthropic: s.anthropic_key, gemini: s.gemini_key }[s.ai_provider];
+        return Boolean(key);
+    } catch { return false; }
+}
+
+async function updateMatchWarning() {
+    const bankEl = document.getElementById('match-empty-bank-warning');
+    const llmEl  = document.getElementById('match-no-llm-warning');
+    if (!bankEl || !llmEl) return;
+
+    const bankEmpty = _bankIsEmpty();
+    _matchLlmReady  = await _llmIsConfigured();
+
+    bankEl.textContent = bankEmpty ? t('match.empty_bank') : '';
+    bankEl.classList.toggle('hidden', !bankEmpty);
+
+    llmEl.textContent = !_matchLlmReady ? t('match.no_llm') : '';
+    llmEl.classList.toggle('hidden', _matchLlmReady);
+
+    updateOptimizeButton();
+}
+
 // ── Update optimize button state ─────────────────────────────────────────────
 function updateOptimizeButton() {
-    optimizeBtn.disabled = jobDescription.value.trim().length === 0;
+    optimizeBtn.disabled = jobDescription.value.trim().length === 0 || _bankIsEmpty() || !_matchLlmReady;
 }
 
 // ── Match competences against job ─────────────────────────────────────────────

@@ -145,6 +145,8 @@ sv: {
     'match.section_missing':        'Saknade kompetenser',
     'match.no_missing':             'Inga saknade kompetenser – stark matchning!',
     'match.score_label':            'Övergripande matchning',
+    'match.empty_bank':             'Din kompetens- och erfarenhetsdatabas är tom. Ladda upp ett CV eller lägg till kompetenser manuellt innan du matchar mot ett jobb.',
+    'match.no_llm':                 'Ingen AI-tjänst är konfigurerad. Gå till Mitt konto och lägg till en API-nyckel för att kunna använda matchningsfunktionen.',
 
     // Matcha mot kandidater
     'matchk.title':                 'Matcha mot kandidater',
@@ -383,6 +385,8 @@ en: {
     'match.section_missing':        'Missing skills',
     'match.no_missing':             'No missing skills – strong match!',
     'match.score_label':            'Overall match',
+    'match.empty_bank':             'Your skills and experience database is empty. Upload a CV or add skills manually before matching against a job.',
+    'match.no_llm':                 'No AI service is configured. Go to My Account and add an API key to use the matching feature.',
 
     'matchk.title':                 'Match candidates',
     'matchk.subtitle':              'Select one or more candidates and paste a job listing – AI matches the skill bank against the job.',
@@ -611,6 +615,8 @@ no: {
     'match.section_missing':        'Manglende kompetanser',
     'match.no_missing':             'Ingen manglende kompetanser – sterk match!',
     'match.score_label':            'Samlet matching',
+    'match.empty_bank':             'Kompetanse- og erfaringsdatabasen din er tom. Last opp en CV eller legg til kompetanser manuelt før du matcher mot en jobb.',
+    'match.no_llm':                 'Ingen AI-tjeneste er konfigurert. Gå til Min konto og legg til en API-nøkkel for å bruke matchingfunksjonen.',
 
     'matchk.title':                 'Match mot kandidater',
     'matchk.subtitle':              'Velg en eller flere kandidater og lim inn en stillingsannonse – AI matcher kompetansebanken mot jobben.',

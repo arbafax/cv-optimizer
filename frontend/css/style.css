@@ -2307,6 +2307,41 @@ body {
     letter-spacing: -.3px;
 }
 
+.welcome-md-content {
+    max-height: 60vh;
+    overflow-y: auto;
+    line-height: 1.7;
+    color: var(--text-primary);
+}
+
+.welcome-md-content h1 { font-size: 1.4rem; font-weight: 700; margin: 0 0 1rem; }
+.welcome-md-content h2 { font-size: 1.1rem; font-weight: 600; margin: 1.25rem 0 .5rem; color: var(--blue); text-align: left; }
+.welcome-md-content h3 { font-size: 1rem; font-weight: 600; margin: 1rem 0 .4rem; }
+.welcome-md-content p  { margin: 0 0 .75rem; }
+.welcome-md-content ul, .welcome-md-content ol { padding-left: 1.4rem; margin: 0 0 .75rem; }
+.welcome-md-content li { margin-bottom: .3rem; }
+.welcome-md-content blockquote {
+    border-left: 3px solid var(--blue);
+    padding: .4rem .75rem;
+    margin: 0 0 .75rem;
+    color: var(--text-secondary);
+    background: var(--bg);
+    border-radius: 0 var(--r-sm) var(--r-sm) 0;
+}
+.welcome-md-content table { border-collapse: collapse; width: 100%; margin: 0 0 .75rem; }
+.welcome-md-content th,
+.welcome-md-content td { border: 1px solid var(--border); padding: .4rem .65rem; text-align: left; font-size: .9rem; }
+.welcome-md-content th { background: var(--bg); font-weight: 600; }
+
+.welcome-md-content strong { font-weight: 600; }
+.welcome-md-content code {
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-radius: 3px;
+    padding: 1px 4px;
+    font-size: .875em;
+}
+
 .auth-error {
     background: var(--red-light);
     color: #991b1b;

@@ -4,7 +4,7 @@
  */
 
 const DB_NAME = 'cv-optimizer';
-const DB_VERSION = 1;
+const DB_VERSION = 2;
 
 let _db = null;
 
@@ -58,6 +58,35 @@ function _openDB() {
 
       if (!db.objectStoreNames.contains('settings')) {
         db.createObjectStore('settings', { keyPath: 'key' });
+      }
+
+      if (!db.objectStoreNames.contains('kandidater')) {
+        db.createObjectStore('kandidater', { keyPath: 'id', autoIncrement: true });
+      }
+
+      if (!db.objectStoreNames.contains('kand_skills')) {
+        const ks = db.createObjectStore('kand_skills', { keyPath: 'id', autoIncrement: true });
+        ks.createIndex('kandidat_id', 'kandidat_id', { unique: false });
+      }
+
+      if (!db.objectStoreNames.contains('kand_experiences')) {
+        const ke = db.createObjectStore('kand_experiences', { keyPath: 'id', autoIncrement: true });
+        ke.createIndex('kandidat_id', 'kandidat_id', { unique: false });
+      }
+
+      if (!db.objectStoreNames.contains('kand_education')) {
+        const ked = db.createObjectStore('kand_education', { keyPath: 'id', autoIncrement: true });
+        ked.createIndex('kandidat_id', 'kandidat_id', { unique: false });
+      }
+
+      if (!db.objectStoreNames.contains('kand_certifications')) {
+        const kc = db.createObjectStore('kand_certifications', { keyPath: 'id', autoIncrement: true });
+        kc.createIndex('kandidat_id', 'kandidat_id', { unique: false });
+      }
+
+      if (!db.objectStoreNames.contains('kand_cvs')) {
+        const kcv = db.createObjectStore('kand_cvs', { keyPath: 'id', autoIncrement: true });
+        kcv.createIndex('kandidat_id', 'kandidat_id', { unique: false });
       }
     };
 
@@ -414,6 +443,239 @@ const certifications = {
   },
 };
 
+// ─── kandidater ───────────────────────────────────────────────────────────────
+
+function _byKandidatId(storeName, kandidatId) {
+  return _tx(storeName, 'readonly', (tx) =>
+    _req(tx.objectStore(storeName).index('kandidat_id').getAll(kandidatId))
+  );
+}
+
+function _deleteByKandidatId(storeName, kandidatId) {
+  return _tx(storeName, 'readwrite', async (tx) => {
+    const store = tx.objectStore(storeName);
+    const all = await _req(store.index('kandidat_id').getAll(kandidatId));
+    await Promise.all(all.map(r => _req(store.delete(r.id))));
+  });
+}
+
+const kandidater = {
+  async list() {
+    return _tx('kandidater', 'readonly', (tx) =>
+      _req(tx.objectStore('kandidater').getAll())
+    );
+  },
+  async get(id) {
+    return _tx('kandidater', 'readonly', (tx) =>
+      _req(tx.objectStore('kandidater').get(id))
+    );
+  },
+  async add(data) {
+    return _tx('kandidater', 'readwrite', async (tx) => {
+      const store = tx.objectStore('kandidater');
+      const id = await _req(store.add({
+        public_name:        data.public_name,
+        email:              data.email              ?? null,
+        public_phone:       data.public_phone       ?? null,
+        roles:              data.roles              ?? null,
+        desired_city:       data.desired_city       ?? null,
+        desired_employment: data.desired_employment ?? [],
+        desired_workplace:  data.desired_workplace  ?? [],
+        willing_to_commute: data.willing_to_commute ?? false,
+        searchable:         data.searchable         ?? false,
+        available_from:     data.available_from     ?? null,
+        created_at:         new Date().toISOString(),
+      }));
+      return _req(store.get(id));
+    });
+  },
+  async update(id, data) {
+    return _tx('kandidater', 'readwrite', async (tx) => {
+      const store = tx.objectStore('kandidater');
+      const existing = await _req(store.get(id));
+      if (!existing) throw new Error(`Kandidat ${id} not found`);
+      const updated = { ...existing, ...data, id };
+      await _req(store.put(updated));
+      return updated;
+    });
+  },
+  async delete(id) {
+    return _tx('kandidater', 'readwrite', (tx) =>
+      _req(tx.objectStore('kandidater').delete(id))
+    );
+  },
+};
+
+const kandSkills = {
+  async listFor(kandidatId) { return _byKandidatId('kand_skills', kandidatId); },
+  async add(kandidatId, data) {
+    return _tx('kand_skills', 'readwrite', async (tx) => {
+      const store = tx.objectStore('kand_skills');
+      const id = await _req(store.add({
+        kandidat_id: kandidatId,
+        skill_name:  data.skill_name,
+        category:    data.category  ?? 'Övrigt',
+        skill_type:  data.skill_type ?? 'technical',
+      }));
+      return _req(store.get(id));
+    });
+  },
+  async update(id, data) {
+    return _tx('kand_skills', 'readwrite', async (tx) => {
+      const store = tx.objectStore('kand_skills');
+      const existing = await _req(store.get(id));
+      if (!existing) throw new Error(`KandSkill ${id} not found`);
+      const updated = { ...existing, ...data, id };
+      await _req(store.put(updated));
+      return updated;
+    });
+  },
+  async delete(id) {
+    return _tx('kand_skills', 'readwrite', (tx) =>
+      _req(tx.objectStore('kand_skills').delete(id))
+    );
+  },
+  async deleteAll(kandidatId) { return _deleteByKandidatId('kand_skills', kandidatId); },
+};
+
+const kandExperiences = {
+  async listFor(kandidatId) { return _byKandidatId('kand_experiences', kandidatId); },
+  async add(kandidatId, data) {
+    return _tx('kand_experiences', 'readwrite', async (tx) => {
+      const store = tx.objectStore('kand_experiences');
+      const id = await _req(store.add({
+        kandidat_id:     kandidatId,
+        title:           data.title,
+        organization:    data.organization    ?? null,
+        experience_type: data.experience_type ?? 'work',
+        start_date:      data.start_date      ?? null,
+        end_date:        data.end_date        ?? null,
+        is_current:      data.is_current      ?? false,
+        description:     data.description     ?? null,
+        achievements:    data.achievements    ?? [],
+      }));
+      return _req(store.get(id));
+    });
+  },
+  async update(id, data) {
+    return _tx('kand_experiences', 'readwrite', async (tx) => {
+      const store = tx.objectStore('kand_experiences');
+      const existing = await _req(store.get(id));
+      if (!existing) throw new Error(`KandExp ${id} not found`);
+      const updated = { ...existing, ...data, id };
+      await _req(store.put(updated));
+      return updated;
+    });
+  },
+  async delete(id) {
+    return _tx('kand_experiences', 'readwrite', (tx) =>
+      _req(tx.objectStore('kand_experiences').delete(id))
+    );
+  },
+  async deleteAll(kandidatId) { return _deleteByKandidatId('kand_experiences', kandidatId); },
+};
+
+const kandEducation = {
+  async listFor(kandidatId) { return _byKandidatId('kand_education', kandidatId); },
+  async add(kandidatId, data) {
+    return _tx('kand_education', 'readwrite', async (tx) => {
+      const store = tx.objectStore('kand_education');
+      const id = await _req(store.add({
+        kandidat_id:    kandidatId,
+        degree:         data.degree,
+        institution:    data.institution    ?? null,
+        field_of_study: data.field_of_study ?? null,
+        start_date:     data.start_date     ?? null,
+        end_date:       data.end_date       ?? null,
+        description:    data.description    ?? null,
+      }));
+      return _req(store.get(id));
+    });
+  },
+  async update(id, data) {
+    return _tx('kand_education', 'readwrite', async (tx) => {
+      const store = tx.objectStore('kand_education');
+      const existing = await _req(store.get(id));
+      if (!existing) throw new Error(`KandEdu ${id} not found`);
+      const updated = { ...existing, ...data, id };
+      await _req(store.put(updated));
+      return updated;
+    });
+  },
+  async delete(id) {
+    return _tx('kand_education', 'readwrite', (tx) =>
+      _req(tx.objectStore('kand_education').delete(id))
+    );
+  },
+  async deleteAll(kandidatId) { return _deleteByKandidatId('kand_education', kandidatId); },
+};
+
+const kandCertifications = {
+  async listFor(kandidatId) { return _byKandidatId('kand_certifications', kandidatId); },
+  async add(kandidatId, data) {
+    return _tx('kand_certifications', 'readwrite', async (tx) => {
+      const store = tx.objectStore('kand_certifications');
+      const id = await _req(store.add({
+        kandidat_id: kandidatId,
+        name:        data.name,
+        issuer:      data.issuer      ?? null,
+        date:        data.date        ?? null,
+        description: data.description ?? null,
+      }));
+      return _req(store.get(id));
+    });
+  },
+  async update(id, data) {
+    return _tx('kand_certifications', 'readwrite', async (tx) => {
+      const store = tx.objectStore('kand_certifications');
+      const existing = await _req(store.get(id));
+      if (!existing) throw new Error(`KandCert ${id} not found`);
+      const updated = { ...existing, ...data, id };
+      await _req(store.put(updated));
+      return updated;
+    });
+  },
+  async delete(id) {
+    return _tx('kand_certifications', 'readwrite', (tx) =>
+      _req(tx.objectStore('kand_certifications').delete(id))
+    );
+  },
+  async deleteAll(kandidatId) { return _deleteByKandidatId('kand_certifications', kandidatId); },
+};
+
+const kandCvs = {
+  async listFor(kandidatId) { return _byKandidatId('kand_cvs', kandidatId); },
+  async get(id) {
+    return _tx('kand_cvs', 'readonly', (tx) =>
+      _req(tx.objectStore('kand_cvs').get(id))
+    );
+  },
+  async add(kandidatId, data) {
+    return _tx('kand_cvs', 'readwrite', async (tx) => {
+      const store = tx.objectStore('kand_cvs');
+      const id = await _req(store.add({
+        kandidat_id:         kandidatId,
+        filename:            data.filename,
+        upload_date:         new Date().toISOString(),
+        is_processed:        data.is_processed    ?? false,
+        is_vectorized:       false,
+        structured_data:     data.structured_data ?? null,
+        file_data:           data.file_data       ?? null,
+        skill_count:         data.skill_count         ?? 0,
+        experience_count:    data.experience_count    ?? 0,
+        education_count:     data.education_count     ?? 0,
+        certification_count: data.certification_count ?? 0,
+      }));
+      return _req(store.get(id));
+    });
+  },
+  async delete(id) {
+    return _tx('kand_cvs', 'readwrite', (tx) =>
+      _req(tx.objectStore('kand_cvs').delete(id))
+    );
+  },
+};
+
 // ─── searchProfiles ───────────────────────────────────────────────────────────
 
 const searchProfiles = {
@@ -518,6 +780,12 @@ const cvDb = {
   cvs,
   education,
   certifications,
+  kandidater,
+  kandSkills,
+  kandExperiences,
+  kandEducation,
+  kandCertifications,
+  kandCvs,
   searchProfiles,
   settings,
 };

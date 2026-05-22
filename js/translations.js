@@ -8,6 +8,8 @@ const TRANSLATIONS = {
 sv: {
     // Brand
     'brand.sub':                    'AI-drivet karriärverktyg',
+    'welcome.cta':                  'Kom igång →',
+    'nav.welcome':                  'Välkommen',
 
     // Auth
     'auth.login':                   'Logga in',
@@ -168,6 +170,7 @@ sv: {
     'kand.subtitle':                'Hantera din pool med kandidater.',
     'kand.add_btn':                 '+ Lägg till kandidat',
     'kand.loading':                 'Laddar...',
+    'kand.empty_list':              'Du har inga kandidater. Klicka “Lägg till kandidat” för att börja hantera kandidater.',
     'kand.form_title_add':          'Lägg till kandidat',
     'kand.form_title_edit':         'Redigera kandidat',
     'kand.form_subtitle':           'Fyll i kandidatens profil och preferenser.',
@@ -249,6 +252,8 @@ sv: {
 // ── ENGLISH ───────────────────────────────────────────────────────────────────
 en: {
     'brand.sub':                    'AI-powered career tool',
+    'welcome.cta':                  'Get started →',
+    'nav.welcome':                  'Welcome',
 
     'auth.login':                   'Log in',
     'auth.register':                'Register',
@@ -401,6 +406,7 @@ en: {
     'kand.subtitle':                'Manage your pool of candidates.',
     'kand.add_btn':                 '+ Add candidate',
     'kand.loading':                 'Loading...',
+    'kand.empty_list':              'You have no candidates. Click "Add candidate" to start managing candidates.',
     'kand.form_title_add':          'Add candidate',
     'kand.form_title_edit':         'Edit candidate',
     'kand.form_subtitle':           'Fill in the candidate\'s profile and preferences.',
@@ -474,6 +480,8 @@ en: {
 // ── NORSK BOKMÅL ─────────────────────────────────────────────────────────────
 no: {
     'brand.sub':                    'AI-drevet karriærverktøy',
+    'welcome.cta':                  'Kom i gang →',
+    'nav.welcome':                  'Velkommen',
 
     'auth.login':                   'Logg inn',
     'auth.register':                'Registrer deg',
@@ -626,6 +634,7 @@ no: {
     'kand.subtitle':                'Administrer din pool med kandidater.',
     'kand.add_btn':                 '+ Legg til kandidat',
     'kand.loading':                 'Laster...',
+    'kand.empty_list':              'Du har ingen kandidater. Klikk "Legg til kandidat" for å begynne å administrere kandidater.',
     'kand.form_title_add':          'Legg til kandidat',
     'kand.form_title_edit':         'Rediger kandidat',
     'kand.form_subtitle':           'Fyll inn kandidatens profil og preferanser.',

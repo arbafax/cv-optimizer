@@ -43,7 +43,7 @@ function renderKandidatList(kandidater) {
     if (dashEl) dashEl.textContent = kandidater.length;
 
     if (!kandidater.length) {
-        container.innerHTML = '<div class="empty-hint">Inga kandidater ännu. Klicka "+ Lägg till kandidat" för att komma igång.</div>';
+        container.innerHTML = `<div class="empty-hint">${t('kand.empty_list')}</div>`;
         return;
     }
 
@@ -634,7 +634,9 @@ async function handleKandidatCVUpload(file) {
             `✅ ${data.filename || file.name} — ${data.skill_count} kompetenser, ${data.experience_count} erfarenheter tillagda`,
             'success'
         );
-        loadKandidatBank(currentKandidatId);
+        await loadKandidatBank(currentKandidatId);
+        await loadKandidatEducation(currentKandidatId);
+        await loadKandidatCertifications(currentKandidatId);
         loadKandidatCVs(currentKandidatId);
     } catch (err) {
         showKandidatUploadStatus(`❌ ${err.message}`, 'error');

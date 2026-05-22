@@ -481,6 +481,13 @@ async function browserRoute(path, options = {}) {
                     ? expList.filter(e => matched_experience_ids.includes(e.id))
                     : expList;
                 const result = await cvAI.generateCV(job_description, matched, skills);
+                const expById = Object.fromEntries(matched.map(e => [e.id, e]));
+                result.experiences = (result.experiences || []).map(item => {
+                    const exp = expById[item.id];
+                    return exp ? { ...item, title: exp.title, organization: exp.organization,
+                        start_date: exp.start_date, end_date: exp.end_date,
+                        is_current: exp.is_current, is_matched: true } : item;
+                }).filter(e => e.title);
                 return new LocalResponse(result);
             }
 

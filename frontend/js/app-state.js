@@ -196,11 +196,18 @@ async function browserRoute(path, options = {}) {
             if (parts[1] === 'cvs') {
                 if (!parts[2] && method === 'GET') {
                     const list = await cvDb.cvs.list();
-                    return new LocalResponse(list.map(cv => ({
-                        ...cv,
-                        is_processed: Boolean(cv.structured_data && Object.keys(cv.structured_data).length),
-                        is_vectorized: false,
-                    })));
+                    return new LocalResponse(list.map(cv => {
+                        const sd = cv.structured_data || {};
+                        return {
+                            ...cv,
+                            is_processed: Boolean(sd && Object.keys(sd).length),
+                            is_vectorized: false,
+                            skill_count: (sd.skills || []).length,
+                            experience_count: (sd.work_experience || []).length,
+                            education_count: (sd.education || []).length,
+                            certification_count: (sd.certifications || []).length,
+                        };
+                    }));
                 }
                 if (parts[2] === 'upload' && method === 'POST') {
                     const file = body instanceof FormData ? body.get('file') : null;

@@ -34,9 +34,6 @@ sleep 4 && curl -s http://localhost:8018/docs | head -5
 kill $(lsof -ti:5501) 2>/dev/null; sleep 1; cd /Users/hencar/Utveckling/my/cv-optimizer/frontend && python serve.py &
 
 
-ONLINER to RESTART BACKEND
-kill $(lsof -ti:8018) 2>/dev/null; sleep 1; cd /Users/hencar/Utveckling/my/cv-optimizer/backend && ../venv/bin/uvicorn app.main:app --host 0.0.0.0 --port 8018 &
-
 ## Stopping Backend and frontend
 kill $(lsof -ti:8018) 2>/dev/null && echo "Backend (8018) stoppad"
 kill $(lsof -ti:5501) 2>/dev/null && echo "Frontend (5501) stoppad"
@@ -47,3 +44,10 @@ VISA LOGGEN FRÅN DOCKER
 docker compose logs --tail=50 2>/dev/null || true
 
 
+## hur publicera på git hub pages
+
+den gren du är på när du kör kommandot:
+
+    git subtree push --prefix frontend origin gh-pages 
+
+kommer publicera det som finns i /frontend

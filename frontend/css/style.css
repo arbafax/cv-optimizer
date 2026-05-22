@@ -2898,9 +2898,49 @@ body {
     .bank-stats { grid-template-columns: 1fr 1fr; }
 }
 
+/* Hamburger button — hidden on wide screens */
+.hamburger-btn {
+    display: none;
+    position: fixed;
+    top: 12px;
+    left: 12px;
+    z-index: 300;
+    width: 40px;
+    height: 40px;
+    background: var(--sidebar-bg);
+    color: #fff;
+    border: none;
+    border-radius: 8px;
+    font-size: 20px;
+    cursor: pointer;
+    align-items: center;
+    justify-content: center;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.3);
+}
+
+.sidebar-overlay {
+    display: none;
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,0.45);
+    z-index: 199;
+}
+.sidebar-overlay.visible { display: block; }
+
 @media (max-width: 640px) {
-    .sidebar { display: none; }
-    .main { margin-left: 0; padding: 20px; }
+    .hamburger-btn { display: flex; }
+
+    .sidebar {
+        position: fixed;
+        top: 0;
+        left: calc(-1 * var(--sidebar-w) - 10px);
+        height: 100%;
+        z-index: 200;
+        transition: left 0.25s ease;
+    }
+    .sidebar.sidebar-open { left: 0; }
+
+    .main { margin-left: 0; padding: 60px 20px 20px; }
     .stats-row, .action-cards { grid-template-columns: 1fr; }
 }
 

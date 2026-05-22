@@ -302,6 +302,7 @@ const cvs = {
         upload_date: data.upload_date ?? new Date().toISOString(),
         original_text: data.original_text ?? '',
         structured_data: data.structured_data ?? {},
+        file_data: data.file_data ?? null,
       }));
       return _req(store.get(id));
     });

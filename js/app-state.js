@@ -212,13 +212,14 @@ async function browserRoute(path, options = {}) {
                 if (parts[2] === 'upload' && method === 'POST') {
                     const file = body instanceof FormData ? body.get('file') : null;
                     if (!file) return new LocalResponse({ detail: 'Ingen fil' }, 400);
-                    const text = await cvPdf.extractText(file);
+                    const [text, fileData] = await Promise.all([cvPdf.extractText(file), file.arrayBuffer()]);
                     const structured = await cvAI.structureCV(text);
                     const cv = await cvDb.cvs.add({
                         filename: file.name,
                         title: structured?.personal_info?.full_name || file.name.replace('.pdf', ''),
                         original_text: text,
                         structured_data: structured,
+                        file_data: fileData,
                     });
                     await cvCompSvc.mergeCVIntoBank(cv);
                     return new LocalResponse({ ...cv, is_processed: true, is_vectorized: false, structured_data: structured });
@@ -263,9 +264,17 @@ async function browserRoute(path, options = {}) {
 
             // experiences CRUD
             if (parts[1] === 'experiences' && !parts[2]) {
-                if (method === 'GET')    return new LocalResponse({ experiences: await cvDb.experiences.list() });
+                if (method === 'GET') {
+                    const all = await cvDb.experiences.list();
+                    return new LocalResponse({ experiences: all.filter(e => e.experience_type === 'work' || e.experience_type === 'project') });
+                }
                 if (method === 'POST')   return new LocalResponse(await cvDb.experiences.add(body));
-                if (method === 'DELETE') { await cvDb.experiences.deleteAll(); return new LocalResponse({}); }
+                if (method === 'DELETE') {
+                    const all = await cvDb.experiences.list();
+                    for (const e of all.filter(e => e.experience_type === 'work' || e.experience_type === 'project'))
+                        await cvDb.experiences.delete(e.id);
+                    return new LocalResponse({});
+                }
             }
             if (parts[1] === 'experiences' && parts[2] === 'merge' && method === 'POST') {
                 const ids = body.experience_ids || [];
@@ -316,27 +325,82 @@ async function browserRoute(path, options = {}) {
                 }
             }
 
-            // education
+            // education — stored in cvDb.experiences with experience_type='education'
+            // Field mapping: title↔degree, organization↔institution
             if (parts[1] === 'education' && !parts[2]) {
-                if (method === 'GET')    return new LocalResponse({ education: await cvDb.education.list() });
-                if (method === 'POST')   return new LocalResponse(await cvDb.education.add(body));
-                if (method === 'DELETE') { await cvDb.education.deleteAll(); return new LocalResponse({}); }
+                if (method === 'GET') {
+                    const all = await cvDb.experiences.list();
+                    return new LocalResponse({ education: all
+                        .filter(e => e.experience_type === 'education')
+                        .map(e => ({ ...e,
+                            degree:         e.degree         || e.title        || '',
+                            institution:    e.institution    || e.organization || '',
+                            field_of_study: e.field_of_study || null,
+                        }))
+                    });
+                }
+                if (method === 'POST') {
+                    const rec = { ...body, experience_type: 'education',
+                        title:        body.degree      || body.title        || '',
+                        organization: body.institution || body.organization || null };
+                    return new LocalResponse(await cvDb.experiences.add(rec));
+                }
+                if (method === 'DELETE') {
+                    const all = await cvDb.experiences.list();
+                    for (const e of all.filter(e => e.experience_type === 'education'))
+                        await cvDb.experiences.delete(e.id);
+                    return new LocalResponse({});
+                }
             }
             if (parts[1] === 'education' && parts[2]) {
                 const id = Number(parts[2]);
-                if (method === 'PUT')    return new LocalResponse(await cvDb.education.update(id, body));
-                if (method === 'DELETE') { await cvDb.education.delete(id); return new LocalResponse({}); }
+                if (method === 'PUT') {
+                    const upd = { ...body,
+                        title:        body.degree      || body.title        || '',
+                        organization: body.institution || body.organization || null };
+                    return new LocalResponse(await cvDb.experiences.update(id, upd));
+                }
+                if (method === 'DELETE') { await cvDb.experiences.delete(id); return new LocalResponse({}); }
             }
 
-            // certifications
+            // certifications — stored in cvDb.experiences with experience_type='certification'
+            // Field mapping: title↔name, organization↔issuer, start_date↔date
             if (parts[1] === 'certifications' && !parts[2]) {
-                if (method === 'GET')  return new LocalResponse({ certifications: await cvDb.certifications.list() });
-                if (method === 'POST') return new LocalResponse(await cvDb.certifications.add(body));
+                if (method === 'GET') {
+                    const all = await cvDb.experiences.list();
+                    return new LocalResponse({ certifications: all
+                        .filter(e => e.experience_type === 'certification')
+                        .map(e => ({ ...e,
+                            name:   e.name   || e.title        || '',
+                            issuer: e.issuer || e.organization || '',
+                            date:   e.date   || e.start_date   || null,
+                        }))
+                    });
+                }
+                if (method === 'POST') {
+                    const rec = { ...body, experience_type: 'certification',
+                        title:        body.name   || body.title        || '',
+                        organization: body.issuer || body.organization || null,
+                        start_date:   body.date   || body.start_date   || null };
+                    return new LocalResponse(await cvDb.experiences.add(rec));
+                }
+                if (method === 'DELETE') {
+                    const all = await cvDb.experiences.list();
+                    for (const e of all.filter(e => e.experience_type === 'certification'))
+                        await cvDb.experiences.delete(e.id);
+                    return new LocalResponse({});
+                }
             }
             if (parts[1] === 'certifications' && parts[2]) {
                 const id = Number(parts[2]);
-                if (method === 'PUT')    return new LocalResponse(await cvDb.certifications.update(id, body));
-                if (method === 'DELETE') { await cvDb.certifications.delete(id); return new LocalResponse({}); }
+                if (method === 'PUT') {
+                    const upd = { ...body,
+                        title:        body.name   || body.title        || '',
+                        organization: body.issuer || body.organization || null,
+                        start_date:   body.date   || body.start_date   || null };
+                    return new LocalResponse(await cvDb.experiences.update(id, upd));
+                }
+                if (method === 'DELETE') { await cvDb.experiences.delete(id); return new LocalResponse({}); }
             }
 
             // reset
@@ -737,6 +801,24 @@ function displayMatchResult(result, container) {
     `;
 
     optimizeResult.classList.remove('hidden');
+}
+
+// ── PDF download (browser-only) ──────────────────────────────────────────────
+async function downloadCVFile(cvId) {
+    const cv = await cvDb.cvs.get(Number(cvId));
+    if (!cv?.file_data) {
+        alert('PDF-filen är inte sparad. Ladda upp CV:t igen för att aktivera nedladdning.');
+        return;
+    }
+    const blob = new Blob([cv.file_data], { type: 'application/pdf' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = cv.filename || 'cv.pdf';
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
 }
 
 // ── AUTH (browser-only: auto-login from IndexedDB) ─────────────────────────

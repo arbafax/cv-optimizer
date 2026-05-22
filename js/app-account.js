@@ -8,11 +8,8 @@ function loadAccountView() {
     document.getElementById('account-email').value   = currentUser.email   || '';
     document.getElementById('account-phone').value   = currentUser.phone   || '';
     document.getElementById('account-address').value = currentUser.address || '';
-    document.getElementById('account-status').innerHTML    = '';
-    document.getElementById('account-pw-status').innerHTML = '';
+    document.getElementById('account-status').innerHTML = '';
     document.getElementById('account-roles-status').innerHTML = '';
-    document.getElementById('account-curr-pw').value = '';
-    document.getElementById('account-new-pw').value  = '';
 
     const roles = currentUser.roles || [];
     document.getElementById('role-kandidat').checked    = roles.includes('Kandidat');
@@ -142,17 +139,48 @@ function showAccountStatus(elId, msg, type) {
 
 // ── AI-inställningar (browser-only) ──────────────────────────────────────────
 
+const AI_PROVIDER_LABELS = {
+    openai: 'OpenAI (GPT-4o)',
+    anthropic: 'Anthropic (Claude)',
+    gemini: 'Google Gemini',
+    ollama: 'Ollama (lokal)',
+};
+
+function _aiHasConfig(s) {
+    if (!s.ai_provider) return false;
+    if (s.ai_provider === 'ollama') return Boolean(s.ollama_url);
+    const keyMap = { openai: s.openai_key, anthropic: s.anthropic_key, gemini: s.gemini_key };
+    return Boolean(keyMap[s.ai_provider]);
+}
+
+function _aiViewText(s) {
+    const label = AI_PROVIDER_LABELS[s.ai_provider] || s.ai_provider;
+    if (s.ai_provider === 'ollama') {
+        return (t('account.ai_view_ollama') || 'Du använder {label} lokalt ({url}, modell: {model}).')
+            .replace('{label}', label)
+            .replace('{url}', s.ollama_url || 'http://localhost:11434')
+            .replace('{model}', s.ollama_model || 'llama3');
+    }
+    return (t('account.ai_view_cloud') || 'Du använder {label} med en sparad API-nyckel.')
+        .replace('{label}', label);
+}
+
 async function loadAISettings() {
-    const s = await cvDb.settings.getAll();
-    const provider = s.ai_provider || 'openai';
+    let s;
+    try {
+        s = await cvDb.settings.getAll();
+    } catch (err) {
+        console.error('[loadAISettings] cvDb.settings.getAll() failed:', err);
+        s = {};
+    }
+const provider = s.ai_provider || 'openai';
+
     const provEl = document.getElementById('ai-provider');
     if (provEl) provEl.value = provider;
 
+    const keyMap = { openai: s.openai_key, anthropic: s.anthropic_key, gemini: s.gemini_key };
     const keyEl = document.getElementById('ai-api-key');
-    if (keyEl) {
-        const keyMap = { openai: s.openai_key, anthropic: s.anthropic_key, gemini: s.gemini_key };
-        keyEl.value = keyMap[provider] || '';
-    }
+    if (keyEl) keyEl.value = keyMap[provider] || '';
 
     const ollamaUrl = document.getElementById('ai-ollama-url');
     const ollamaModel = document.getElementById('ai-ollama-model');
@@ -160,34 +188,101 @@ async function loadAISettings() {
     if (ollamaModel) ollamaModel.value = s.ollama_model || 'llama3';
 
     onAIProviderChange();
+
+    if (_aiHasConfig(s)) {
+        const viewText = document.getElementById('ai-view-text');
+        if (viewText) viewText.textContent = _aiViewText(s);
+        document.getElementById('ai-view-mode')?.classList.remove('hidden');
+        document.getElementById('ai-edit-mode')?.classList.add('hidden');
+        document.getElementById('ai-cancel-btn')?.classList.remove('hidden');
+    } else {
+        document.getElementById('ai-view-mode')?.classList.add('hidden');
+        document.getElementById('ai-edit-mode')?.classList.remove('hidden');
+        document.getElementById('ai-cancel-btn')?.classList.add('hidden');
+    }
+}
+
+function showAIEditMode() {
+    document.getElementById('ai-view-mode')?.classList.add('hidden');
+    document.getElementById('ai-edit-mode')?.classList.remove('hidden');
+}
+
+function hideAIEditMode() {
+    document.getElementById('ai-edit-mode')?.classList.add('hidden');
+    document.getElementById('ai-view-mode')?.classList.remove('hidden');
 }
 
 function onAIProviderChange() {
     const provider = document.getElementById('ai-provider')?.value || 'openai';
-    const keyGroup = document.getElementById('ai-key-group');
-    const keyLabel = document.getElementById('ai-key-label');
+    const keyGroup   = document.getElementById('ai-key-group');
+    const keyLabel   = document.getElementById('ai-key-label');
     const ollamaGroup = document.getElementById('ai-ollama-group');
 
-    const labels = { openai: 'OpenAI API-nyckel', anthropic: 'Anthropic API-nyckel', gemini: 'Gemini API-nyckel', ollama: '' };
+    const labels = {
+        openai:    t('account.ai_label_key_openai')    || 'OpenAI API-nyckel',
+        anthropic: t('account.ai_label_key_anthropic') || 'Anthropic API-nyckel',
+        gemini:    t('account.ai_label_key_gemini')    || 'Gemini API-nyckel',
+    };
     if (keyLabel) keyLabel.textContent = labels[provider] || 'API-nyckel';
-    if (keyGroup) keyGroup.classList.toggle('hidden', provider === 'ollama');
+    if (keyGroup)   keyGroup.classList.toggle('hidden', provider === 'ollama');
     if (ollamaGroup) ollamaGroup.classList.toggle('hidden', provider !== 'ollama');
+}
+
+async function handleResetAllData() {
+    if (!confirm(t('account.reset_confirm') || 'Är du säker? All data på den här enheten raderas permanent.')) return;
+
+    const includeAI = document.getElementById('reset-include-ai-key')?.checked;
+
+    // Spara AI-inställningar innan vi rensar, om användaren vill behålla dem
+    let savedAI = {};
+    if (!includeAI) {
+        savedAI = await cvDb.settings.getAll();
+    }
+
+    // Rensa alla stores
+    const stores = ['profile', 'skills', 'experiences', 'cvs', 'education',
+                    'certifications', 'pq', 'pa', 'search_profiles', 'settings'];
+    for (const store of stores) {
+        await cvDb._tx(store, 'readwrite', (tx) =>
+            new Promise((res, rej) => {
+                const req = tx.objectStore(store).clear();
+                req.onsuccess = () => res();
+                req.onerror = () => rej(req.error);
+            })
+        );
+    }
+
+    // Återställ AI-inställningar om de ska behållas
+    if (!includeAI) {
+        const aiKeys = ['ai_provider', 'openai_key', 'anthropic_key', 'gemini_key', 'ollama_url', 'ollama_model'];
+        for (const key of aiKeys) {
+            if (savedAI[key] != null) await cvDb.settings.set(key, savedAI[key]);
+        }
+    }
+
+    location.reload();
 }
 
 async function saveAISettings() {
     const provider = document.getElementById('ai-provider')?.value || 'openai';
-    await cvDb.settings.set('ai_provider', provider);
+    try {
+        await cvDb.settings.set('ai_provider', provider);
 
-    if (provider !== 'ollama') {
-        const key = document.getElementById('ai-api-key')?.value?.trim() || '';
-        const keyMap = { openai: 'openai_key', anthropic: 'anthropic_key', gemini: 'gemini_key' };
-        if (keyMap[provider]) await cvDb.settings.set(keyMap[provider], key);
-    } else {
-        const url = document.getElementById('ai-ollama-url')?.value?.trim() || 'http://localhost:11434';
-        const model = document.getElementById('ai-ollama-model')?.value?.trim() || 'llama3';
-        await cvDb.settings.set('ollama_url', url);
-        await cvDb.settings.set('ollama_model', model);
+        if (provider !== 'ollama') {
+            const key = document.getElementById('ai-api-key')?.value?.trim() || '';
+            const keyMap = { openai: 'openai_key', anthropic: 'anthropic_key', gemini: 'gemini_key' };
+            if (keyMap[provider]) await cvDb.settings.set(keyMap[provider], key);
+        } else {
+            const url = document.getElementById('ai-ollama-url')?.value?.trim() || 'http://localhost:11434';
+            const model = document.getElementById('ai-ollama-model')?.value?.trim() || 'llama3';
+            await cvDb.settings.set('ollama_url', url);
+            await cvDb.settings.set('ollama_model', model);
+        }
+
+        showAccountStatus('ai-settings-status', t('account.ai_saved') || 'AI-inställningar sparade', 'success');
+        await loadAISettings();
+    } catch (err) {
+        console.error('[saveAISettings] failed:', err);
+        showAccountStatus('ai-settings-status', err.message || 'Fel vid sparande', 'error');
     }
-
-    showAccountStatus('ai-settings-status', 'AI-inställningar sparade', 'success');
 }

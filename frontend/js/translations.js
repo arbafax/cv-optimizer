@@ -35,7 +35,6 @@ sv: {
     'nav.my_person':                'Min person',
     'nav.personality_admin':        'Personlighetsfrågor',
     'nav.account':                  'Mitt konto',
-    'nav.backend_connected':        'Backend ansluten',
 
     // Dashboard
     'dash.welcome':                 'Välkommen',
@@ -340,7 +339,6 @@ en: {
     'nav.my_person':                'My personality',
     'nav.personality_admin':        'Personality questions',
     'nav.account':                  'My account',
-    'nav.backend_connected':        'Backend connected',
 
     'dash.welcome':                 'Welcome',
     'dash.subtitle':                'Here is an overview of your CVs and matches.',
@@ -631,7 +629,6 @@ no: {
     'nav.my_person':                'Min personlighet',
     'nav.personality_admin':        'Personlighetsspørsmål',
     'nav.account':                  'Min konto',
-    'nav.backend_connected':        'Backend tilkoblet',
 
     'dash.welcome':                 'Velkommen',
     'dash.subtitle':                'Her er en oversikt over dine CV-er og matchinger.',

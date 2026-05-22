@@ -854,7 +854,7 @@ function openKandidatCVDetail(cvId, kandidatId) {
             ${!cv.is_vectorized && cv.is_processed
                 ? `<button class="btn btn-primary" onclick="vectorizeKandidatCV(${cv.id}, ${kandidatId})">⚡ Vektorisera</button>`
                 : ''}
-            <a class="btn btn-secondary" href="${API_BASE_URL}/kandidater/${kandidatId}/cvs/${cv.id}/file" target="_blank">⬇ Ladda ner PDF</a>
+            <button class="btn btn-secondary" onclick="downloadCVFile(${cv.id})">⬇ Ladda ner PDF</button>
             <button class="btn btn-danger btn-sm" onclick="deleteKandidatCV(${cv.id}, ${kandidatId}, '${cv.filename.replace(/'/g, "\\'")}')">🗑 Ta bort</button>
         </div>`;
     detail.style.display = '';

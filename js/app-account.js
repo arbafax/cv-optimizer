@@ -241,7 +241,7 @@ async function handleResetAllData() {
 
     // Rensa alla stores
     const stores = ['profile', 'skills', 'experiences', 'cvs', 'education',
-                    'certifications', 'pq', 'pa', 'search_profiles', 'settings'];
+                    'certifications', 'search_profiles', 'settings'];
     for (const store of stores) {
         await cvDb._tx(store, 'readwrite', (tx) =>
             new Promise((res, rej) => {

@@ -89,7 +89,7 @@ async function browserRoute(path, options = {}) {
     }
 
     const parts = path.replace(/^\/|\/$/g, '').split('/');
-    // parts[0] = 'auth' | 'competence' | 'cv' | 'personality' | 'profiles' | 'sokprofil' | 'kandidater'
+    // parts[0] = 'auth' | 'competence' | 'cv' | 'profiles' | 'sokprofil' | 'kandidater'
 
     try {
         // ── AUTH ────────────────────────────────────────────────────────────
@@ -483,32 +483,20 @@ async function browserRoute(path, options = {}) {
             // generate-loghouse-cv
             if (parts[1] === 'generate-loghouse-cv' && method === 'POST') {
                 const { job_description, matched_experience_ids = [], skills: reqSkills = [] } = body;
-                const [expList, skillList, eduList, cvList, profile, answers] = await Promise.all([
+                const [expList, skillList, eduList, cvList, profile] = await Promise.all([
                     cvDb.experiences.list(),
                     cvDb.skills.list(),
                     cvDb.education.list(),
                     cvDb.cvs.list(),
                     cvDb.profile.get(),
-                    cvDb.pa.list(),
                 ]);
                 const matched = matched_experience_ids.length
                     ? expList.filter(e => matched_experience_ids.includes(e.id))
                     : expList;
                 const cvTexts = cvList.map(c => c.original_text).filter(Boolean);
-
-                // Build personality answers with question text
-                const allQ = await cvDb.pq.list();
-                const qMap = Object.fromEntries(allQ.map(q => [q.id, q]));
-                const richAnswers = answers.map(a => ({
-                    question: qMap[a.question_id]?.question_text || '',
-                    category: qMap[a.question_id]?.category || '',
-                    answer: a.answer_text || '',
-                    likert: a.likert_score,
-                }));
-
                 const result = await cvAI.generateLogHouseCV(
                     job_description, matched, reqSkills.length ? reqSkills : skillList,
-                    profile || {}, richAnswers, eduList, cvTexts
+                    profile || {}, [], eduList, cvTexts
                 );
                 return new LocalResponse(result);
             }
@@ -522,99 +510,6 @@ async function browserRoute(path, options = {}) {
                     : expList;
                 const result = await cvAI.improvementTips(job_description, overall_score, current_skills, missing_skills, matched);
                 return new LocalResponse(result);
-            }
-        }
-
-        // ── PERSONALITY ──────────────────────────────────────────────────────
-        if (parts[0] === 'personality') {
-            if (parts[1] === 'questions') {
-                if (!parts[2] && method === 'GET')  return new LocalResponse({ questions: await cvDb.pq.list() });
-                if (!parts[2] && method === 'POST') {
-                    const q = await cvDb.pq.add(body);
-                    // Generate embedding async
-                    if (body.question_text && typeof cvEmbed !== 'undefined') {
-                        cvEmbed.generate(body.question_text).then(emb =>
-                            cvDb.pq.update(q.id, { embedding: emb })
-                        ).catch(() => {});
-                    }
-                    return new LocalResponse(q);
-                }
-                if (parts[2] === 'extract' && method === 'POST') {
-                    const questions = await cvAI.extractPersonalityQuestions(body.md_content || body.content || '');
-                    return new LocalResponse({ imported: questions.length, questions });
-                }
-                if (parts[2] === 'check-similar' && method === 'POST') {
-                    const { question_text, threshold = 0.85 } = body;
-                    if (typeof cvEmbed === 'undefined') return new LocalResponse({ is_duplicate: false, score: 0, match: null });
-                    const allQ = await cvDb.pq.list();
-                    const { isDuplicate, match, similarity } = await cvEmbed.checkSimilar(question_text, allQ, threshold);
-                    return new LocalResponse({ is_duplicate: isDuplicate, score: Math.round(similarity * 100), match: match || null });
-                }
-                if (parts[2] === 'backfill-embeddings' && method === 'POST') {
-                    if (typeof cvEmbed === 'undefined') return new LocalResponse({ updated: 0 });
-                    const allQ = await cvDb.pq.list();
-                    const updated = await cvEmbed.backfill(allQ, q => q.question_text, (id, emb) => cvDb.pq.update(id, { embedding: emb }));
-                    return new LocalResponse({ updated });
-                }
-                if (parts[2] === 'import' && method === 'POST') {
-                    const questions = await cvAI.extractPersonalityQuestions(body.md_content || body.content || '');
-                    let imported = 0;
-                    for (const q of questions) {
-                        if (typeof cvEmbed !== 'undefined' && q.question_text) {
-                            try { q.embedding = await cvEmbed.generate(q.question_text); } catch {}
-                        }
-                        await cvDb.pq.add(q);
-                        imported++;
-                    }
-                    return new LocalResponse({ imported });
-                }
-                if (parts[2] && method === 'PUT')    return new LocalResponse(await cvDb.pq.update(Number(parts[2]), body));
-                if (parts[2] && method === 'DELETE') { await cvDb.pq.delete(Number(parts[2])); return new LocalResponse({}); }
-            }
-
-            if (parts[1] === 'answers') {
-                if (!parts[2] && method === 'GET') return new LocalResponse({ answers: await cvDb.pa.list() });
-                if (parts[2] === 'next' && method === 'GET') {
-                    const q = await cvDb.pa.nextUnanswered([]);
-                    const answer = q ? await cvDb.pa.getByQuestion(q.id) : null;
-                    return new LocalResponse({ question: q || null, answer: answer || null });
-                }
-                if (parts[2] === 'big-five' && method === 'GET') {
-                    const scores = await cvDb.pa.bigFiveScores();
-                    return new LocalResponse({ scores });
-                }
-                if (!parts[2] && method === 'POST') {
-                    const a = await cvDb.pa.upsert(body.question_id, body);
-                    return new LocalResponse(a);
-                }
-                if (parts[2] && method === 'PUT') {
-                    const existing = await cvDb.pa.list().then(list => list.find(a => a.id === Number(parts[2])));
-                    const a = await cvDb.pa.upsert(existing?.question_id || body.question_id, body);
-                    return new LocalResponse(a);
-                }
-            }
-
-            if (parts[1] === 'description' && method === 'POST') {
-                const [answers, profile, skills, exps, cvList] = await Promise.all([
-                    cvDb.pa.list(), cvDb.profile.get(), cvDb.skills.list(),
-                    cvDb.experiences.list(), cvDb.cvs.list(),
-                ]);
-                const allQ = await cvDb.pq.list();
-                const qMap = Object.fromEntries(allQ.map(q => [q.id, q]));
-                const richAnswers = answers.map(a => ({
-                    question: qMap[a.question_id]?.question_text || '',
-                    context: qMap[a.question_id]?.context || null,
-                    category: qMap[a.question_id]?.category || '',
-                    big_five: qMap[a.question_id]?.big_five_trait || null,
-                    answer: a.answer_text || '',
-                    likert: a.likert_score,
-                }));
-                const name = profile?.public_name || 'Kandidat';
-                const cvTexts = cvList.map(c => c.original_text).filter(Boolean);
-                const description = await cvAI.generatePersonalityDescription(
-                    richAnswers, profile || {}, skills, exps, cvTexts, name
-                );
-                return new LocalResponse({ description });
             }
         }
 
@@ -669,6 +564,7 @@ function showView(viewId, navEl) {
     const view = document.getElementById('view-' + viewId);
     if (view) view.classList.add('active');
     if (navEl) navEl.classList.add('active');
+    closeSidebar();
 }
 
 // ── Match result helpers ──────────────────────────────────────────────────────
@@ -924,10 +820,34 @@ function showApp() {
     if (h1 && currentUser) {
         h1.textContent = `${t('dash.welcome')}, ${currentUser.name.split(' ')[0]}!`;
     }
-    showView('dashboard', document.getElementById('nav-dashboard'));
-    loadCVs();
-    loadBankData();
-    loadSpCandidateCVs();
+    const roles = currentUser?.roles || [];
+    const hasDashboardRole = roles.some(r => ['Kandidat', 'Säljare', 'Rekryterare'].includes(r));
+    if (hasDashboardRole) {
+        showView('dashboard', document.getElementById('nav-dashboard'));
+        loadCVs();
+        loadBankData();
+        loadSpCandidateCVs();
+    } else {
+        showView('account', document.getElementById('nav-account'));
+        loadAccountView();
+    }
+}
+
+// ── Mobile sidebar toggle ─────────────────────────────────────────────────────
+function toggleSidebar() {
+    const sidebar = document.getElementById('sidebar');
+    const overlay = document.getElementById('sidebar-overlay');
+    const btn     = document.getElementById('hamburger-btn');
+    const isOpen  = sidebar.classList.toggle('sidebar-open');
+    overlay.classList.toggle('visible', isOpen);
+    if (btn) btn.style.display = isOpen ? 'none' : '';
+}
+
+function closeSidebar() {
+    document.getElementById('sidebar')?.classList.remove('sidebar-open');
+    document.getElementById('sidebar-overlay')?.classList.remove('visible');
+    const btn = document.getElementById('hamburger-btn');
+    if (btn) btn.style.display = '';
 }
 
 function applyRoleVisibility() {

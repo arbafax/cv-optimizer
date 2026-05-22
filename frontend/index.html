@@ -558,21 +558,6 @@
                 <button class="btn btn-primary" onclick="saveAccount()" data-i18n="account.save">Spara ändringar</button>
             </div>
 
-            <!-- Byt lösenord -->
-            <div class="card">
-                <h2 class="card-title" data-i18n="account.pw_title">Byt lösenord</h2>
-                <div class="form-group">
-                    <label for="account-curr-pw" data-i18n="account.label_curr_pw">Nuvarande lösenord</label>
-                    <input type="password" id="account-curr-pw" placeholder="••••••••" autocomplete="current-password">
-                </div>
-                <div class="form-group">
-                    <label for="account-new-pw" data-i18n="account.label_new_pw">Nytt lösenord</label>
-                    <input type="password" id="account-new-pw" placeholder="••••••••" autocomplete="new-password">
-                </div>
-                <div id="account-pw-status"></div>
-                <button class="btn btn-secondary" onclick="saveAccountPassword()" data-i18n="account.save_pw">Byt lösenord</button>
-            </div>
-
             <!-- Roller -->
             <div class="card">
                 <h2 class="card-title" data-i18n="account.roles_title">Roller</h2>
@@ -615,29 +600,55 @@
 
             <!-- AI-inställningar -->
             <div class="card">
-                <h2 class="card-title">AI-inställningar</h2>
-                <p class="field-desc">Välj AI-leverantör och ange din API-nyckel. Nyckeln lagras lokalt i webbläsaren.</p>
-                <div class="form-group">
-                    <label>AI-leverantör</label>
-                    <select id="ai-provider" class="form-input" style="max-width:220px" onchange="onAIProviderChange()">
-                        <option value="openai">OpenAI (GPT-4o)</option>
-                        <option value="anthropic">Anthropic (Claude)</option>
-                        <option value="gemini">Google Gemini</option>
-                        <option value="ollama">Ollama (lokal)</option>
-                    </select>
+                <h2 class="card-title" data-i18n="account.ai_title">AI-inställningar</h2>
+
+                <!-- Visningsläge: leverantör redan vald -->
+                <div id="ai-view-mode" class="hidden">
+                    <p id="ai-view-text" class="field-desc" style="margin-bottom:16px"></p>
+                    <button class="btn btn-secondary" onclick="showAIEditMode()" data-i18n="account.ai_change">Ändra</button>
                 </div>
-                <div id="ai-key-group" class="form-group">
-                    <label id="ai-key-label">OpenAI API-nyckel</label>
-                    <input type="password" id="ai-api-key" placeholder="sk-..." autocomplete="off" class="form-input">
+
+                <!-- Redigeringsläge -->
+                <div id="ai-edit-mode">
+                    <div class="form-group">
+                        <label data-i18n="account.ai_label_provider">AI-leverantör</label>
+                        <select id="ai-provider" class="form-input" style="max-width:220px" onchange="onAIProviderChange()">
+                            <option value="openai">OpenAI (GPT-4o)</option>
+                            <option value="anthropic">Anthropic (Claude)</option>
+                            <option value="gemini">Google Gemini</option>
+                            <option value="ollama">Ollama (lokal)</option>
+                        </select>
+                    </div>
+                    <div id="ai-key-group" class="form-group">
+                        <label id="ai-key-label" data-i18n="account.ai_label_key_openai">OpenAI API-nyckel</label>
+                        <input type="password" id="ai-api-key" placeholder="sk-..." autocomplete="off" class="form-input">
+                    </div>
+                    <div id="ai-ollama-group" class="form-group hidden">
+                        <label data-i18n="account.ai_label_ollama_url">Ollama URL</label>
+                        <input type="text" id="ai-ollama-url" value="http://localhost:11434" class="form-input" style="max-width:260px">
+                        <label style="margin-top:8px" data-i18n="account.ai_label_ollama_model">Ollama modell</label>
+                        <input type="text" id="ai-ollama-model" value="llama3" class="form-input" style="max-width:200px">
+                    </div>
+                    <div style="display:flex;gap:8px;margin-top:8px;align-items:center">
+                        <button class="btn btn-primary" onclick="saveAISettings()" data-i18n="account.ai_save">Spara</button>
+                        <button class="btn btn-ghost hidden" id="ai-cancel-btn" onclick="hideAIEditMode()" data-i18n="account.ai_cancel">Avbryt</button>
+                    </div>
                 </div>
-                <div id="ai-ollama-group" class="form-group hidden">
-                    <label>Ollama URL</label>
-                    <input type="text" id="ai-ollama-url" value="http://localhost:11434" class="form-input" style="max-width:260px">
-                    <label style="margin-top:8px">Ollama modell</label>
-                    <input type="text" id="ai-ollama-model" value="llama3" class="form-input" style="max-width:200px">
-                </div>
+
                 <div id="ai-settings-status"></div>
-                <button class="btn btn-primary" onclick="saveAISettings()" style="margin-top:8px">Spara AI-inställningar</button>
+            </div>
+
+            <!-- Rensa -->
+            <div class="card" style="border-color: var(--red, #e53e3e);">
+                <h2 class="card-title" data-i18n="account.reset_title">Rensa</h2>
+                <p class="field-desc" data-i18n="account.reset_desc">Genom att klicka på knappen "Nollställ" kommer alla data som är sparade på den här enheten att raderas. Det blir som att börja om helt från början.</p>
+                <label class="checkbox-label" style="margin: 16px 0;">
+                    <input type="checkbox" id="reset-include-ai-key">
+                    <span data-i18n="account.reset_incl_ai">Ta även bort min AI-nyckel och koppling till AI-leverantör</span>
+                </label>
+                <div>
+                    <button class="btn btn-danger" onclick="handleResetAllData()" data-i18n="account.reset_btn">Nollställ</button>
+                </div>
             </div>
         </div>
     </div>

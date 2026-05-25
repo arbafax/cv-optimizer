@@ -438,7 +438,7 @@ async function generateHenrikCV(jobDescription, experiences, skills, profile, ed
 Svara ENBART med JSON i exakt detta format:
 {
   "profile_heading": "<varierat per ansökan, t.ex. 'Min profil', 'Varför jag?', 'Om mig'>",
-  "profile_text": "<3 stycken, 105–120 ord totalt. Stycke 1–2 i tredjeperson (använd kandidatens förnamn om det finns, annars 'Kandidaten'), sista stycket kan glida mot förstaperson. Ärlig, jordnära ton utan floskler. Anpassad till rollen.>",
+  "profile_text": "<3 stycken, 105–120 ord totalt. Stycke 1–2 i tredjeperson med 'Kandidaten' som subjekt, sista stycket kan glida mot förstaperson. Ärlig, jordnära ton utan floskler. Anpassad till rollen.>",
   "expertise": [
     {
       "subheading": "<logisk kompetensgrupp, 1–4 ord>",

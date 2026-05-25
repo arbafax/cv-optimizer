@@ -2,13 +2,17 @@
 // Depends on: app-state.js (apiFetch, API_BASE_URL, currentUser,
 //             renderSidebarUser, updateRoleBasedNav)
 
-function loadAccountView() {
+async function loadAccountView() {
     if (!currentUser) return;
     document.getElementById('account-name').value    = currentUser.name    || '';
     document.getElementById('account-email').value   = currentUser.email   || '';
     document.getElementById('account-phone').value   = currentUser.phone   || '';
     document.getElementById('account-address').value = currentUser.address || '';
     document.getElementById('account-status').innerHTML = '';
+
+    const profile = await cvDb.profile.get() || {};
+    const identityEl = document.getElementById('account-identity');
+    if (identityEl) identityEl.value = profile.identity_uuid || '';
     document.getElementById('account-roles-status').innerHTML = '';
 
     const roles = currentUser.roles || [];
@@ -30,6 +34,15 @@ async function saveAccount() {
     const address = document.getElementById('account-address').value.trim();
 
     if (!name) { showAccountStatus('account-status', 'Namn krävs', 'error'); return; }
+
+    // Generate UUID on first save
+    const profile = await cvDb.profile.get() || {};
+    if (!profile.identity_uuid) {
+        profile.identity_uuid = crypto.randomUUID();
+        await cvDb.profile.save(profile);
+        const identityEl = document.getElementById('account-identity');
+        if (identityEl) identityEl.value = profile.identity_uuid;
+    }
 
     try {
         const res = await apiFetch(`${API_BASE_URL}/auth/me`, {

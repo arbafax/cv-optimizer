@@ -533,14 +533,17 @@
         <div class="account-layout">
             <!-- Profilinformation -->
             <div class="card">
-                <h2 class="card-title" data-i18n="account.profile_title">Profilinformation</h2>
+                <h2 class="card-title" data-i18n="account.profile_title">Kontoinformation</h2>
+                <p class="view-subtitle" style="margin-bottom:1.25rem" data-i18n="account.profile_subtitle"></p>
                 <div class="form-group">
                     <label for="account-name" data-i18n="account.label_name">Namn</label>
                     <input type="text" id="account-name" placeholder="Ditt namn" data-i18n-ph="account.ph_name" autocomplete="name">
+                    <small class="form-hint" data-i18n="account.hint_required"></small>
                 </div>
                 <div class="form-group">
                     <label for="account-email" data-i18n="account.label_email">E-postadress</label>
                     <input type="email" id="account-email" placeholder="din@epost.se" data-i18n-ph="account.ph_email" autocomplete="email">
+                    <small class="form-hint" data-i18n="account.hint_required"></small>
                 </div>
                 <div class="form-group">
                     <label for="account-phone" data-i18n="account.label_phone">Telefonnummer</label>
@@ -549,6 +552,11 @@
                 <div class="form-group">
                     <label for="account-address" data-i18n="account.label_address">Postadress</label>
                     <input type="text" id="account-address" placeholder="Gatuadress, postnummer, ort" data-i18n-ph="account.ph_address" autocomplete="street-address">
+                </div>
+                <div class="form-group">
+                    <label for="account-identity" data-i18n="account.label_identity">Identitet</label>
+                    <input type="text" id="account-identity" readonly style="font-family:monospace;font-size:0.8rem;color:var(--text-muted);cursor:default" tabindex="-1">
+                    <small class="form-hint" data-i18n="account.hint_identity"></small>
                 </div>
                 <div id="account-status"></div>
                 <button class="btn btn-primary" onclick="saveAccount()" data-i18n="account.save">Spara ändringar</button>
@@ -567,11 +575,11 @@
                         <input type="checkbox" id="role-saljare" value="Säljare">
                         <span data-i18n-html="account.role_saljare"><strong>Säljare</strong> — hanterar en pool med kandidater</span>
                     </label>
-                    <label class="checkbox-label">
+                    <label class="checkbox-label hidden">
                         <input type="checkbox" id="role-rekryterare" value="Rekryterare">
                         <span data-i18n-html="account.role_rekryterare"><strong>Rekryterare</strong> — söker kandidater för specifika tjänster</span>
                     </label>
-                    <label class="checkbox-label">
+                    <label class="checkbox-label hidden">
                         <input type="checkbox" id="role-admin" value="Admin">
                         <span data-i18n-html="account.role_admin"><strong>Admin</strong> — administrerar systemets frågor och inställningar</span>
                     </label>

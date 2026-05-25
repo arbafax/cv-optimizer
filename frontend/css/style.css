@@ -1342,6 +1342,7 @@ body {
 /* ══════════════ FORMS ══════════════ */
 
 .form-group { margin-bottom: 18px; }
+.form-hint { display: block; margin-top: 4px; font-size: 0.75rem; color: var(--text-muted); }
 
 .form-group label {
     display: block;

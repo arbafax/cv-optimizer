@@ -1172,12 +1172,22 @@ async function showApp() {
     _showAppShell();
 }
 
+function _loadSidebarVersion() {
+    const el = document.getElementById('sidebar-version');
+    if (!el) return;
+    fetch('version.json?_=' + Date.now())
+        .then(r => r.ok ? r.json() : null)
+        .then(d => { if (d?.version) el.textContent = `v${d.version}`; })
+        .catch(() => {});
+}
+
 function _showAppShell(firstTime = false) {
     document.getElementById('view-auth').classList.add('hidden');
     document.getElementById('sidebar').classList.remove('hidden');
     document.getElementById('main-content').classList.remove('hidden');
     applyTranslations();
     renderSidebarUser();
+    _loadSidebarVersion();
     const h1 = document.querySelector('#view-dashboard .view-header h1');
     if (h1 && currentUser) {
         h1.textContent = `${t('dash.welcome')}, ${currentUser.name.split(' ')[0]}!`;

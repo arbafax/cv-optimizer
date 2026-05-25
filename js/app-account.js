@@ -242,6 +242,52 @@ function onAIProviderChange() {
     if (ollamaGroup) ollamaGroup.classList.toggle('hidden', provider !== 'ollama');
 }
 
+async function exportAccountData() {
+    try {
+        const [profile, skills, experiences, education, certifications,
+               searchProfilesList, allKandidater] = await Promise.all([
+            cvDb.profile.get(),
+            cvDb.skills.list(),
+            cvDb.experiences.list(),
+            cvDb.education.list(),
+            cvDb.certifications.list(),
+            cvDb.searchProfiles.list(),
+            cvDb.kandidater.list(),
+        ]);
+
+        const kandidaterWithData = await Promise.all(allKandidater.map(async k => ({
+            info:           k,
+            skills:         await cvDb.kandSkills.listFor(k.id),
+            experiences:    await cvDb.kandExperiences.listFor(k.id),
+            education:      await cvDb.kandEducation.listFor(k.id),
+            certifications: await cvDb.kandCertifications.listFor(k.id),
+        })));
+
+        const payload = {
+            export_version: '1.0',
+            exported_at:    new Date().toISOString(),
+            profile,
+            skills,
+            experiences,
+            education,
+            certifications,
+            search_profiles: searchProfilesList,
+            kandidater:      kandidaterWithData,
+        };
+
+        const json = JSON.stringify(payload, null, 2);
+        const blob = new Blob([json], { type: 'application/json;charset=utf-8' });
+        const url  = URL.createObjectURL(blob);
+        const a    = document.createElement('a');
+        a.href     = url;
+        a.download = `cvoptimizer-export-${new Date().toISOString().slice(0,10)}.json`;
+        a.click();
+        URL.revokeObjectURL(url);
+    } catch (err) {
+        alert('Export misslyckades: ' + err.message);
+    }
+}
+
 async function handleResetAllData() {
     if (!confirm(t('account.reset_confirm') || 'Är du säker? All data på den här enheten raderas permanent.')) return;
 

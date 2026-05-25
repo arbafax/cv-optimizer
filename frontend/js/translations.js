@@ -101,6 +101,9 @@ sv: {
     'account.ai_view_cloud':        'Du använder {label} med en sparad API-nyckel.',
     'account.ai_view_ollama':       'Du använder {label} lokalt ({url}, modell: {model}).',
 
+    'account.export_title':         'Export / Import',
+    'account.export_desc':          'Du kan exportera all information från den här webbläsaren till ett textformat som kan importeras på andra enheter. När du klickar på "Exportera" skapas en fil (JSON) som du kan spara på din enhet eller skicka till en annan enhet och importera för att kunna använda all information igen utan att behöva göra om allt.',
+    'account.export_btn':           'Exportera',
     'account.reset_title':          'Rensa',
     'account.reset_desc':           'Genom att klicka på knappen "Nollställ" kommer alla data som är sparade på den här enheten att raderas. Det blir som att börja om helt från början.',
     'account.reset_incl_ai':        'Ta även bort min AI-nyckel och koppling till AI-leverantör',
@@ -351,6 +354,9 @@ en: {
     'account.ai_view_cloud':        'You are using {label} with a saved API key.',
     'account.ai_view_ollama':       'You are using {label} locally ({url}, model: {model}).',
 
+    'account.export_title':         'Export / Import',
+    'account.export_desc':          'You can export all information from this browser to a text format that can be imported on other devices. When you click "Export", a file (JSON) is created that you can save on your device or send to another device and import to use all your information again without having to start over.',
+    'account.export_btn':           'Export',
     'account.reset_title':          'Reset',
     'account.reset_desc':           'Clicking "Reset" will permanently delete all data stored on this device. This cannot be undone.',
     'account.reset_incl_ai':        'Also remove my AI key and AI provider connection',
@@ -589,6 +595,9 @@ no: {
     'account.ai_view_cloud':        'Du bruker {label} med en lagret API-nøkkel.',
     'account.ai_view_ollama':       'Du bruker {label} lokalt ({url}, modell: {model}).',
 
+    'account.export_title':         'Export / Import',
+    'account.export_desc':          'Du kan eksportere all informasjon fra denne nettleseren til et tekstformat som kan importeres på andre enheter. Når du klikker på "Eksporter" opprettes en fil (JSON) som du kan lagre på enheten din eller sende til en annen enhet og importere for å bruke all informasjonen din igjen uten å måtte begynne på nytt.',
+    'account.export_btn':           'Eksporter',
     'account.reset_title':          'Nullstill',
     'account.reset_desc':           'Ved å klikke "Nullstill" vil alle data som er lagret på denne enheten bli permanent slettet. Dette kan ikke angres.',
     'account.reset_incl_ai':        'Fjern også min API-nøkkel og tilknytning til AI-leverandør',

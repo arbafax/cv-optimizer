@@ -778,12 +778,6 @@ async function clearKandCertifications(kandidatId) {
 // ── Kandidat CV list ──────────────────────────────────────────────────────────
 
 async function loadKandidatCVs(kandidatId) {
-    const detail = document.getElementById('kand-cv-detail');
-    if (detail) {
-        detail.style.display = 'none';
-        const body = document.getElementById('kand-cv-detail-body');
-        if (body) body.innerHTML = '';
-    }
     try {
         const res = await apiFetch(`${API_BASE_URL}/kandidater/${kandidatId}/cvs`);
         if (!res.ok) return;
@@ -805,20 +799,24 @@ function displayKandidatCVs(cvs, kandidatId) {
         const date = cv.upload_date
             ? new Date(cv.upload_date).toLocaleDateString('sv-SE', { year:'numeric', month:'short', day:'numeric' })
             : '—';
-        const processedBadge  = cv.is_processed
+        const processedBadge = cv.is_processed
             ? '<span class="cv-badge cv-badge--green">✓ Behandlad</span>'
             : '<span class="cv-badge cv-badge--blue">Ej behandlad</span>';
-        const vectorizedBadge = cv.is_vectorized
-            ? '<span class="cv-badge cv-badge--green">✓ Vektoriserad</span>'
-            : '';
+        const safeName = cv.filename.replace(/'/g, "\\'");
         return `
-            <div class="cv-item" onclick="openKandidatCVDetail(${cv.id}, ${kandidatId})" style="cursor:pointer">
+            <div class="cv-item">
                 <div class="cv-item-header">
                     <div class="cv-item-info">
                         <h3>${cv.filename}</h3>
                         <div style="display:flex;gap:0.5rem;flex-wrap:wrap;margin-top:0.25rem">
-                            ${processedBadge}${vectorizedBadge}
+                            ${processedBadge}
                         </div>
+                    </div>
+                    <div style="display:flex;gap:0.5rem;align-items:center;flex-shrink:0">
+                        <button class="btn btn-secondary btn-sm" onclick="downloadCVFile(${cv.id})">⬇ Ladda ner PDF</button>
+                        <button class="btn btn-icon btn-danger btn-sm" title="Ta bort" onclick="deleteKandidatCV(${cv.id}, ${kandidatId}, '${safeName}')">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14H6L5 6"/><path d="M10 11v6M14 11v6"/><path d="M9 6V4h6v2"/></svg>
+                        </button>
                     </div>
                 </div>
                 <div class="cv-item-details">
@@ -832,61 +830,12 @@ function displayKandidatCVs(cvs, kandidatId) {
     }).join('');
 }
 
-function openKandidatCVDetail(cvId, kandidatId) {
-    const cv = kandCandidateCVs.find(c => c.id === cvId);
-    if (!cv) return;
-    const detail = document.getElementById('kand-cv-detail');
-    const title  = document.getElementById('kand-cv-detail-title');
-    const body   = document.getElementById('kand-cv-detail-body');
-    if (!detail) return;
-    title.textContent = cv.filename;
-    const date = cv.upload_date
-        ? new Date(cv.upload_date).toLocaleDateString('sv-SE', { year:'numeric', month:'long', day:'numeric' })
-        : '—';
-    body.innerHTML = `
-        <div class="cv-detail-stats">
-            <div class="cv-detail-stat"><strong>${cv.skill_count}</strong><span>Kompetenser</span></div>
-            <div class="cv-detail-stat"><strong>${cv.experience_count}</strong><span>Erfarenheter</span></div>
-            <div class="cv-detail-stat"><strong>${cv.education_count}</strong><span>Utbildningar</span></div>
-            <div class="cv-detail-stat"><strong>${cv.certification_count}</strong><span>Certifikat</span></div>
-        </div>
-        <div style="margin-bottom:1rem;color:var(--text-muted);font-size:0.875rem">Uppladdad: ${date}</div>
-        <div id="kand-cv-action-status"></div>
-        <div style="display:flex;gap:0.75rem;flex-wrap:wrap">
-            ${!cv.is_vectorized && cv.is_processed
-                ? `<button class="btn btn-primary" onclick="vectorizeKandidatCV(${cv.id}, ${kandidatId})">⚡ Vektorisera</button>`
-                : ''}
-            <button class="btn btn-secondary" onclick="downloadCVFile(${cv.id})">⬇ Ladda ner PDF</button>
-            <button class="btn btn-danger btn-sm" onclick="deleteKandidatCV(${cv.id}, ${kandidatId}, '${cv.filename.replace(/'/g, "\\'")}')">🗑 Ta bort</button>
-        </div>`;
-    detail.style.display = '';
-    detail.scrollIntoView({ behavior:'smooth', block:'nearest' });
-}
-
-function closeKandidatCVDetail() {
-    const detail = document.getElementById('kand-cv-detail');
-    if (detail) detail.style.display = 'none';
-}
-
-async function vectorizeKandidatCV(cvId, kandidatId) {
-    const statusEl = document.getElementById('kand-cv-action-status');
-    if (statusEl) { statusEl.className = 'status-message status-loading'; statusEl.textContent = '⏳ Vektoriserar...'; }
-    try {
-        const res = await apiFetch(`${API_BASE_URL}/kandidater/${kandidatId}/cvs/${cvId}/vectorize`, { method:'POST' });
-        if (!res.ok) { const e = await res.json(); throw new Error(e.detail || 'Fel'); }
-        await loadKandidatCVs(kandidatId);
-        closeKandidatCVDetail();
-    } catch (err) {
-        if (statusEl) { statusEl.className = 'status-message status-error'; statusEl.textContent = `❌ ${err.message}`; }
-    }
-}
 
 async function deleteKandidatCV(cvId, kandidatId, filename) {
     if (!confirm(`Ta bort "${filename}"?`)) return;
     try {
         const res = await apiFetch(`${API_BASE_URL}/kandidater/${kandidatId}/cvs/${cvId}`, { method:'DELETE' });
         if (!res.ok) { const e = await res.json(); throw new Error(e.detail || 'Fel'); }
-        closeKandidatCVDetail();
         await loadKandidatCVs(kandidatId);
     } catch (err) { alert(`❌ ${err.message}`); }
 }

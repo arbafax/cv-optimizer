@@ -1041,26 +1041,6 @@
 
 
 <!-- ════════════════════════════════ GENERATED CV MODAL ════════════════════════════════ -->
-<div id="cv-generate-modal" class="modal hidden">
-    <div class="modal-overlay" onclick="closeCVGenerateModal()"></div>
-    <div class="modal-content modal-content--wide">
-        <div class="modal-header">
-            <h2>CV-utkast</h2>
-            <div class="modal-header-actions">
-                <button class="btn btn-secondary btn-sm" onclick="downloadCVAsMarkdown()">
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" width="15" height="15"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
-                    Spara som markdown
-                </button>
-                <button class="btn btn-secondary btn-sm" onclick="window.print()">
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" width="15" height="15"><polyline points="6 9 6 2 18 2 18 9"/><path d="M6 18H4a2 2 0 01-2-2v-5a2 2 0 012-2h16a2 2 0 012 2v5a2 2 0 01-2 2h-2"/><rect x="6" y="14" width="12" height="8"/></svg>
-                    Skriv ut / Spara PDF
-                </button>
-                <button class="modal-close" onclick="closeCVGenerateModal()">&times;</button>
-            </div>
-        </div>
-        <div class="modal-body" id="cv-generate-body"></div>
-    </div>
-</div>
 
 <!-- ════════════════════════════════ LOG HOUSE CV MODAL ════════════════════════════════ -->
 <div id="lh-cv-modal" class="modal hidden">
@@ -1081,6 +1061,28 @@
             </div>
         </div>
         <div class="modal-body" id="lh-cv-body"></div>
+    </div>
+</div>
+
+<!-- ════════════════════════════════ HENRIK CV MODAL ════════════════════════════════ -->
+<div id="hc-cv-modal" class="modal hidden">
+    <div class="modal-overlay" onclick="closeHenrikCVModal()"></div>
+    <div class="modal-content modal-content--wide">
+        <div class="modal-header">
+            <h2 data-i18n="match.gen_hc_modal_title">CV-utkast (personligt format)</h2>
+            <div class="modal-header-actions">
+                <button class="btn btn-secondary btn-sm" onclick="downloadHenrikCVAsMarkdown()">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" width="15" height="15"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+                    <span data-i18n="match.save_md">Spara som markdown</span>
+                </button>
+                <button class="btn btn-secondary btn-sm" onclick="window.print()">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" width="15" height="15"><polyline points="6 9 6 2 18 2 18 9"/><path d="M6 18H4a2 2 0 01-2-2v-5a2 2 0 012-2h16a2 2 0 012 2v5a2 2 0 01-2 2h-2"/><rect x="6" y="14" width="12" height="8"/></svg>
+                    <span data-i18n="match.print_pdf">Skriv ut / Spara PDF</span>
+                </button>
+                <button class="modal-close" onclick="closeHenrikCVModal()">&times;</button>
+            </div>
+        </div>
+        <div class="modal-body" id="hc-cv-body"></div>
     </div>
 </div>
 
@@ -1116,7 +1118,6 @@
 <script src="js/pdf-extract.js"></script>
 <script src="js/competence-svc.js"></script>
 <script src="js/translations.js"></script>
-<script src="js/cv-template.js"></script>
 <script src="js/app-state.js"></script>
 <script src="js/app-cv.js"></script>
 <script src="js/app-bank.js"></script>

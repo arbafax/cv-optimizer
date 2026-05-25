@@ -13,7 +13,6 @@ let selectedCV          = null;
 let allCVs              = [];
 let lastMatchResult     = null;
 let lastJobDesc         = '';
-let lastGeneratedCV     = null;
 let lastMatchKandidatId = null;
 
 let currentUser = null;
@@ -512,6 +511,27 @@ async function browserRoute(path, options = {}) {
                 return new LocalResponse(result);
             }
 
+            // generate-henrik-cv
+            if (parts[1] === 'generate-henrik-cv' && method === 'POST') {
+                const { job_description, matched_experience_ids = [], skills: reqSkills = [] } = body;
+                const [expList, skillList, eduList, certList, profile] = await Promise.all([
+                    cvDb.experiences.list(),
+                    cvDb.skills.list(),
+                    cvDb.education.list(),
+                    cvDb.certifications.list(),
+                    cvDb.profile.get(),
+                ]);
+                const matched = matched_experience_ids.length
+                    ? expList.filter(e => matched_experience_ids.includes(e.id))
+                    : expList;
+                const result = await cvAI.generateHenrikCV(
+                    job_description, matched,
+                    reqSkills.length ? reqSkills : skillList,
+                    profile || {}, eduList, certList
+                );
+                return new LocalResponse(result);
+            }
+
             // improvement-tips
             if (parts[1] === 'improvement-tips' && method === 'POST') {
                 const { job_description, overall_score, current_skills = [], missing_skills = [], matched_experience_ids = [] } = body;
@@ -831,6 +851,33 @@ async function browserRoute(path, options = {}) {
                 results.sort((a, b) => (b.score ?? -1) - (a.score ?? -1));
                 return new LocalResponse({ candidates: results });
             }
+
+            // generate-henrik-cv for kandidat
+            if (kid && parts[2] === 'generate-henrik-cv' && method === 'POST') {
+                const { job_description, matched_experience_ids = [], skills: reqSkills = [] } = body;
+                const [expList, skillList, eduList, certList, kandidat] = await Promise.all([
+                    cvDb.kandExperiences.listFor(kid),
+                    cvDb.kandSkills.listFor(kid),
+                    cvDb.kandEducation.listFor(kid),
+                    cvDb.kandCertifications.listFor(kid),
+                    cvDb.kandidater.get(kid),
+                ]);
+                const matched = matched_experience_ids.length
+                    ? expList.filter(e => matched_experience_ids.includes(e.id))
+                    : expList;
+                const profile = kandidat ? {
+                    public_name: kandidat.public_name || kandidat.name || '',
+                    email:       kandidat.email || '',
+                    phone:       kandidat.phone || '',
+                    city:        kandidat.city  || kandidat.desired_city || '',
+                } : {};
+                const result = await cvAI.generateHenrikCV(
+                    job_description, matched,
+                    reqSkills.length ? reqSkills : skillList,
+                    profile, eduList, certList
+                );
+                return new LocalResponse(result);
+            }
         }
 
         // Unhandled route
@@ -981,11 +1028,11 @@ function displayMatchResult(result, container) {
             <button id="tips-btn" class="btn btn-secondary" onclick="handleTips()">
                 ${t('match.tips_btn')}
             </button>
-            <button id="gen-cv-btn" class="btn btn-primary" onclick="handleGenerateCV()">
-                ${t('match.gen_btn')}
-            </button>
             <button id="gen-lh-cv-btn" class="btn btn-primary" onclick="handleGenerateLHCV()">
                 ${t('match.gen_lh_btn')}
+            </button>
+            <button id="gen-hc-cv-btn" class="btn btn-primary" onclick="handleGenerateHenrikCV()">
+                ${t('match.gen_hc_btn')}
             </button>
         </div>` : ''}
     `;
@@ -1049,7 +1096,6 @@ function resetAllState() {
     allCVs              = [];
     lastMatchResult     = null;
     lastJobDesc         = '';
-    lastGeneratedCV     = null;
     lastMatchKandidatId = null;
 
     spEditingSkillId   = null; spEditingExpId   = null;

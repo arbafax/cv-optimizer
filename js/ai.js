@@ -406,6 +406,92 @@ Regler:
 }
 
 /**
+ * Generera CV-utkast enligt personligt CV-format med alla sektioner.
+ */
+async function generateHenrikCV(jobDescription, experiences, skills, profile, educationList, certificationList) {
+  const expText = experiences.map(e =>
+    `[ID:${e.id}] ${e.title}`
+    + (e.organization ? ` på ${e.organization}` : '')
+    + (e.city ? `, ${e.city}` : '')
+    + (e.start_date ? ` (${e.start_date}–${e.is_current ? 'nu' : (e.end_date || '')})` : '')
+    + (e.description ? `\nBeskrivning: ${e.description}` : '')
+    + (e.achievements?.length ? '\nPrestationer:\n' + e.achievements.map(a => `- ${a}`).join('\n') : '')
+  ).join('\n\n') || '(inga erfarenheter)';
+
+  const skillsText = skills.map(s => typeof s === 'string' ? s : s.skill_name).join(', ') || '(inga)';
+
+  const eduText = educationList.map(e =>
+    `- ${e.institution || ''}${e.city ? ', ' + e.city : ''}, ${e.degree || ''}${e.field_of_study ? ' i ' + e.field_of_study : ''}${e.start_date ? ' (' + e.start_date + (e.end_date ? '–' + e.end_date : '') + ')' : ''}`
+  ).join('\n') || '(ingen utbildning)';
+
+  const certText = certificationList.map(c =>
+    `- ${c.name || c.certification_name || ''}${c.issuer ? ', ' + c.issuer : ''}${c.date ? ' (' + c.date.slice(0,4) + ')' : ''}`
+  ).join('\n') || '(inga certifieringar)';
+
+  const name = profile?.public_name || profile?.full_name || 'Kandidaten';
+  const email = profile?.email || '';
+  const phone = profile?.phone || '';
+  const city  = profile?.city || profile?.address || '';
+
+  const system = `Du är en expert på CV-skrivning och skapar ett professionellt CV-utkast anpassat till en specifik jobbannons.
+
+Svara ENBART med JSON i exakt detta format:
+{
+  "profile_heading": "<varierat per ansökan, t.ex. 'Min profil', 'Varför jag?', 'Om mig'>",
+  "profile_text": "<3 stycken, 105–120 ord totalt. Stycke 1–2 i tredjeperson (använd kandidatens förnamn om det finns, annars 'Kandidaten'), sista stycket kan glida mot förstaperson. Ärlig, jordnära ton utan floskler. Anpassad till rollen.>",
+  "expertise": [
+    {
+      "subheading": "<logisk kompetensgrupp, 1–4 ord>",
+      "bullets": ["<konkret punkt, max 2 rader>", "<punkt>"]
+    }
+  ],
+  "experience": [
+    {
+      "heading_line": "<Roll, Företag, Ort, Period>",
+      "description": "<3–8 meningar löptext, konkret, faktabaserat, lyfter det som matchar jobbet>"
+    }
+  ],
+  "education": ["<Institution, Ort, Examen/Program (år)>"],
+  "training": ["<Kurs/Certifiering (år)>"],
+  "technical_skills": [
+    {"category": "<kategori>", "items": ["<item>", "<item>"]}
+  ],
+  "personality": ["<egenskap med konkret förklaring, max 2 meningar>"],
+  "languages": ["<språk, nivå>"],
+  "personal_keywords": ["<ledord>"]
+}
+
+Regler:
+- expertise: 2–4 undergrupper, 2–4 bullets var – hämta ENBART från erfarenhets- och kompetensdatabasen, hitta inget på
+- experience: nyaste först, max 6 poster, lyfta det som matchar jobbannonsen
+- technical_skills: 3–5 kategorier, välj de som är relevanta för rollen
+- personality: 3–6 bullets
+- personal_keywords: 4–8 ledord som sammanfattar kandidatens värderingar och sätt att arbeta
+- languages: basera på vad som framgår av databasen och CV-texten, lägg alltid till svenska om det inte explicit saknas
+- profile_text EXAKT 105–120 ord – räkna noga
+- Allt på svenska`;
+
+  const user = `Kandidat: ${name}${email ? ' | ' + email : ''}${phone ? ' | ' + phone : ''}${city ? ' | ' + city : ''}
+
+Jobbannons:
+${jobDescription.slice(0, 3000)}
+
+---
+Erfarenheter:
+${expText}
+
+Skills: ${skillsText}
+
+Utbildning:
+${eduText}
+
+Certifieringar/kurser:
+${certText}`;
+
+  return _chatJSON(system, user, { temperature: 0.4 });
+}
+
+/**
  * Generera förbättringstips.
  */
 async function improvementTips(jobDescription, overallScore, currentSkills, missingSkills, experiences) {
@@ -621,6 +707,7 @@ window.cvAI = {
   matchJob,
   generateCV,
   generateLogHouseCV,
+  generateHenrikCV,
   improvementTips,
   extractPersonalityQuestions,
   generatePersonalityDescription,

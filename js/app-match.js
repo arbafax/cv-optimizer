@@ -1,8 +1,7 @@
 // ── MATCH / OPTIMIZE / CV-GENERATION / TIPS ───────────────────────────────────
 // Depends on: app-state.js (apiFetch, API_BASE_URL, optimizeBtn, jobDescription,
 //             charCount, optimizeResult, lastMatchResult, lastJobDesc,
-//             lastGeneratedCV, lastMatchKandidatId, scoreColor, displayMatchResult)
-// Also uses: CV_TEMPLATE (cv-template.js)
+//             lastMatchKandidatId, scoreColor, displayMatchResult)
 
 // ── Update character count ────────────────────────────────────────────────────
 function updateCharCount() {
@@ -97,144 +96,6 @@ async function handleOptimize() {
         optimizeBtn.querySelector('.btn-text').style.display = 'inline';
         optimizeBtn.querySelector('.btn-loading').classList.add('hidden');
         updateOptimizeButton();
-    }
-}
-
-// ── Generate CV ───────────────────────────────────────────────────────────────
-async function handleGenerateCV() {
-    if (!lastMatchResult) return;
-    const genBtn = document.getElementById('gen-cv-btn');
-    genBtn.disabled = true;
-    genBtn.innerHTML = `<span class="spinner-small"></span> ${t('match.generating')}`;
-
-    const expIds = (lastMatchResult.experiences ?? [])
-        .filter(e => e.score > 0)
-        .map(e => e.id);
-    const skills = (lastMatchResult.skills ?? [])
-        .filter(s => s.score > 0)
-        .map(s => s.skill_name);
-
-    const url = lastMatchKandidatId
-        ? `${API_BASE_URL}/kandidater/${lastMatchKandidatId}/generate-cv`
-        : `${API_BASE_URL}/competence/generate-cv`;
-
-    try {
-        const response = await apiFetch(url, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-                job_description: lastJobDesc,
-                matched_experience_ids: expIds,
-                skills,
-            }),
-        });
-
-        if (!response.ok) {
-            const err = await response.json();
-            throw new Error(err.detail || 'Kunde inte generera CV');
-        }
-
-        const data = await response.json();
-        displayGeneratedCV(data);
-
-    } catch (err) {
-        genBtn.disabled = false;
-        genBtn.innerHTML = t('match.gen_btn');
-        alert('Fel: ' + err.message);
-    }
-}
-
-function displayGeneratedCV(data) {
-    const body = document.getElementById('cv-generate-body');
-
-    const expHtml = (data.experiences || []).map(e => {
-        const start = e.start_date || '';
-        const end   = e.is_current ? 'nu' : (e.end_date || '');
-        const dates = start ? `${start}–${end}` : '';
-        const achievements = (e.highlighted_achievements || [])
-            .map(a => `<li>${a}</li>`).join('');
-        const matchedClass = e.is_matched ? ' gen-cv-exp--matched' : '';
-        return `
-            <div class="gen-cv-exp${matchedClass}">
-                <div class="gen-cv-exp-header">
-                    <div>
-                        <span class="gen-cv-exp-title">${e.title}</span>
-                        ${e.organization ? `<span class="gen-cv-exp-org"> · ${e.organization}</span>` : ''}
-                        ${e.is_matched ? '<span class="gen-cv-match-badge">✦ Matchar jobbet</span>' : ''}
-                    </div>
-                    ${dates ? `<span class="gen-cv-exp-date">${dates}</span>` : ''}
-                </div>
-                ${achievements ? `<ul class="gen-cv-achievements">${achievements}</ul>` : ''}
-            </div>
-        `;
-    }).join('');
-
-    const skillsHtml = (data.skills || [])
-        .map(s => `<span class="cv-skill-tag">${s}</span>`).join('');
-
-    body.innerHTML = `
-        <div class="gen-cv-pitch">
-            <h3 class="gen-cv-section-title">Profil</h3>
-            <p>${data.pitch || ''}</p>
-        </div>
-
-        <div class="gen-cv-section">
-            <h3 class="gen-cv-section-title">Erfarenheter</h3>
-            ${expHtml || '<p>Inga matchande erfarenheter</p>'}
-        </div>
-
-        ${skillsHtml ? `
-        <div class="gen-cv-section">
-            <h3 class="gen-cv-section-title">Relevanta kompetenser</h3>
-            <div class="cv-skills-grid">${skillsHtml}</div>
-        </div>` : ''}
-    `;
-
-    lastGeneratedCV = data;
-    document.getElementById('cv-generate-modal').classList.remove('hidden');
-}
-
-function renderCVMarkdown(d) {
-    // Render {{experiences}}
-    const experiencesBlock = (d.experiences || []).map(e => {
-        const start = e.start_date || '';
-        const end   = e.is_current ? 'nu' : (e.end_date || '');
-        const dates = start ? ` *(${start}–${end})*` : '';
-        const org   = e.organization ? ` · ${e.organization}` : '';
-        const achievements = (e.highlighted_achievements || [])
-            .map(a => `- ${a}`)
-            .join('\n');
-        return `### ${e.title}${org}${dates}${achievements ? '\n' + achievements : ''}`;
-    }).join('\n\n');
-
-    // Render {{skills}}
-    const skillsBlock = (d.skills || []).join(' · ');
-
-    return CV_TEMPLATE
-        .replace('{{pitch}}',       d.pitch || '')
-        .replace('{{experiences}}', experiencesBlock)
-        .replace('{{skills}}',      skillsBlock);
-}
-
-function downloadCVAsMarkdown() {
-    if (!lastGeneratedCV) return;
-
-    const markdown = renderCVMarkdown(lastGeneratedCV);
-    const blob = new Blob([markdown], { type: 'text/markdown;charset=utf-8' });
-    const url  = URL.createObjectURL(blob);
-    const a    = document.createElement('a');
-    a.href     = url;
-    a.download = 'cv-utkast.md';
-    a.click();
-    URL.revokeObjectURL(url);
-}
-
-function closeCVGenerateModal() {
-    document.getElementById('cv-generate-modal').classList.add('hidden');
-    const genBtn = document.getElementById('gen-cv-btn');
-    if (genBtn) {
-        genBtn.disabled = false;
-        genBtn.innerHTML = t('match.gen_btn');
     }
 }
 
@@ -396,6 +257,188 @@ function downloadLHCVAsMarkdown() {
     const a    = document.createElement('a');
     a.href     = url;
     a.download = 'loghouse-cv.md';
+    a.click();
+    URL.revokeObjectURL(url);
+}
+
+// ── Henrik CV ─────────────────────────────────────────────────────────────────
+
+let lastHenrikCV = null;
+
+async function handleGenerateHenrikCV() {
+    if (!lastMatchResult) return;
+    const btn = document.getElementById('gen-hc-cv-btn');
+    btn.disabled = true;
+    btn.innerHTML = `<span class="spinner-small"></span> ${t('match.generating')}`;
+
+    const expIds = (lastMatchResult.experiences ?? []).filter(e => e.score > 0).map(e => e.id);
+    const skills = (lastMatchResult.skills ?? []).filter(s => s.score > 0).map(s => s.skill_name);
+
+    const url = lastMatchKandidatId
+        ? `${API_BASE_URL}/kandidater/${lastMatchKandidatId}/generate-henrik-cv`
+        : `${API_BASE_URL}/competence/generate-henrik-cv`;
+
+    try {
+        const response = await apiFetch(url, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ job_description: lastJobDesc, matched_experience_ids: expIds, skills }),
+        });
+        if (!response.ok) {
+            const err = await response.json();
+            throw new Error(err.detail || 'Kunde inte generera CV');
+        }
+        lastHenrikCV = await response.json();
+        displayHenrikCV(lastHenrikCV);
+    } catch (err) {
+        alert('Fel: ' + err.message);
+    } finally {
+        btn.disabled = false;
+        btn.innerHTML = t('match.gen_hc_btn');
+    }
+}
+
+function displayHenrikCV(d) {
+    const expertiseHtml = (d.expertise || []).map(g => `
+        <div class="hc-cv-group">
+            <div class="hc-cv-group-title">${g.subheading}</div>
+            <ul>${(g.bullets || []).map(b => `<li>${b}</li>`).join('')}</ul>
+        </div>`).join('');
+
+    const expHtml = (d.experience || []).map(e => `
+        <div class="hc-cv-exp">
+            <div class="hc-cv-exp-heading">${e.heading_line}</div>
+            <p>${e.description}</p>
+        </div>`).join('');
+
+    const techHtml = (d.technical_skills || []).map(t =>
+        `<div class="hc-cv-tech-row"><span class="hc-cv-tech-cat">${t.category}:</span> ${(t.items || []).join(', ')}</div>`
+    ).join('');
+
+    const eduHtml = (d.education || []).map(e => `<li>${e}</li>`).join('');
+    const trainHtml = (d.training || []).map(e => `<li>${e}</li>`).join('');
+    const persHtml  = (d.personality || []).map(e => `<li>${e}</li>`).join('');
+    const langHtml  = (d.languages || []).map(e => `<li>${e}</li>`).join('');
+    const kwHtml    = (d.personal_keywords || []).join(' | ');
+
+    document.getElementById('hc-cv-body').innerHTML = `
+        <div class="hc-cv-section">
+            <h3 class="hc-cv-heading">${d.profile_heading || 'Min profil'}</h3>
+            <p>${(d.profile_text || '').replace(/\n\n/g, '</p><p>')}</p>
+        </div>
+        ${expertiseHtml ? `
+        <div class="hc-cv-section">
+            <h3 class="hc-cv-heading">Kärnkompetenser</h3>
+            ${expertiseHtml}
+        </div>` : ''}
+        ${expHtml ? `
+        <div class="hc-cv-section">
+            <h3 class="hc-cv-heading">Yrkeserfarenhet</h3>
+            ${expHtml}
+        </div>` : ''}
+        ${eduHtml ? `
+        <div class="hc-cv-section">
+            <h3 class="hc-cv-heading">Utbildning</h3>
+            <ul class="hc-cv-list">${eduHtml}</ul>
+        </div>` : ''}
+        ${trainHtml ? `
+        <div class="hc-cv-section">
+            <h3 class="hc-cv-heading">Kompetensutveckling</h3>
+            <ul class="hc-cv-list">${trainHtml}</ul>
+        </div>` : ''}
+        ${techHtml ? `
+        <div class="hc-cv-section">
+            <h3 class="hc-cv-heading">Digital & teknisk kompetens</h3>
+            ${techHtml}
+        </div>` : ''}
+        ${persHtml ? `
+        <div class="hc-cv-section">
+            <h3 class="hc-cv-heading">Personlighet</h3>
+            <ul class="hc-cv-list">${persHtml}</ul>
+        </div>` : ''}
+        ${langHtml ? `
+        <div class="hc-cv-section">
+            <h3 class="hc-cv-heading">Språk</h3>
+            <ul class="hc-cv-list">${langHtml}</ul>
+        </div>` : ''}
+        ${kwHtml ? `
+        <div class="hc-cv-section">
+            <h3 class="hc-cv-heading">Personliga ledord</h3>
+            <p class="hc-cv-keywords">${kwHtml}</p>
+        </div>` : ''}
+    `;
+    document.getElementById('hc-cv-modal').classList.remove('hidden');
+}
+
+function closeHenrikCVModal() {
+    document.getElementById('hc-cv-modal').classList.add('hidden');
+}
+
+function downloadHenrikCVAsMarkdown() {
+    if (!lastHenrikCV) return;
+    const d = lastHenrikCV;
+    const lines = [];
+
+    lines.push(`# ${d.profile_heading || 'Min profil'}`, '');
+    lines.push(d.profile_text || '', '');
+
+    if ((d.expertise || []).length) {
+        lines.push('## Kärnkompetenser', '');
+        d.expertise.forEach(g => {
+            lines.push(`### ${g.subheading}`, '');
+            (g.bullets || []).forEach(b => lines.push(`- ${b}`));
+            lines.push('');
+        });
+    }
+
+    if ((d.experience || []).length) {
+        lines.push('## Yrkeserfarenhet', '');
+        d.experience.forEach(e => {
+            lines.push(`### ${e.heading_line}`, '');
+            lines.push(e.description, '');
+        });
+    }
+
+    if ((d.education || []).length) {
+        lines.push('## Utbildning', '');
+        d.education.forEach(e => lines.push(`- ${e}`));
+        lines.push('');
+    }
+
+    if ((d.training || []).length) {
+        lines.push('## Kompetensutveckling', '');
+        d.training.forEach(e => lines.push(`- ${e}`));
+        lines.push('');
+    }
+
+    if ((d.technical_skills || []).length) {
+        lines.push('## Digital & teknisk kompetens', '');
+        d.technical_skills.forEach(t => lines.push(`- **${t.category}:** ${(t.items || []).join(', ')}`));
+        lines.push('');
+    }
+
+    if ((d.personality || []).length) {
+        lines.push('## Personlighet', '');
+        d.personality.forEach(e => lines.push(`- ${e}`));
+        lines.push('');
+    }
+
+    if ((d.languages || []).length) {
+        lines.push('## Språk', '');
+        d.languages.forEach(e => lines.push(`- ${e}`));
+        lines.push('');
+    }
+
+    if ((d.personal_keywords || []).length) {
+        lines.push('## Personliga ledord', '');
+        lines.push(d.personal_keywords.join(' | '), '');
+    }
+
+    const blob = new Blob([lines.join('\n')], { type: 'text/markdown;charset=utf-8' });
+    const url  = URL.createObjectURL(blob);
+    const a    = document.createElement('a');
+    a.href     = url;
+    a.download = 'cv-utkast.md';
     a.click();
     URL.revokeObjectURL(url);
 }

@@ -3395,3 +3395,26 @@ body {
 .lh-cv-edu-org {
     color: var(--text-muted);
 }
+
+/* ══════════════ HENRIK CV MODAL ══════════════ */
+.hc-cv-section { margin-bottom: 1.75rem; }
+.hc-cv-heading {
+    font-size: 1rem;
+    font-weight: 700;
+    color: #1a5f6e;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    margin: 0 0 0.75rem;
+}
+.hc-cv-group { margin-bottom: 0.75rem; }
+.hc-cv-group-title { font-weight: 600; font-size: 0.9rem; margin-bottom: 0.25rem; }
+.hc-cv-group ul { margin: 0; padding-left: 1.25rem; }
+.hc-cv-group li { margin-bottom: 0.2rem; font-size: 0.9rem; }
+.hc-cv-exp { margin-bottom: 1rem; }
+.hc-cv-exp-heading { font-weight: 600; font-size: 0.9rem; color: #1a5f6e; margin-bottom: 0.25rem; }
+.hc-cv-exp p { margin: 0; font-size: 0.9rem; line-height: 1.55; }
+.hc-cv-list { margin: 0; padding-left: 1.25rem; }
+.hc-cv-list li { font-size: 0.9rem; margin-bottom: 0.2rem; }
+.hc-cv-tech-row { font-size: 0.9rem; margin-bottom: 0.3rem; }
+.hc-cv-tech-cat { font-weight: 600; }
+.hc-cv-keywords { font-size: 0.95rem; letter-spacing: 0.02em; color: #1a5f6e; font-weight: 500; }

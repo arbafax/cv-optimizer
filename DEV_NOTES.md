@@ -7,5 +7,5 @@ den gren du är på när du kör kommandot:
 
     git subtree push --prefix frontend origin gh-pages 
 
-kommer publicera det som finns i /frontend (get den gren man har utcheckad)
+kommer publicera det som finns i /frontend (den gren man har utcheckad)
 

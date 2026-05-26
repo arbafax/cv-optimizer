@@ -3419,3 +3419,24 @@ body {
 .hc-cv-tech-row { font-size: 0.9rem; margin-bottom: 0.3rem; }
 .hc-cv-tech-cat { font-weight: 600; }
 .hc-cv-keywords { font-size: 0.95rem; letter-spacing: 0.02em; color: #1a5f6e; font-weight: 500; }
+
+/* Import drop zone */
+.import-drop-zone {
+    border: 2px dashed var(--border);
+    border-radius: 10px;
+    padding: 2.5rem 1.5rem;
+    text-align: center;
+    cursor: pointer;
+    transition: border-color 0.15s, background 0.15s;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    color: var(--text-muted);
+}
+.import-drop-zone:hover,
+.import-drop-zone.drag-over {
+    border-color: var(--blue);
+    background: rgba(37,99,235,0.04);
+    color: var(--blue);
+}
+.import-drop-zone p { margin: 0; font-size: 0.9rem; }

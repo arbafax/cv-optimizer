@@ -648,6 +648,7 @@
                 <p class="field-desc" data-i18n="account.export_desc"></p>
                 <div style="display:flex;gap:0.75rem;flex-wrap:wrap;margin-top:1rem">
                     <button class="btn btn-primary" onclick="exportAccountData()" data-i18n="account.export_btn">Exportera</button>
+                    <button class="btn btn-secondary" onclick="openImportModal()" data-i18n="account.import_btn">Importera</button>
                 </div>
             </div>
 
@@ -1115,6 +1116,25 @@
             <button class="modal-close" onclick="closeCVModal()">&times;</button>
         </div>
         <div class="modal-body" id="modal-body"></div>
+    </div>
+</div>
+
+<!-- Import modal -->
+<div id="import-modal" class="modal hidden">
+    <div class="modal-overlay" onclick="closeImportModal()"></div>
+    <div class="modal-content" style="max-width:520px">
+        <div class="modal-header">
+            <h2 data-i18n="account.import_modal_title">Importera data</h2>
+            <button class="modal-close" onclick="closeImportModal()">&times;</button>
+        </div>
+        <div class="modal-body">
+            <div id="import-drop-zone" class="import-drop-zone" onclick="document.getElementById('import-file-input').click()">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" width="40" height="40" style="opacity:.5;margin-bottom:.75rem"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+                <p data-i18n="account.import_drop_hint">Dra och släpp din exportfil här, eller klicka för att välja fil</p>
+                <input type="file" id="import-file-input" accept=".json,application/json" style="display:none" onchange="handleImportFileSelect(event)">
+            </div>
+            <div id="import-status" style="margin-top:1rem"></div>
+        </div>
     </div>
 </div>
 

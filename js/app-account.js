@@ -242,6 +242,180 @@ function onAIProviderChange() {
     if (ollamaGroup) ollamaGroup.classList.toggle('hidden', provider !== 'ollama');
 }
 
+function openImportModal() {
+    document.getElementById('import-modal')?.classList.remove('hidden');
+    document.getElementById('import-status').innerHTML = '';
+    document.getElementById('import-file-input').value = '';
+    const dz = document.getElementById('import-drop-zone');
+    dz.ondragover = (e) => { e.preventDefault(); dz.classList.add('drag-over'); };
+    dz.ondragleave = () => dz.classList.remove('drag-over');
+    dz.ondrop = (e) => {
+        e.preventDefault();
+        dz.classList.remove('drag-over');
+        const file = e.dataTransfer?.files?.[0];
+        if (file) _processImportFile(file);
+    };
+}
+
+function closeImportModal() {
+    document.getElementById('import-modal')?.classList.add('hidden');
+}
+
+function handleImportFileSelect(event) {
+    const file = event.target.files?.[0];
+    if (file) _processImportFile(file);
+}
+
+async function _processImportFile(file) {
+    const statusEl = document.getElementById('import-status');
+    statusEl.innerHTML = '';
+    let payload;
+    try {
+        const text = await file.text();
+        payload = JSON.parse(text);
+    } catch {
+        statusEl.className = 'status-message status-error';
+        statusEl.textContent = t('account.import_invalid') || 'Filen är inte ett giltigt CVOptimizer-exportformat';
+        statusEl.style.display = 'flex';
+        return;
+    }
+    if (!payload.export_version || !payload.profile) {
+        statusEl.className = 'status-message status-error';
+        statusEl.textContent = t('account.import_invalid') || 'Filen är inte ett giltigt CVOptimizer-exportformat';
+        statusEl.style.display = 'flex';
+        return;
+    }
+    if (!confirm(t('account.import_confirm') || 'Vill du importera denna fil? All befintlig data ersätts.')) return;
+
+    try {
+        await _importPayload(payload);
+        statusEl.className = 'status-message status-success';
+        statusEl.textContent = t('account.import_success') || 'Import klar – sidan laddas om';
+        statusEl.style.display = 'flex';
+        setTimeout(() => location.reload(), 1500);
+    } catch (err) {
+        statusEl.className = 'status-message status-error';
+        statusEl.textContent = (t('account.import_error') || 'Import misslyckades') + ': ' + err.message;
+        statusEl.style.display = 'flex';
+    }
+}
+
+async function _importPayload(payload) {
+    const stores = ['profile', 'skills', 'experiences', 'cvs', 'education',
+                    'certifications', 'search_profiles', 'settings',
+                    'kandidater', 'kand_skills', 'kand_experiences',
+                    'kand_education', 'kand_certifications', 'kand_cvs'];
+
+    // Preserve AI settings across import
+    const savedAI = await cvDb.settings.getAll();
+
+    // Clear all stores
+    for (const store of stores) {
+        await cvDb._tx(store, 'readwrite', (tx) =>
+            new Promise((res, rej) => {
+                const req = tx.objectStore(store).clear();
+                req.onsuccess = () => res();
+                req.onerror = () => rej(req.error);
+            })
+        );
+    }
+
+    // Re-apply AI settings (user's own keys, not cloned ones)
+    const aiKeys = ['ai_provider', 'openai_key', 'anthropic_key', 'gemini_key', 'ollama_url', 'ollama_model'];
+    for (const key of aiKeys) {
+        if (savedAI[key] != null) await cvDb.settings.set(key, savedAI[key]);
+    }
+
+    // Restore user settings from payload (roles, language)
+    const userSettings = payload.user_settings || {};
+    for (const [key, value] of Object.entries(userSettings)) {
+        await cvDb.settings.set(key, value);
+    }
+
+    // Import profile (singleton)
+    if (payload.profile) {
+        await cvDb.profile.save(payload.profile);
+    }
+
+    // Import flat autoIncrement stores (strip id so DB assigns new ones)
+    const strip = (obj) => { const { id, ...rest } = obj; return rest; };
+
+    for (const skill of (payload.skills || [])) {
+        await cvDb._tx('skills', 'readwrite', (tx) =>
+            new Promise((res, rej) => {
+                const req = tx.objectStore('skills').add(strip(skill));
+                req.onsuccess = () => res(); req.onerror = () => rej(req.error);
+            })
+        );
+    }
+    for (const exp of (payload.experiences || [])) {
+        await cvDb._tx('experiences', 'readwrite', (tx) =>
+            new Promise((res, rej) => {
+                const req = tx.objectStore('experiences').add(strip(exp));
+                req.onsuccess = () => res(); req.onerror = () => rej(req.error);
+            })
+        );
+    }
+    for (const ed of (payload.education || [])) {
+        await cvDb._tx('education', 'readwrite', (tx) =>
+            new Promise((res, rej) => {
+                const req = tx.objectStore('education').add(strip(ed));
+                req.onsuccess = () => res(); req.onerror = () => rej(req.error);
+            })
+        );
+    }
+    for (const cert of (payload.certifications || [])) {
+        await cvDb._tx('certifications', 'readwrite', (tx) =>
+            new Promise((res, rej) => {
+                const req = tx.objectStore('certifications').add(strip(cert));
+                req.onsuccess = () => res(); req.onerror = () => rej(req.error);
+            })
+        );
+    }
+    for (const sp of (payload.search_profiles || [])) {
+        await cvDb._tx('search_profiles', 'readwrite', (tx) =>
+            new Promise((res, rej) => {
+                const req = tx.objectStore('search_profiles').add(strip(sp));
+                req.onsuccess = () => res(); req.onerror = () => rej(req.error);
+            })
+        );
+    }
+
+    // Import kandidater with nested data (need to remap old kandidat id → new id)
+    for (const k of (payload.kandidater || [])) {
+        const newKandId = await cvDb._tx('kandidater', 'readwrite', (tx) =>
+            new Promise((res, rej) => {
+                const req = tx.objectStore('kandidater').add(strip(k.info));
+                req.onsuccess = () => res(req.result); req.onerror = () => rej(req.error);
+            })
+        );
+        for (const item of (k.skills || [])) {
+            const obj = { ...strip(item), kandidat_id: newKandId };
+            await cvDb._tx('kand_skills', 'readwrite', (tx) =>
+                new Promise((res, rej) => { const req = tx.objectStore('kand_skills').add(obj); req.onsuccess = () => res(); req.onerror = () => rej(req.error); })
+            );
+        }
+        for (const item of (k.experiences || [])) {
+            const obj = { ...strip(item), kandidat_id: newKandId };
+            await cvDb._tx('kand_experiences', 'readwrite', (tx) =>
+                new Promise((res, rej) => { const req = tx.objectStore('kand_experiences').add(obj); req.onsuccess = () => res(); req.onerror = () => rej(req.error); })
+            );
+        }
+        for (const item of (k.education || [])) {
+            const obj = { ...strip(item), kandidat_id: newKandId };
+            await cvDb._tx('kand_education', 'readwrite', (tx) =>
+                new Promise((res, rej) => { const req = tx.objectStore('kand_education').add(obj); req.onsuccess = () => res(); req.onerror = () => rej(req.error); })
+            );
+        }
+        for (const item of (k.certifications || [])) {
+            const obj = { ...strip(item), kandidat_id: newKandId };
+            await cvDb._tx('kand_certifications', 'readwrite', (tx) =>
+                new Promise((res, rej) => { const req = tx.objectStore('kand_certifications').add(obj); req.onsuccess = () => res(); req.onerror = () => rej(req.error); })
+            );
+        }
+    }
+}
+
 async function exportAccountData() {
     try {
         const [profile, skills, experiences, education, certifications,
@@ -263,6 +437,13 @@ async function exportAccountData() {
             certifications: await cvDb.kandCertifications.listFor(k.id),
         })));
 
+        const allSettings = await cvDb.settings.getAll();
+        const userSettings = {};
+        const settingsToExport = ['user_roles', 'language'];
+        for (const key of settingsToExport) {
+            if (allSettings[key] != null) userSettings[key] = allSettings[key];
+        }
+
         const payload = {
             export_version: '1.0',
             exported_at:    new Date().toISOString(),
@@ -273,6 +454,7 @@ async function exportAccountData() {
             certifications,
             search_profiles: searchProfilesList,
             kandidater:      kandidaterWithData,
+            user_settings:   userSettings,
         };
 
         const json = JSON.stringify(payload, null, 2);

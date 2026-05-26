@@ -279,7 +279,7 @@ async function _processImportFile(file) {
         statusEl.style.display = 'flex';
         return;
     }
-    if (!payload.export_version || !payload.profile) {
+    if (!payload.export_version || (!payload.profile && !payload.kandidater)) {
         statusEl.className = 'status-message status-error';
         statusEl.textContent = t('account.import_invalid') || 'Filen är inte ett giltigt CVOptimizer-exportformat';
         statusEl.style.display = 'flex';
@@ -418,15 +418,11 @@ async function _importPayload(payload) {
 
 async function exportAccountData() {
     try {
-        const [profile, skills, experiences, education, certifications,
-               searchProfilesList, allKandidater] = await Promise.all([
+        const [profile, searchProfilesList, allKandidater, allSettings] = await Promise.all([
             cvDb.profile.get(),
-            cvDb.skills.list(),
-            cvDb.experiences.list(),
-            cvDb.education.list(),
-            cvDb.certifications.list(),
             cvDb.searchProfiles.list(),
             cvDb.kandidater.list(),
+            cvDb.settings.getAll(),
         ]);
 
         const kandidaterWithData = await Promise.all(allKandidater.map(async k => ({
@@ -437,21 +433,15 @@ async function exportAccountData() {
             certifications: await cvDb.kandCertifications.listFor(k.id),
         })));
 
-        const allSettings = await cvDb.settings.getAll();
         const userSettings = {};
-        const settingsToExport = ['user_roles', 'language'];
-        for (const key of settingsToExport) {
+        for (const key of ['user_roles', 'language']) {
             if (allSettings[key] != null) userSettings[key] = allSettings[key];
         }
 
         const payload = {
-            export_version: '1.0',
-            exported_at:    new Date().toISOString(),
+            export_version:  '2.0',
+            exported_at:     new Date().toISOString(),
             profile,
-            skills,
-            experiences,
-            education,
-            certifications,
             search_profiles: searchProfilesList,
             kandidater:      kandidaterWithData,
             user_settings:   userSettings,

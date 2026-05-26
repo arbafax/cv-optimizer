@@ -122,10 +122,9 @@ function showStatus(message, type) {
     }
 }
 
-// Load all CVs (old /cv/ endpoint)
 async function loadCVs() {
     try {
-        const response = await apiFetch(`${API_BASE_URL}/cv/`);
+        const response = await apiFetch(`${API_BASE_URL}/competence/cvs/`);
         if (!response.ok) throw new Error('Kunde inte ladda CV:n');
 
         allCVs = await response.json();
@@ -210,7 +209,7 @@ function displayCVs(cvs) {
         const exps   = cv.structured_data.work_experience.length;
         const selected = selectedCV?.id === cv.id;
 
-        const mergeIndicator = cv.is_merged
+        const mergeIndicator = cv.is_processed
             ? `<span class="cv-merged-badge">✓ Behandlad</span>`
             : `<button class="btn btn-small btn-merge" onclick="mergeCV(${cv.id}, event)">⚡ Behandla</button>`;
 
@@ -375,10 +374,10 @@ async function editTitle(id, event) {
     if (newTitle === null) return;
 
     try {
-        const res = await apiFetch(`${API_BASE_URL}/cv/${id}/title`, {
-            method: 'PATCH',
+        const res = await apiFetch(`${API_BASE_URL}/competence/cvs/${id}/title`, {
+            method: 'PUT',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ title: newTitle.trim() || cv.structured_data.personal_info.full_name })
+            body: JSON.stringify({ title: newTitle.trim() || cv.structured_data?.personal_info?.full_name })
         });
 
         if (!res.ok) {
@@ -582,7 +581,7 @@ async function deleteCV(id, event) {
     showStatus('⏳ Raderar CV...', 'loading');
 
     try {
-        const response = await apiFetch(`${API_BASE_URL}/cv/${id}`, {
+        const response = await apiFetch(`${API_BASE_URL}/competence/cvs/${id}`, {
             method: 'DELETE'
         });
 

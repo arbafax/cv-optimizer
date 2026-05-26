@@ -102,7 +102,7 @@ sv: {
     'account.ai_view_ollama':       'Du använder {label} lokalt ({url}, modell: {model}).',
 
     'account.export_title':         'Export / Import',
-    'account.export_desc':          'Du kan exportera all information från den här webbläsaren till ett textformat som kan importeras på andra enheter. När du klickar på "Exportera" skapas en fil (JSON) som du kan spara på din enhet eller skicka till en annan enhet och importera för att kunna använda all information igen utan att behöva göra om allt.',
+    'account.export_desc':          'Du kan exportera all* information från den här webbläsaren till ett textformat som kan importeras på andra enheter. När du klickar på "Exportera" skapas en fil (JSON) som sparas på din enhet och sedan importeras i en annan webbläsare som kör CVOptimizer.<br><br>*) De dokumentfiler (pdf, docx etc) du laddat in följer INTE med i exporten. Inte heller den API-nyckel du använder för kommunikation med din LLM-leverantör.',
     'account.export_btn':           'Exportera',
     'account.import_btn':           'Importera',
     'account.import_modal_title':   'Importera data',
@@ -362,7 +362,7 @@ en: {
     'account.ai_view_ollama':       'You are using {label} locally ({url}, model: {model}).',
 
     'account.export_title':         'Export / Import',
-    'account.export_desc':          'You can export all information from this browser to a text format that can be imported on other devices. When you click "Export", a file (JSON) is created that you can save on your device or send to another device and import to use all your information again without having to start over.',
+    'account.export_desc':          'You can export all* information from this browser to a text format that can be imported on other devices. When you click "Export", a file (JSON) is saved on your device and can then be imported in another browser running CVOptimizer.<br><br>*) Document files (pdf, docx, etc.) you have uploaded are NOT included in the export. Neither is the API key you use for communication with your LLM provider.',
     'account.export_btn':           'Export',
     'account.import_btn':           'Import',
     'account.import_modal_title':   'Import data',
@@ -610,7 +610,7 @@ no: {
     'account.ai_view_ollama':       'Du bruker {label} lokalt ({url}, modell: {model}).',
 
     'account.export_title':         'Export / Import',
-    'account.export_desc':          'Du kan eksportere all informasjon fra denne nettleseren til et tekstformat som kan importeres på andre enheter. Når du klikker på "Eksporter" opprettes en fil (JSON) som du kan lagre på enheten din eller sende til en annen enhet og importere for å bruke all informasjonen din igjen uten å måtte begynne på nytt.',
+    'account.export_desc':          'Du kan eksportere all* informasjon fra denne nettleseren til et tekstformat som kan importeres på andre enheter. Når du klikker på "Eksporter" lagres en fil (JSON) på enheten din og kan deretter importeres i en annen nettleser som kjører CVOptimizer.<br><br>*) Dokumentfiler (pdf, docx osv.) du har lastet opp følger IKKE med i eksporten. Heller ikke API-nøkkelen du bruker for kommunikasjon med din LLM-leverandør.',
     'account.export_btn':           'Eksporter',
     'account.import_btn':           'Importer',
     'account.import_modal_title':   'Importer data',

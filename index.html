@@ -645,7 +645,7 @@
             <!-- Export / Import -->
             <div class="card">
                 <h2 class="card-title" data-i18n="account.export_title">Export / Import</h2>
-                <p class="field-desc" data-i18n="account.export_desc"></p>
+                <p class="field-desc" data-i18n-html="account.export_desc"></p>
                 <div style="display:flex;gap:0.75rem;flex-wrap:wrap;margin-top:1rem">
                     <button class="btn btn-primary" onclick="exportAccountData()" data-i18n="account.export_btn">Exportera</button>
                     <button class="btn btn-secondary" onclick="openImportModal()" data-i18n="account.import_btn">Importera</button>
@@ -767,14 +767,14 @@
         <div id="sp-tab-basinfo">
         <div class="card sokprofil-card">
             <div class="form-group">
-                <label for="sp-email">E-postadress</label>
-                <p class="field-desc">Den e-postadress som visas för rekryterare och arbetsgivare. Behöver inte vara samma som ditt kontos e-postadress.</p>
-                <input type="email" id="sp-email" class="form-input" placeholder="din@epost.se">
-            </div>
-            <div class="form-group">
                 <label for="sp-public-name">Publikt namn</label>
                 <p class="field-desc">Det namn som visas för arbetsgivare och rekryterare. Kan skilja sig från ditt kontonamn om du föredrar ett kortare eller mer professionellt namn.</p>
                 <input type="text" id="sp-public-name" class="form-input" placeholder="Ditt namn som visas för arbetsgivare">
+            </div>
+            <div class="form-group">
+                <label for="sp-email">E-postadress</label>
+                <p class="field-desc">Den e-postadress som visas för rekryterare och arbetsgivare. Behöver inte vara samma som ditt kontos e-postadress.</p>
+                <input type="email" id="sp-email" class="form-input" placeholder="din@epost.se">
             </div>
             <div class="form-group">
                 <label for="sp-public-phone">Publikt telefonnummer</label>

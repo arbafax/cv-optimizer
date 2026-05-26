@@ -484,9 +484,20 @@ const kandidater = {
         willing_to_commute: data.willing_to_commute ?? false,
         searchable:         data.searchable         ?? false,
         available_from:     data.available_from     ?? null,
+        description:        data.description        ?? null,
+        is_own_profile:     data.is_own_profile     ?? false,
         created_at:         new Date().toISOString(),
       }));
       return _req(store.get(id));
+    });
+  },
+  async getOwn() {
+    return _tx('kandidater', 'readonly', async (tx) => {
+      const all = await _req(tx.objectStore('kandidater').getAll());
+      const ownProfiles = all.filter(k => k.is_own_profile === true);
+      if (!ownProfiles.length) return null;
+      // If duplicates exist (race condition), pick the highest ID — most recently created, most complete
+      return ownProfiles.reduce((best, k) => k.id > best.id ? k : best);
     });
   },
   async update(id, data) {
@@ -540,6 +551,11 @@ const kandSkills = {
 
 const kandExperiences = {
   async listFor(kandidatId) { return _byKandidatId('kand_experiences', kandidatId); },
+  async get(id) {
+    return _tx('kand_experiences', 'readonly', (tx) =>
+      _req(tx.objectStore('kand_experiences').get(id))
+    );
+  },
   async add(kandidatId, data) {
     return _tx('kand_experiences', 'readwrite', async (tx) => {
       const store = tx.objectStore('kand_experiences');
@@ -573,6 +589,93 @@ const kandExperiences = {
     );
   },
   async deleteAll(kandidatId) { return _deleteByKandidatId('kand_experiences', kandidatId); },
+
+  async addAchievement(id, text) {
+    return _tx('kand_experiences', 'readwrite', async (tx) => {
+      const store = tx.objectStore('kand_experiences');
+      const exp = await _req(store.get(id));
+      if (!exp) throw new Error(`KandExp ${id} not found`);
+      exp.achievements = [...(exp.achievements ?? []), text];
+      await _req(store.put(exp));
+      return exp;
+    });
+  },
+  async updateAchievement(id, index, text) {
+    return _tx('kand_experiences', 'readwrite', async (tx) => {
+      const store = tx.objectStore('kand_experiences');
+      const exp = await _req(store.get(id));
+      if (!exp) throw new Error(`KandExp ${id} not found`);
+      exp.achievements[index] = text;
+      await _req(store.put(exp));
+      return exp;
+    });
+  },
+  async deleteAchievement(id, index) {
+    return _tx('kand_experiences', 'readwrite', async (tx) => {
+      const store = tx.objectStore('kand_experiences');
+      const exp = await _req(store.get(id));
+      if (!exp) throw new Error(`KandExp ${id} not found`);
+      exp.achievements.splice(index, 1);
+      await _req(store.put(exp));
+      return exp;
+    });
+  },
+  async replaceAchievements(id, list) {
+    return _tx('kand_experiences', 'readwrite', async (tx) => {
+      const store = tx.objectStore('kand_experiences');
+      const exp = await _req(store.get(id));
+      if (!exp) throw new Error(`KandExp ${id} not found`);
+      exp.achievements = list;
+      await _req(store.put(exp));
+      return exp;
+    });
+  },
+  async updateDescription(id, text) {
+    return _tx('kand_experiences', 'readwrite', async (tx) => {
+      const store = tx.objectStore('kand_experiences');
+      const exp = await _req(store.get(id));
+      if (!exp) throw new Error(`KandExp ${id} not found`);
+      const updated = { ...exp, description: text };
+      await _req(store.put(updated));
+      return updated;
+    });
+  },
+  async updatePeriod(id, { start_date, end_date, is_current }) {
+    return _tx('kand_experiences', 'readwrite', async (tx) => {
+      const store = tx.objectStore('kand_experiences');
+      const exp = await _req(store.get(id));
+      if (!exp) throw new Error(`KandExp ${id} not found`);
+      const updated = { ...exp, start_date, end_date, is_current };
+      await _req(store.put(updated));
+      return updated;
+    });
+  },
+  async addSkill(id, skillName) {
+    return _tx('kand_experiences', 'readwrite', async (tx) => {
+      const store = tx.objectStore('kand_experiences');
+      const exp = await _req(store.get(id));
+      if (!exp) throw new Error(`KandExp ${id} not found`);
+      const related = exp.related_skills || [];
+      if (!related.includes(skillName)) {
+        const updated = { ...exp, related_skills: [...related, skillName] };
+        await _req(store.put(updated));
+        return updated;
+      }
+      return exp;
+    });
+  },
+  async removeSkill(id, index) {
+    return _tx('kand_experiences', 'readwrite', async (tx) => {
+      const store = tx.objectStore('kand_experiences');
+      const exp = await _req(store.get(id));
+      if (!exp) throw new Error(`KandExp ${id} not found`);
+      const related = [...(exp.related_skills || [])];
+      related.splice(index, 1);
+      const updated = { ...exp, related_skills: related };
+      await _req(store.put(updated));
+      return updated;
+    });
+  },
 };
 
 const kandEducation = {
@@ -656,6 +759,7 @@ const kandCvs = {
       const id = await _req(store.add({
         kandidat_id:         kandidatId,
         filename:            data.filename,
+        title:               data.title ?? data.filename,
         upload_date:         new Date().toISOString(),
         is_processed:        data.is_processed    ?? false,
         is_vectorized:       false,
@@ -667,6 +771,16 @@ const kandCvs = {
         certification_count: data.certification_count ?? 0,
       }));
       return _req(store.get(id));
+    });
+  },
+  async updateTitle(id, title) {
+    return _tx('kand_cvs', 'readwrite', async (tx) => {
+      const store = tx.objectStore('kand_cvs');
+      const cv = await _req(store.get(id));
+      if (!cv) throw new Error(`CV ${id} not found`);
+      cv.title = title;
+      await _req(store.put(cv));
+      return cv;
     });
   },
   async delete(id) {

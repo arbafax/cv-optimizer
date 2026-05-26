@@ -77,6 +77,95 @@ class LocalResponse {
     async text() { return JSON.stringify(this._data); }
 }
 
+// ── Own-profile kandidat ID (cached after first lookup) ───────────────────────
+let _ownKandidatId = null;
+let _ownKandidatIdPromise = null;
+
+async function _getOwnKandidatId() {
+    if (_ownKandidatId) return _ownKandidatId;
+    if (!_ownKandidatIdPromise) _ownKandidatIdPromise = _resolveOwnKandidatId();
+    return _ownKandidatIdPromise;
+}
+
+async function _resolveOwnKandidatId() {
+    const own = await cvDb.kandidater.getOwn();
+    if (own) { _ownKandidatId = own.id; return own.id; }
+
+    // First run — create own-profile kandidat from existing profile data
+    const profile = await cvDb.profile.get() || {};
+    const newKand = await cvDb.kandidater.add({
+        public_name:        profile.public_name || 'Användare',
+        email:              profile.email       || null,
+        public_phone:       profile.public_phone || null,
+        desired_city:       profile.desired_city       || null,
+        desired_employment: profile.desired_employment || [],
+        desired_workplace:  profile.desired_workplace  || [],
+        willing_to_commute: profile.willing_to_commute || false,
+        searchable:         profile.searchable         || false,
+        available_from:     profile.available_from     || null,
+        description:        profile.description        || null,
+        is_own_profile:     true,
+    });
+    _ownKandidatId = newKand.id;
+
+    // Migrate flat competence data (only if flat stores have content)
+    const [flatSkills, flatExps, flatCvs] = await Promise.all([
+        cvDb.skills.list(),
+        cvDb.experiences.list(),
+        cvDb.cvs.list(),
+    ]);
+
+    for (const s of flatSkills) {
+        await cvDb.kandSkills.add(_ownKandidatId, {
+            skill_name: s.skill_name,
+            category:   s.category   || 'Övrigt',
+            skill_type: s.skill_type || 'technical',
+        });
+    }
+    for (const e of flatExps) {
+        if (e.experience_type === 'work' || e.experience_type === 'project') {
+            await cvDb.kandExperiences.add(_ownKandidatId, {
+                title: e.title, organization: e.organization || null,
+                experience_type: e.experience_type,
+                start_date: e.start_date || null, end_date: e.end_date || null,
+                is_current: e.is_current || false,
+                description: e.description || null, achievements: e.achievements || [],
+            });
+        } else if (e.experience_type === 'education') {
+            await cvDb.kandEducation.add(_ownKandidatId, {
+                degree:         e.degree         || e.title        || '',
+                institution:    e.institution    || e.organization || null,
+                field_of_study: e.field_of_study || null,
+                start_date:     e.start_date     || null,
+                end_date:       e.end_date       || null,
+                description:    null,
+            });
+        } else if (e.experience_type === 'certification') {
+            await cvDb.kandCertifications.add(_ownKandidatId, {
+                name:   e.name   || e.title        || '',
+                issuer: e.issuer || e.organization || null,
+                date:   e.date   || e.start_date   || null,
+                description: null,
+            });
+        }
+    }
+    for (const cv of flatCvs) {
+        await cvDb.kandCvs.add(_ownKandidatId, {
+            filename:            cv.filename,
+            title:               cv.title || cv.filename,
+            is_processed:        true,
+            structured_data:     cv.structured_data  || null,
+            file_data:           cv.file_data         || null,
+            skill_count:         (cv.structured_data?.skills         || []).length,
+            experience_count:    (cv.structured_data?.work_experience || []).length,
+            education_count:     (cv.structured_data?.education       || []).length,
+            certification_count: (cv.structured_data?.certifications  || []).length,
+        });
+    }
+
+    return _ownKandidatId;
+}
+
 // ── Browser Router (replaces all HTTP API calls) ──────────────────────────────
 async function browserRoute(path, options = {}) {
     const method = (options.method || 'GET').toUpperCase();
@@ -98,12 +187,14 @@ async function browserRoute(path, options = {}) {
         // ── AUTH ────────────────────────────────────────────────────────────
         if (parts[0] === 'auth') {
             if (parts[1] === 'me' && method === 'GET') {
-                const p = await cvDb.profile.get();
+                const p    = await cvDb.profile.get();
                 const lang = await cvDb.settings.get('language');
+                const own  = await cvDb.kandidater.getOwn();
                 return new LocalResponse({
-                    id: 1, name: p?.public_name || 'Användare',
-                    email: p?.email || '',
-                    language: lang || currentLang,
+                    id: 1,
+                    name:     own?.public_name || p?.public_name || 'Användare',
+                    email:    p?.email         || own?.email     || '',
+                    language: lang             || currentLang,
                     roles: [],
                 });
             }
@@ -111,7 +202,12 @@ async function browserRoute(path, options = {}) {
                 const profile = await cvDb.profile.get() || {};
                 const profileUpdates = {};
                 if (body?.language) await cvDb.settings.set('language', body.language);
-                if (body?.name)     profileUpdates.public_name = body.name;
+                if (body?.name) {
+                    profileUpdates.public_name = body.name;
+                    // Keep own-profile kandidat in sync
+                    const own = await cvDb.kandidater.getOwn();
+                    if (own) await cvDb.kandidater.update(own.id, { public_name: body.name });
+                }
                 if (body?.email)    profileUpdates.email = body.email;
                 if (body?.roles)    await cvDb.settings.set('user_roles', JSON.stringify(body.roles));
                 if (Object.keys(profileUpdates).length) {
@@ -192,23 +288,23 @@ async function browserRoute(path, options = {}) {
             }
         }
 
-        // ── COMPETENCE ───────────────────────────────────────────────────────
+        // ── COMPETENCE ── (delegerar till kand_* via ownId) ──────────────────────
         if (parts[0] === 'competence') {
+            const ownId = await _getOwnKandidatId();
 
-            // /competence/cvs/* (used by app-sokprofil.js / app-cv.js)
+            // CVs
             if (parts[1] === 'cvs') {
                 if (!parts[2] && method === 'GET') {
-                    const list = await cvDb.cvs.list();
+                    const list = await cvDb.kandCvs.listFor(ownId);
                     return new LocalResponse(list.map(cv => {
                         const sd = cv.structured_data || {};
-                        return {
-                            ...cv,
+                        return { ...cv,
                             is_processed: Boolean(sd && Object.keys(sd).length),
                             is_vectorized: false,
-                            skill_count: (sd.skills || []).length,
-                            experience_count: (sd.work_experience || []).length,
-                            education_count: (sd.education || []).length,
-                            certification_count: (sd.certifications || []).length,
+                            skill_count:         (sd.skills          || []).length,
+                            experience_count:    (sd.work_experience || []).length,
+                            education_count:     (sd.education       || []).length,
+                            certification_count: (sd.certifications  || []).length,
                         };
                     }));
                 }
@@ -217,21 +313,26 @@ async function browserRoute(path, options = {}) {
                     if (!file) return new LocalResponse({ detail: 'Ingen fil' }, 400);
                     const [text, fileData] = await Promise.all([cvPdf.extractText(file), file.arrayBuffer()]);
                     const structured = await cvAI.structureCV(text);
-                    const cv = await cvDb.cvs.add({
-                        filename: file.name,
-                        title: structured?.personal_info?.full_name || file.name.replace('.pdf', ''),
-                        original_text: text,
-                        structured_data: structured,
-                        file_data: fileData,
+                    const mergeResult = await cvCompSvc.mergeCVIntoBankForKandid(ownId, { structured_data: structured, filename: file.name });
+                    const cv = await cvDb.kandCvs.add(ownId, {
+                        filename: file.name, is_processed: true,
+                        structured_data: structured, file_data: fileData,
+                        skill_count:         mergeResult.skills_added,
+                        experience_count:    (structured?.work_experience || []).length,
+                        education_count:     (structured?.education       || []).length,
+                        certification_count: (structured?.certifications  || []).length,
                     });
-                    await cvCompSvc.mergeCVIntoBank(cv);
                     return new LocalResponse({ ...cv, is_processed: true, is_vectorized: false, structured_data: structured });
                 }
                 if (parts[2] && parts[3] === 'vectorize' && method === 'POST') {
                     return new LocalResponse({ message: 'Vektorisering inte tillgänglig i browser-läge' });
                 }
+                if (parts[2] && parts[3] === 'title' && (method === 'PUT' || method === 'PATCH')) {
+                    const updated = await cvDb.kandCvs.updateTitle(Number(parts[2]), body.title);
+                    return new LocalResponse(updated);
+                }
                 if (parts[2] && !parts[3] && method === 'DELETE') {
-                    await cvDb.cvs.delete(Number(parts[2]));
+                    await cvDb.kandCvs.delete(Number(parts[2]));
                     return new LocalResponse({});
                 }
             }
@@ -239,191 +340,189 @@ async function browserRoute(path, options = {}) {
             // stats
             if (parts[1] === 'stats') {
                 const [skillList, expList, eduList, certList, cvList] = await Promise.all([
-                    cvDb.skills.list(), cvDb.experiences.list(),
-                    cvDb.education.list(), cvDb.certifications.list(), cvDb.cvs.list(),
+                    cvDb.kandSkills.listFor(ownId),
+                    cvDb.kandExperiences.listFor(ownId),
+                    cvDb.kandEducation.listFor(ownId),
+                    cvDb.kandCertifications.listFor(ownId),
+                    cvDb.kandCvs.listFor(ownId),
                 ]);
-                const { by_category } = await cvDb.skills.stats();
+                const by_category = {};
+                for (const s of skillList) {
+                    const cat = s.category || 'Okategoriserad';
+                    by_category[cat] = (by_category[cat] || 0) + 1;
+                }
                 return new LocalResponse({
-                    total_skills: skillList.length,
-                    total_experiences: expList.filter(e => e.experience_type === 'work').length,
+                    total_skills:           skillList.length,
+                    total_experiences:      expList.filter(e => e.experience_type === 'work').length,
                     total_source_documents: cvList.length,
-                    skills_by_category: by_category,
-                    total_education: eduList.length,
-                    total_certifications: certList.length,
+                    skills_by_category:     by_category,
+                    total_education:        eduList.length,
+                    total_certifications:   certList.length,
                 });
             }
 
             // skills CRUD
             if (parts[1] === 'skills' && !parts[2]) {
-                if (method === 'GET')    return new LocalResponse({ skills: await cvDb.skills.list() });
-                if (method === 'POST')   return new LocalResponse(await cvDb.skills.add(body));
-                if (method === 'DELETE') { await cvDb.skills.deleteAll(); return new LocalResponse({}); }
+                if (method === 'GET')    return new LocalResponse({ skills: await cvDb.kandSkills.listFor(ownId) });
+                if (method === 'POST')   return new LocalResponse(await cvDb.kandSkills.add(ownId, body));
+                if (method === 'DELETE') { await cvDb.kandSkills.deleteAll(ownId); return new LocalResponse({}); }
             }
             if (parts[1] === 'skills' && parts[2]) {
                 const id = Number(parts[2]);
-                if (method === 'PUT')    return new LocalResponse(await cvDb.skills.update(id, body));
-                if (method === 'DELETE') { await cvDb.skills.delete(id); return new LocalResponse({}); }
+                if (method === 'PUT')    return new LocalResponse(await cvDb.kandSkills.update(id, body));
+                if (method === 'DELETE') { await cvDb.kandSkills.delete(id); return new LocalResponse({}); }
             }
 
-            // experiences CRUD
+            // experiences CRUD (work + project)
             if (parts[1] === 'experiences' && !parts[2]) {
                 if (method === 'GET') {
-                    const all = await cvDb.experiences.list();
+                    const all = await cvDb.kandExperiences.listFor(ownId);
                     return new LocalResponse({ experiences: all.filter(e => e.experience_type === 'work' || e.experience_type === 'project') });
                 }
-                if (method === 'POST')   return new LocalResponse(await cvDb.experiences.add(body));
+                if (method === 'POST') return new LocalResponse(await cvDb.kandExperiences.add(ownId, body));
                 if (method === 'DELETE') {
-                    const all = await cvDb.experiences.list();
+                    const all = await cvDb.kandExperiences.listFor(ownId);
                     for (const e of all.filter(e => e.experience_type === 'work' || e.experience_type === 'project'))
-                        await cvDb.experiences.delete(e.id);
+                        await cvDb.kandExperiences.delete(e.id);
                     return new LocalResponse({});
                 }
             }
             if (parts[1] === 'experiences' && parts[2] === 'merge' && method === 'POST') {
                 const ids = body.experience_ids || [];
-                const exps = await Promise.all(ids.map(id => cvDb.experiences.get(Number(id))));
+                const all = await cvDb.kandExperiences.listFor(ownId);
+                const exps = all.filter(e => ids.includes(e.id));
                 const merged = await cvAI.mergeExperiences(exps);
                 const allRelatedSkills = [...new Set(exps.flatMap(e => e.related_skills || []))];
-                const newExp = await cvDb.experiences.add({ ...merged, related_skills: allRelatedSkills });
-                for (const id of ids) await cvDb.experiences.delete(Number(id));
+                const newExp = await cvDb.kandExperiences.add(ownId, { ...merged, related_skills: allRelatedSkills });
+                for (const id of ids) await cvDb.kandExperiences.delete(Number(id));
                 return new LocalResponse({ merged_count: ids.length, title: newExp.title, id: newExp.id });
             }
             if (parts[1] === 'experiences' && parts[2] && !parts[3]) {
                 const id = Number(parts[2]);
-                if (method === 'PUT')    return new LocalResponse(await cvDb.experiences.update(id, body));
-                if (method === 'DELETE') { await cvDb.experiences.delete(id); return new LocalResponse({}); }
+                if (method === 'PUT')    return new LocalResponse(await cvDb.kandExperiences.update(id, body));
+                if (method === 'DELETE') { await cvDb.kandExperiences.delete(id); return new LocalResponse({}); }
             }
             if (parts[1] === 'experiences' && parts[2] && parts[3]) {
                 const id = Number(parts[2]);
                 const sub = parts[3];
-                // achievements
                 if (sub === 'achievements') {
                     if (!parts[4]) {
-                        if (method === 'POST') return new LocalResponse(await cvDb.experiences.addAchievement(id, body.text));
-                        if (method === 'PUT')  return new LocalResponse(await cvDb.experiences.replaceAchievements(id, body.achievements));
+                        if (method === 'POST') return new LocalResponse(await cvDb.kandExperiences.addAchievement(id, body.text));
+                        if (method === 'PUT')  return new LocalResponse(await cvDb.kandExperiences.replaceAchievements(id, body.achievements));
                     } else {
                         const idx = Number(parts[4]);
-                        if (method === 'PUT')    return new LocalResponse(await cvDb.experiences.updateAchievement(id, idx, body.text));
-                        if (method === 'DELETE') return new LocalResponse(await cvDb.experiences.deleteAchievement(id, idx));
+                        if (method === 'PUT')    return new LocalResponse(await cvDb.kandExperiences.updateAchievement(id, idx, body.text));
+                        if (method === 'DELETE') return new LocalResponse(await cvDb.kandExperiences.deleteAchievement(id, idx));
                     }
                 }
                 if (sub === 'improve-achievements' && method === 'POST') {
-                    const exp = await cvDb.experiences.get(id);
+                    const exp = await cvDb.kandExperiences.get(id);
                     const improved = await cvAI.improveAchievements(exp.achievements || [], exp.title, exp.organization);
-                    await cvDb.experiences.replaceAchievements(id, improved);
+                    await cvDb.kandExperiences.replaceAchievements(id, improved);
                     return new LocalResponse({ achievements: improved });
                 }
                 if (sub === 'description' && method === 'PUT') {
-                    return new LocalResponse(await cvDb.experiences.updateDescription(id, body.description));
+                    return new LocalResponse(await cvDb.kandExperiences.updateDescription(id, body.description));
                 }
                 if (sub === 'period' && method === 'PUT') {
-                    return new LocalResponse(await cvDb.experiences.updatePeriod(id, body));
+                    return new LocalResponse(await cvDb.kandExperiences.updatePeriod(id, body));
                 }
                 if (sub === 'skills') {
                     if (!parts[4]) {
-                        if (method === 'POST') return new LocalResponse(await cvDb.experiences.addSkill(id, body.skill_name));
+                        if (method === 'POST') return new LocalResponse(await cvDb.kandExperiences.addSkill(id, body.skill_name));
                     } else {
-                        if (method === 'DELETE') return new LocalResponse(await cvDb.experiences.removeSkill(id, Number(parts[4])));
+                        if (method === 'DELETE') return new LocalResponse(await cvDb.kandExperiences.removeSkill(id, Number(parts[4])));
                     }
                 }
             }
 
-            // education — stored in cvDb.experiences with experience_type='education'
-            // Field mapping: title↔degree, organization↔institution
+            // education
             if (parts[1] === 'education' && !parts[2]) {
                 if (method === 'GET') {
-                    const all = await cvDb.experiences.list();
-                    return new LocalResponse({ education: all
-                        .filter(e => e.experience_type === 'education')
-                        .map(e => ({ ...e,
-                            degree:         e.degree         || e.title        || '',
-                            institution:    e.institution    || e.organization || '',
-                            field_of_study: e.field_of_study || null,
-                        }))
-                    });
+                    const all = await cvDb.kandEducation.listFor(ownId);
+                    return new LocalResponse({ education: all.map(e => ({ ...e,
+                        degree:         e.degree         || '',
+                        institution:    e.institution    || '',
+                        field_of_study: e.field_of_study || null,
+                    })) });
                 }
                 if (method === 'POST') {
-                    const rec = { ...body, experience_type: 'education',
-                        title:        body.degree      || body.title        || '',
-                        organization: body.institution || body.organization || null };
-                    return new LocalResponse(await cvDb.experiences.add(rec));
+                    const rec = {
+                        degree:         body.degree         || body.title        || '',
+                        institution:    body.institution    || body.organization || null,
+                        field_of_study: body.field_of_study || null,
+                        start_date:     body.start_date     || null,
+                        end_date:       body.end_date       || null,
+                        description:    body.description    || null,
+                    };
+                    return new LocalResponse(await cvDb.kandEducation.add(ownId, rec));
                 }
-                if (method === 'DELETE') {
-                    const all = await cvDb.experiences.list();
-                    for (const e of all.filter(e => e.experience_type === 'education'))
-                        await cvDb.experiences.delete(e.id);
-                    return new LocalResponse({});
-                }
+                if (method === 'DELETE') { await cvDb.kandEducation.deleteAll(ownId); return new LocalResponse({}); }
             }
             if (parts[1] === 'education' && parts[2]) {
                 const id = Number(parts[2]);
                 if (method === 'PUT') {
                     const upd = { ...body,
-                        title:        body.degree      || body.title        || '',
-                        organization: body.institution || body.organization || null };
-                    return new LocalResponse(await cvDb.experiences.update(id, upd));
+                        degree:      body.degree      || body.title        || '',
+                        institution: body.institution || body.organization || null };
+                    return new LocalResponse(await cvDb.kandEducation.update(id, upd));
                 }
-                if (method === 'DELETE') { await cvDb.experiences.delete(id); return new LocalResponse({}); }
+                if (method === 'DELETE') { await cvDb.kandEducation.delete(id); return new LocalResponse({}); }
             }
 
-            // certifications — stored in cvDb.experiences with experience_type='certification'
-            // Field mapping: title↔name, organization↔issuer, start_date↔date
+            // certifications
             if (parts[1] === 'certifications' && !parts[2]) {
                 if (method === 'GET') {
-                    const all = await cvDb.experiences.list();
-                    return new LocalResponse({ certifications: all
-                        .filter(e => e.experience_type === 'certification')
-                        .map(e => ({ ...e,
-                            name:   e.name   || e.title        || '',
-                            issuer: e.issuer || e.organization || '',
-                            date:   e.date   || e.start_date   || null,
-                        }))
-                    });
+                    const all = await cvDb.kandCertifications.listFor(ownId);
+                    return new LocalResponse({ certifications: all.map(e => ({ ...e,
+                        name:   e.name   || '',
+                        issuer: e.issuer || '',
+                        date:   e.date   || null,
+                    })) });
                 }
                 if (method === 'POST') {
-                    const rec = { ...body, experience_type: 'certification',
-                        title:        body.name   || body.title        || '',
-                        organization: body.issuer || body.organization || null,
-                        start_date:   body.date   || body.start_date   || null };
-                    return new LocalResponse(await cvDb.experiences.add(rec));
+                    const rec = {
+                        name:        body.name   || body.title        || '',
+                        issuer:      body.issuer || body.organization || null,
+                        date:        body.date   || body.start_date   || null,
+                        description: body.description || null,
+                    };
+                    return new LocalResponse(await cvDb.kandCertifications.add(ownId, rec));
                 }
-                if (method === 'DELETE') {
-                    const all = await cvDb.experiences.list();
-                    for (const e of all.filter(e => e.experience_type === 'certification'))
-                        await cvDb.experiences.delete(e.id);
-                    return new LocalResponse({});
-                }
+                if (method === 'DELETE') { await cvDb.kandCertifications.deleteAll(ownId); return new LocalResponse({}); }
             }
             if (parts[1] === 'certifications' && parts[2]) {
                 const id = Number(parts[2]);
                 if (method === 'PUT') {
                     const upd = { ...body,
-                        title:        body.name   || body.title        || '',
-                        organization: body.issuer || body.organization || null,
-                        start_date:   body.date   || body.start_date   || null };
-                    return new LocalResponse(await cvDb.experiences.update(id, upd));
+                        name:   body.name   || body.title        || '',
+                        issuer: body.issuer || body.organization || null,
+                        date:   body.date   || body.start_date   || null };
+                    return new LocalResponse(await cvDb.kandCertifications.update(id, upd));
                 }
-                if (method === 'DELETE') { await cvDb.experiences.delete(id); return new LocalResponse({}); }
+                if (method === 'DELETE') { await cvDb.kandCertifications.delete(id); return new LocalResponse({}); }
             }
 
             // reset
             if (parts[1] === 'reset' && method === 'DELETE') {
-                await cvDb.skills.deleteAll();
-                await cvDb.experiences.deleteAll();
+                await cvDb.kandSkills.deleteAll(ownId);
+                await cvDb.kandExperiences.deleteAll(ownId);
+                await cvDb.kandEducation.deleteAll(ownId);
+                await cvDb.kandCertifications.deleteAll(ownId);
                 return new LocalResponse({});
             }
 
             // merge CV into bank
             if (parts[1] === 'merge' && parts[2] && method === 'POST') {
-                const cv = await cvDb.cvs.get(Number(parts[2]));
+                const cv = await cvDb.kandCvs.get(Number(parts[2]));
                 if (!cv) return new LocalResponse({ detail: 'CV hittades inte' }, 404);
-                const result = await cvCompSvc.mergeCVIntoBank(cv);
+                const result = await cvCompSvc.mergeCVIntoBankForKandid(ownId, cv);
                 return new LocalResponse(result);
             }
 
             // merge-all
             if (parts[1] === 'merge-all' && method === 'POST') {
-                const result = await cvCompSvc.mergeAllCVs();
+                const result = await cvCompSvc.mergeAllCVsForKandid(ownId);
                 return new LocalResponse(result);
             }
 
@@ -435,33 +534,24 @@ async function browserRoute(path, options = {}) {
 
             // match-job
             if (parts[1] === 'match-job' && method === 'POST') {
-                const [skills, exps, profile] = await Promise.all([
-                    cvDb.skills.list(),
-                    cvDb.experiences.list(),
-                    cvDb.profile.get(),
+                const [skills, exps, own] = await Promise.all([
+                    cvDb.kandSkills.listFor(ownId),
+                    cvDb.kandExperiences.listFor(ownId),
+                    cvDb.kandidater.get(ownId),
                 ]);
                 if (!skills.length && !exps.length) {
                     return new LocalResponse({ detail: 'Kompetensbanken är tom' }, 400);
                 }
-                const seekerProfile = profile ? {
-                    roles: profile.roles || null,
-                    desired_city: profile.desired_city || null,
-                    desired_employment: profile.desired_employment || [],
-                    desired_workplace: profile.desired_workplace || [],
-                    desired_domains: profile.desired_domains || [],
-                    unwanted_domains: profile.unwanted_domains || [],
-                    willing_to_commute: profile.willing_to_commute || false,
+                const seekerProfile = own ? {
+                    roles:              own.roles              || null,
+                    desired_city:       own.desired_city       || null,
+                    desired_employment: own.desired_employment || [],
+                    desired_workplace:  own.desired_workplace  || [],
+                    desired_domains:    own.desired_domains    || [],
+                    unwanted_domains:   own.unwanted_domains   || [],
+                    willing_to_commute: own.willing_to_commute || false,
                 } : null;
-
-                const result = await cvAI.matchJob(
-                    skills,
-                    exps,
-                    body.job_title || '',
-                    body.job_description || '',
-                    seekerProfile,
-                );
-
-                // Enrich experiences with full data
+                const result = await cvAI.matchJob(skills, exps, body.job_title || '', body.job_description || '', seekerProfile);
                 const expById = Object.fromEntries(exps.map(e => [e.id, e]));
                 result.experiences = (result.experiences || []).map(item => {
                     const exp = expById[item.id];
@@ -475,10 +565,9 @@ async function browserRoute(path, options = {}) {
             // generate-cv
             if (parts[1] === 'generate-cv' && method === 'POST') {
                 const { job_description, matched_experience_ids = [], skills = [] } = body;
-                const expList = await cvDb.experiences.list();
+                const expList = await cvDb.kandExperiences.listFor(ownId);
                 const matched = matched_experience_ids.length
-                    ? expList.filter(e => matched_experience_ids.includes(e.id))
-                    : expList;
+                    ? expList.filter(e => matched_experience_ids.includes(e.id)) : expList;
                 const result = await cvAI.generateCV(job_description, matched, skills);
                 const expById = Object.fromEntries(matched.map(e => [e.id, e]));
                 result.experiences = (result.experiences || []).map(item => {
@@ -493,52 +582,50 @@ async function browserRoute(path, options = {}) {
             // generate-loghouse-cv
             if (parts[1] === 'generate-loghouse-cv' && method === 'POST') {
                 const { job_description, matched_experience_ids = [], skills: reqSkills = [] } = body;
-                const [expList, skillList, eduList, cvList, profile] = await Promise.all([
-                    cvDb.experiences.list(),
-                    cvDb.skills.list(),
-                    cvDb.education.list(),
-                    cvDb.cvs.list(),
-                    cvDb.profile.get(),
+                const [expList, skillList, eduList, cvList, own] = await Promise.all([
+                    cvDb.kandExperiences.listFor(ownId),
+                    cvDb.kandSkills.listFor(ownId),
+                    cvDb.kandEducation.listFor(ownId),
+                    cvDb.kandCvs.listFor(ownId),
+                    cvDb.kandidater.get(ownId),
                 ]);
                 const matched = matched_experience_ids.length
-                    ? expList.filter(e => matched_experience_ids.includes(e.id))
-                    : expList;
+                    ? expList.filter(e => matched_experience_ids.includes(e.id)) : expList;
                 const cvTexts = cvList.map(c => c.original_text).filter(Boolean);
+                const profile = own ? { public_name: own.public_name || '', email: own.email || '',
+                    phone: own.public_phone || '', city: own.desired_city || '' } : {};
                 const result = await cvAI.generateLogHouseCV(
                     job_description, matched, reqSkills.length ? reqSkills : skillList,
-                    profile || {}, [], eduList, cvTexts
-                );
+                    profile, [], eduList, cvTexts);
                 return new LocalResponse(result);
             }
 
             // generate-henrik-cv
             if (parts[1] === 'generate-henrik-cv' && method === 'POST') {
                 const { job_description, matched_experience_ids = [], skills: reqSkills = [] } = body;
-                const [expList, skillList, eduList, certList, profile] = await Promise.all([
-                    cvDb.experiences.list(),
-                    cvDb.skills.list(),
-                    cvDb.education.list(),
-                    cvDb.certifications.list(),
-                    cvDb.profile.get(),
+                const [expList, skillList, eduList, certList, own] = await Promise.all([
+                    cvDb.kandExperiences.listFor(ownId),
+                    cvDb.kandSkills.listFor(ownId),
+                    cvDb.kandEducation.listFor(ownId),
+                    cvDb.kandCertifications.listFor(ownId),
+                    cvDb.kandidater.get(ownId),
                 ]);
                 const matched = matched_experience_ids.length
-                    ? expList.filter(e => matched_experience_ids.includes(e.id))
-                    : expList;
+                    ? expList.filter(e => matched_experience_ids.includes(e.id)) : expList;
+                const profile = own ? { public_name: own.public_name || '', email: own.email || '',
+                    phone: own.public_phone || '', city: own.desired_city || '' } : {};
                 const result = await cvAI.generateHenrikCV(
-                    job_description, matched,
-                    reqSkills.length ? reqSkills : skillList,
-                    profile || {}, eduList, certList
-                );
+                    job_description, matched, reqSkills.length ? reqSkills : skillList,
+                    profile, eduList, certList);
                 return new LocalResponse(result);
             }
 
             // improvement-tips
             if (parts[1] === 'improvement-tips' && method === 'POST') {
                 const { job_description, overall_score, current_skills = [], missing_skills = [], matched_experience_ids = [] } = body;
-                const expList = await cvDb.experiences.list();
+                const expList = await cvDb.kandExperiences.listFor(ownId);
                 const matched = matched_experience_ids.length
-                    ? expList.filter(e => matched_experience_ids.includes(e.id))
-                    : expList;
+                    ? expList.filter(e => matched_experience_ids.includes(e.id)) : expList;
                 const result = await cvAI.improvementTips(job_description, overall_score, current_skills, missing_skills, matched);
                 return new LocalResponse(result);
             }
@@ -571,7 +658,7 @@ async function browserRoute(path, options = {}) {
             // GET /kandidater/
             if (method === 'GET' && parts.length === 1) {
                 const all = await cvDb.kandidater.list();
-                return new LocalResponse({ kandidater: all });
+                return new LocalResponse({ kandidater: all.filter(k => !k.is_own_profile) });
             }
 
             // POST /kandidater/
@@ -588,6 +675,8 @@ async function browserRoute(path, options = {}) {
 
             // DELETE /kandidater/{id}
             if (method === 'DELETE' && parts.length === 2) {
+                const toDelete = await cvDb.kandidater.get(kid);
+                if (toDelete?.is_own_profile) return new LocalResponse({ detail: 'Kan inte ta bort egen profil' }, 403);
                 await cvDb.kandSkills.deleteAll(kid);
                 await cvDb.kandExperiences.deleteAll(kid);
                 await cvDb.kandEducation.deleteAll(kid);
@@ -823,7 +912,7 @@ async function browserRoute(path, options = {}) {
 
             // multi-match: rank all kandidater against a job
             if (parts[1] === 'multi-match' && method === 'POST') {
-                const allKand = await cvDb.kandidater.list();
+                const allKand = (await cvDb.kandidater.list()).filter(k => !k.is_own_profile);
                 const results = await Promise.all(allKand.map(async (k) => {
                     try {
                         const [skills, exps] = await Promise.all([
@@ -843,6 +932,13 @@ async function browserRoute(path, options = {}) {
                             willing_to_commute: k.willing_to_commute || false,
                         };
                         const result = await cvAI.matchJob(skills, exps, '', body.job_description || '', seekerProfile);
+                        const expById = Object.fromEntries(exps.map(e => [e.id, e]));
+                        result.experiences = (result.experiences || []).map(item => {
+                            const exp = expById[item.id];
+                            return exp ? { ...item, title: exp.title, organization: exp.organization,
+                                start_date: exp.start_date, end_date: exp.end_date,
+                                is_current: exp.is_current, experience_type: exp.experience_type } : item;
+                        });
                         return { id: k.id, name: k.public_name, roles: k.roles, score: result.overall_score ?? null, match_result: result };
                     } catch {
                         return { id: k.id, name: k.public_name, roles: k.roles, score: null, match_result: null };
@@ -1064,15 +1160,16 @@ async function downloadCVFile(cvId) {
 async function loadCurrentUser() {
     try {
         await cvDb.init();
-        let profile = await cvDb.profile.get();
-        const lang  = await cvDb.settings.get('language');
+        const profile   = await cvDb.profile.get();
+        const lang      = await cvDb.settings.get('language');
         const rolesJson = await cvDb.settings.get('user_roles');
-        const roles = rolesJson ? JSON.parse(rolesJson) : [];
+        const roles     = rolesJson ? JSON.parse(rolesJson) : [];
+        const own       = await cvDb.kandidater.getOwn();
 
         currentUser = {
             id: 1,
-            name: profile?.public_name || 'Användare',
-            email: profile?.email || '',
+            name:  own?.public_name  || profile?.public_name || 'Användare',
+            email: profile?.email    || own?.email           || '',
             language: lang || localStorage.getItem('lang') || 'sv',
             roles,
         };
@@ -1092,6 +1189,8 @@ async function loadCurrentUser() {
 }
 
 function resetAllState() {
+    _ownKandidatId        = null;
+    _ownKandidatIdPromise = null;
     selectedCV          = null;
     allCVs              = [];
     lastMatchResult     = null;

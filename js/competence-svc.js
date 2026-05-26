@@ -306,4 +306,100 @@ async function mergeAllCVs() {
   return { skills_added: totalSkills, experiences_added: totalExp };
 }
 
-window.cvCompSvc = { categoriseSkill, mergeCVIntoBank, mergeAllCVs };
+// ─── Kand-varianter (skriver till kand_* stores) ──────────────────────────────
+
+async function mergeCVIntoBankForKandid(kandId, cv) {
+  const data = cv.structured_data || {};
+  let skillsAdded = 0, expAdded = 0, expMerged = 0, duplicates = 0;
+
+  // Skills
+  const rawSkills = [
+    ...(data.skills || []),
+    ...(data.work_experience || []).flatMap(e => e.technologies || []),
+    ...(data.projects || []).flatMap(p => p.technologies || []),
+  ];
+  const seen = new Set();
+  const uniqueSkills = [];
+  for (const s of rawSkills) {
+    const norm = s?.trim();
+    if (norm && !seen.has(norm.toLowerCase())) { seen.add(norm.toLowerCase()); uniqueSkills.push(norm); }
+  }
+  const existingSkills = await cvDb.kandSkills.listFor(kandId);
+  const skillsByName = Object.fromEntries(existingSkills.map(s => [s.skill_name.toLowerCase(), s]));
+  for (const skillName of uniqueSkills) {
+    if (!skillsByName[skillName.toLowerCase()]) {
+      const { category, skill_type } = categoriseSkill(skillName);
+      const ns = await cvDb.kandSkills.add(kandId, { skill_name: skillName, category, skill_type });
+      skillsByName[skillName.toLowerCase()] = ns;
+      skillsAdded++;
+    } else { duplicates++; }
+  }
+
+  // Work + project experiences
+  const existingExps = await cvDb.kandExperiences.listFor(kandId);
+  const expByKey = Object.fromEntries(existingExps.map(e => [_expKey(e.title, e.organization, e.start_date), e]));
+
+  async function upsertKandExp(rec) {
+    const key = _expKey(rec.title, rec.organization, rec.start_date);
+    if (expByKey[key]) { expMerged++; return; }
+    const ne = await cvDb.kandExperiences.add(kandId, rec);
+    expByKey[key] = ne;
+    expAdded++;
+  }
+
+  for (const e of (data.work_experience || [])) {
+    await upsertKandExp({
+      title: e.position || 'Okänd position', organization: e.company || null,
+      experience_type: 'work', start_date: e.start_date || null, end_date: e.end_date || null,
+      is_current: Boolean(e.current), description: e.description || null, achievements: e.achievements || [],
+    });
+  }
+  for (const p of (data.projects || [])) {
+    await upsertKandExp({
+      title: p.name || 'Projekt', organization: p.role || null,
+      experience_type: 'project', start_date: p.start_date || null, end_date: p.end_date || null,
+      is_current: false, description: p.description || null, achievements: [],
+    });
+  }
+
+  // Education
+  for (const e of (data.education || [])) {
+    await cvDb.kandEducation.add(kandId, {
+      degree: e.degree || 'Utbildning', institution: e.institution || null,
+      field_of_study: e.field_of_study || null,
+      start_date: e.start_date || null, end_date: e.end_date || null, description: null,
+    });
+  }
+
+  // Certifications
+  for (const c of (data.certifications || [])) {
+    await cvDb.kandCertifications.add(kandId, {
+      name: c.name || 'Certifiering', issuer: c.issuing_organization || null,
+      date: c.issue_date || null, description: null,
+    });
+  }
+
+  return {
+    cv_name: data.personal_info?.full_name || cv.filename,
+    skills_added: skillsAdded, experiences_added: expAdded,
+    experiences_merged: expMerged, duplicates_skipped: duplicates,
+  };
+}
+
+async function mergeAllCVsForKandid(kandId) {
+  await cvDb.kandSkills.deleteAll(kandId);
+  await cvDb.kandExperiences.deleteAll(kandId);
+  await cvDb.kandEducation.deleteAll(kandId);
+  await cvDb.kandCertifications.deleteAll(kandId);
+
+  const allCVs = await cvDb.kandCvs.listFor(kandId);
+  let totalSkills = 0, totalExp = 0;
+  for (const cv of allCVs) {
+    const r = await mergeCVIntoBankForKandid(kandId, cv);
+    totalSkills += r.skills_added;
+    totalExp    += r.experiences_added;
+  }
+  return { skills_added: totalSkills, experiences_added: totalExp };
+}
+
+window.cvCompSvc = { categoriseSkill, mergeCVIntoBank, mergeAllCVs, mergeCVIntoBankForKandid, mergeAllCVsForKandid };

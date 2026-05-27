@@ -487,7 +487,7 @@ function renderKandidatSkills(skills) {
                     if (s.id === kandEditingSkillId) {
                         return `<div class="skill-edit-row">
                             <input class="form-input" id="kand-edit-skill-name" value="${esc(s.skill_name)}" placeholder="Kompetensnamn" style="flex:1;min-width:120px">
-                            <input class="form-input" id="kand-edit-skill-cat"  value="${esc(s.category)}"   placeholder="Kategori"      style="flex:1;min-width:100px">
+                            <input class="form-input" id="kand-edit-skill-cat"  value="${esc(s.category)}"   placeholder="Kategori"      style="flex:1;min-width:100px" data-cat-combo>
                             <select class="form-input" id="kand-edit-skill-type" style="min-width:110px">
                                 <option value="technical" ${s.skill_type==='technical'?'selected':''}>Teknisk</option>
                                 <option value="soft"      ${s.skill_type==='soft'     ?'selected':''}>Mjuk</option>

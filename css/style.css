@@ -3440,3 +3440,31 @@ body {
     color: var(--blue);
 }
 .import-drop-zone p { margin: 0; font-size: 0.9rem; }
+
+/* ── Category combo box ─────────────────────────────────────────────────────── */
+.cat-combo-wrap {
+    position: relative;
+}
+.cat-combo-dd {
+    display: none;
+    position: absolute;
+    top: 100%;
+    left: 0;
+    right: 0;
+    background: #fff;
+    border: 1px solid var(--border);
+    border-radius: 0.375rem;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.12);
+    z-index: 9999;
+    max-height: 220px;
+    overflow-y: auto;
+}
+.cat-combo-dd--open { display: block; }
+.cat-combo-opt {
+    padding: 0.45rem 0.75rem;
+    cursor: pointer;
+    font-size: 0.875rem;
+    color: var(--text);
+}
+.cat-combo-opt:hover,
+.cat-combo-opt--active { background: var(--blue-light, #eff6ff); color: var(--blue); }

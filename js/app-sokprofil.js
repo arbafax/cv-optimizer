@@ -32,9 +32,10 @@ async function loadSokprofil() {
             el.checked = (data.desired_workplace || []).includes(el.value);
         });
 
-        document.getElementById('sp-commute').checked    = data.willing_to_commute;
-        document.getElementById('sp-searchable').checked = data.searchable;
+        document.getElementById('sp-commute').checked      = data.willing_to_commute;
+        document.getElementById('sp-searchable').checked   = data.searchable;
         document.getElementById('sp-available-from').value = data.available_from || '';
+        document.getElementById('sp-profile-uuid').value   = data.profile_uuid   || '';
     } catch (err) {
         if (err.message !== 'Inte inloggad') console.error(err);
     }

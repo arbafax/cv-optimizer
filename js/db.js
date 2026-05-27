@@ -486,6 +486,7 @@ const kandidater = {
         available_from:     data.available_from     ?? null,
         description:        data.description        ?? null,
         is_own_profile:     data.is_own_profile     ?? false,
+        profile_uuid:       data.profile_uuid       ?? crypto.randomUUID(),
         created_at:         new Date().toISOString(),
       }));
       return _req(store.get(id));

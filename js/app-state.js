@@ -196,8 +196,14 @@ async function _getOwnKandidatId() {
 }
 
 async function _resolveOwnKandidatId() {
-    const own = await cvDb.kandidater.getOwn();
-    if (own) { _ownKandidatId = own.id; return own.id; }
+    let own = await cvDb.kandidater.getOwn();
+    if (own) {
+        if (!own.profile_uuid) {
+            own = await cvDb.kandidater.update(own.id, { profile_uuid: crypto.randomUUID() });
+        }
+        _ownKandidatId = own.id;
+        return own.id;
+    }
 
     // First run — create own-profile kandidat from existing profile data
     const profile = await cvDb.profile.get() || {};
@@ -346,20 +352,25 @@ async function browserRoute(path, options = {}) {
         // ── SOKPROFIL ────────────────────────────────────────────────────────
         if (parts[0] === 'sokprofil') {
             if (method === 'GET') {
-                const p = await cvDb.profile.get() || {};
+                const [p, ownRaw] = await Promise.all([cvDb.profile.get(), cvDb.kandidater.getOwn()]);
+                const own = (ownRaw && !ownRaw.profile_uuid)
+                    ? await cvDb.kandidater.update(ownRaw.id, { profile_uuid: crypto.randomUUID() })
+                    : ownRaw;
+                const prof = p || {};
                 return new LocalResponse({
-                    public_name: p.public_name || null,
-                    public_phone: p.public_phone || null,
-                    roles: p.roles || null,
-                    desired_city: p.desired_city || null,
-                    desired_employment: p.desired_employment || [],
-                    desired_workplace: p.desired_workplace || [],
-                    desired_domains: p.desired_domains || [],
-                    unwanted_domains: p.unwanted_domains || [],
-                    willing_to_commute: p.willing_to_commute || false,
-                    searchable: p.searchable || false,
-                    available_from: p.available_from || null,
-                    description: p.description || null,
+                    public_name: prof.public_name || null,
+                    public_phone: prof.public_phone || null,
+                    roles: prof.roles || null,
+                    desired_city: prof.desired_city || null,
+                    desired_employment: prof.desired_employment || [],
+                    desired_workplace: prof.desired_workplace || [],
+                    desired_domains: prof.desired_domains || [],
+                    unwanted_domains: prof.unwanted_domains || [],
+                    willing_to_commute: prof.willing_to_commute || false,
+                    searchable: prof.searchable || false,
+                    available_from: prof.available_from || null,
+                    description: prof.description || null,
+                    profile_uuid: own?.profile_uuid || null,
                 });
             }
             if (method === 'PUT') {
@@ -768,7 +779,12 @@ async function browserRoute(path, options = {}) {
             // GET /kandidater/
             if (method === 'GET' && parts.length === 1) {
                 const all = await cvDb.kandidater.list();
-                return new LocalResponse({ kandidater: all.filter(k => !k.is_own_profile) });
+                const filtered = await Promise.all(
+                    all.filter(k => !k.is_own_profile).map(async k =>
+                        k.profile_uuid ? k : cvDb.kandidater.update(k.id, { profile_uuid: crypto.randomUUID() })
+                    )
+                );
+                return new LocalResponse({ kandidater: filtered });
             }
 
             // POST /kandidater/

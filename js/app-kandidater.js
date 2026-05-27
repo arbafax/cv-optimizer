@@ -120,6 +120,7 @@ function showKandidatForm(kandidat) {
     document.getElementById('kand-searchable').checked = kandidat?.searchable         || false;
     document.getElementById('kand-available-from').value = kandidat?.available_from   || '';
 
+    document.getElementById('kand-profile-uuid').value = kandidat?.profile_uuid || '';
     document.getElementById('kand-delete-btn').style.display = kandidat ? '' : 'none';
     document.getElementById('kand-status').textContent = '';
 

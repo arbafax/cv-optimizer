@@ -680,7 +680,7 @@ function displaySpCandidateCVs(cvs) {
                         </div>
                     </div>
                     <div style="display:flex;gap:0.5rem;align-items:center;flex-shrink:0">
-                        <button class="btn btn-secondary btn-sm" onclick="downloadCVFile(${cv.id})">⬇ Ladda ner PDF</button>
+                        <button class="btn btn-secondary btn-sm" onclick="downloadCVFile(${cv.id})">⬇ Ladda ner</button>
                         <button class="btn btn-icon btn-danger btn-sm" title="Ta bort" onclick="deleteSpCV(${cv.id}, '${safeName}')">
                             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14H6L5 6"/><path d="M10 11v6M14 11v6"/><path d="M9 6V4h6v2"/></svg>
                         </button>

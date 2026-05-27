@@ -317,8 +317,8 @@ async function browserRoute(path, options = {}) {
                 const profileUpdates = {};
                 if (body?.language) await cvDb.settings.set('language', body.language);
                 if (body?.name) {
-                    profileUpdates.public_name = body.name;
                     // Only pre-fill public name if it hasn't been set yet
+                    if (!profile.public_name) profileUpdates.public_name = body.name;
                     const own = await cvDb.kandidater.getOwn();
                     if (own && !own.public_name) {
                         await cvDb.kandidater.update(own.id, { public_name: body.name });

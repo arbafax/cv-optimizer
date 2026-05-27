@@ -77,6 +77,114 @@ class LocalResponse {
     async text() { return JSON.stringify(this._data); }
 }
 
+// ── Category combo box ────────────────────────────────────────────────────────
+(function () {
+    const CATS = [
+        'Mjukvaruutveckling', 'Frameworks & APIs', 'Databases',
+        'Cloud & DevOps', 'AI & Machine Learning', 'Frontend',
+        'Tools', 'Soft Skills', 'Languages', 'Övrigt',
+    ];
+    let activeInput = null;
+
+    // Lazily wrap input in a positioned container so the dropdown
+    // is part of normal document flow — no fixed/absolute-to-body tricks needed.
+    function getWrap(input) {
+        if (input.parentElement.classList.contains('cat-combo-wrap')) {
+            return input.parentElement;
+        }
+        const wrap = document.createElement('div');
+        wrap.className = 'cat-combo-wrap';
+        // Preserve flex sizing from input when it sits inside a flex row
+        if (input.style.flex)     wrap.style.flex     = input.style.flex;
+        if (input.style.minWidth) wrap.style.minWidth = input.style.minWidth;
+        input.style.flex = input.style.minWidth = '';
+        input.parentNode.insertBefore(wrap, input);
+        wrap.appendChild(input);
+        return wrap;
+    }
+
+    function getDD(input) {
+        const wrap = getWrap(input);
+        let dd = wrap.querySelector('.cat-combo-dd');
+        if (!dd) {
+            dd = document.createElement('div');
+            dd.className = 'cat-combo-dd';
+            wrap.appendChild(dd);
+        }
+        return dd;
+    }
+
+    function render(input) {
+        const dd = getDD(input);
+        const f  = (input.value || '').toLowerCase();
+        const hits = CATS.filter(c => !f || c.toLowerCase().includes(f));
+        if (!hits.length) { dd.classList.remove('cat-combo-dd--open'); return; }
+        dd.innerHTML = hits.map(c => `<div class="cat-combo-opt">${c}</div>`).join('');
+        dd.classList.add('cat-combo-dd--open');
+    }
+
+    function close() {
+        if (activeInput) {
+            const dd = activeInput.parentElement.querySelector('.cat-combo-dd');
+            if (dd) dd.classList.remove('cat-combo-dd--open');
+        }
+        activeInput = null;
+    }
+
+    function isCat(el) { return el && el.hasAttribute && el.hasAttribute('data-cat-combo'); }
+
+    document.addEventListener('focus', e => {
+        if (!isCat(e.target)) return;
+        activeInput = e.target;
+        render(e.target);
+    }, true);
+
+    document.addEventListener('input', e => {
+        if (isCat(e.target) && activeInput === e.target) render(e.target);
+    });
+
+    document.addEventListener('blur', e => {
+        if (isCat(e.target)) setTimeout(close, 150);
+    }, true);
+
+    document.addEventListener('click', e => {
+        const opt = e.target.closest('.cat-combo-opt');
+        if (opt && activeInput) {
+            activeInput.value = opt.textContent;
+            activeInput.dispatchEvent(new Event('input', { bubbles: true }));
+            close();
+            return;
+        }
+        if (!isCat(e.target)) close();
+    });
+
+    document.addEventListener('keydown', e => {
+        if (!activeInput) return;
+        const dd = activeInput.parentElement.querySelector('.cat-combo-dd');
+        if (!dd || !dd.classList.contains('cat-combo-dd--open')) return;
+        const opts = [...dd.querySelectorAll('.cat-combo-opt')];
+        const cur  = dd.querySelector('.cat-combo-opt--active');
+        if (e.key === 'ArrowDown') {
+            e.preventDefault();
+            const next = cur ? (opts[opts.indexOf(cur) + 1] || opts[0]) : opts[0];
+            opts.forEach(o => o.classList.remove('cat-combo-opt--active'));
+            if (next) next.classList.add('cat-combo-opt--active');
+        } else if (e.key === 'ArrowUp') {
+            e.preventDefault();
+            const prev = cur ? (opts[opts.indexOf(cur) - 1] || opts[opts.length - 1]) : opts[opts.length - 1];
+            opts.forEach(o => o.classList.remove('cat-combo-opt--active'));
+            if (prev) prev.classList.add('cat-combo-opt--active');
+        } else if (e.key === 'Enter' && cur) {
+            e.preventDefault();
+            activeInput.value = cur.textContent;
+            activeInput.dispatchEvent(new Event('input', { bubbles: true }));
+            close();
+        } else if (e.key === 'Escape') {
+            close();
+        }
+    });
+})();
+
 // ── Own-profile kandidat ID (cached after first lookup) ───────────────────────
 let _ownKandidatId = null;
 let _ownKandidatIdPromise = null;
@@ -204,9 +312,11 @@ async function browserRoute(path, options = {}) {
                 if (body?.language) await cvDb.settings.set('language', body.language);
                 if (body?.name) {
                     profileUpdates.public_name = body.name;
-                    // Keep own-profile kandidat in sync
+                    // Only pre-fill public name if it hasn't been set yet
                     const own = await cvDb.kandidater.getOwn();
-                    if (own) await cvDb.kandidater.update(own.id, { public_name: body.name });
+                    if (own && !own.public_name) {
+                        await cvDb.kandidater.update(own.id, { public_name: body.name });
+                    }
                 }
                 if (body?.email)    profileUpdates.email = body.email;
                 if (body?.roles)    await cvDb.settings.set('user_roles', JSON.stringify(body.roles));

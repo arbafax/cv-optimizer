@@ -383,9 +383,11 @@ async function _importPayload(payload) {
 
     // Import kandidater with nested data (need to remap old kandidat id → new id)
     for (const k of (payload.kandidater || [])) {
+        const infoToImport = strip(k.info);
+        if (!infoToImport.profile_uuid) infoToImport.profile_uuid = crypto.randomUUID();
         const newKandId = await cvDb._tx('kandidater', 'readwrite', (tx) =>
             new Promise((res, rej) => {
-                const req = tx.objectStore('kandidater').add(strip(k.info));
+                const req = tx.objectStore('kandidater').add(infoToImport);
                 req.onsuccess = () => res(req.result); req.onerror = () => rej(req.error);
             })
         );

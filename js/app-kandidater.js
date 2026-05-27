@@ -589,35 +589,16 @@ function showKandidatUploadStatus(msg, type) {
 function setupKandidatUpload() {
     if (kandUploadSetup) return;
     kandUploadSetup = true;
-
-    const area  = document.getElementById('kand-upload-area');
-    const input = document.getElementById('kand-cv-upload');
-    if (!area || !input) return;
-
-    area.addEventListener('dragover', e => { e.preventDefault(); area.classList.add('drag-over'); });
-    area.addEventListener('dragleave', ()  => area.classList.remove('drag-over'));
-    area.addEventListener('drop', e => {
-        e.preventDefault();
-        area.classList.remove('drag-over');
-        const file = e.dataTransfer.files[0];
-        if (file) handleKandidatCVUpload(file);
-    });
-    input.addEventListener('change', () => {
-        if (input.files[0]) handleKandidatCVUpload(input.files[0]);
-        input.value = '';
+    setupUploadZone({
+        areaId:   'kand-upload-area',
+        inputId:  'kand-cv-upload',
+        onFile:   handleKandidatCVUpload,
+        statusFn: showKandidatUploadStatus,
     });
 }
 
 async function handleKandidatCVUpload(file) {
     if (!currentKandidatId) return;
-    if (!file.name.toLowerCase().endsWith('.pdf')) {
-        showKandidatUploadStatus('Endast PDF-filer är tillåtna', 'error');
-        return;
-    }
-    if (file.size > 10 * 1024 * 1024) {
-        showKandidatUploadStatus('Filen är för stor (max 10 MB)', 'error');
-        return;
-    }
 
     showKandidatUploadStatus('⏳ Analyserar CV...', 'loading');
 

@@ -764,6 +764,7 @@ const kandCvs = {
         upload_date:         new Date().toISOString(),
         is_processed:        data.is_processed    ?? false,
         is_vectorized:       false,
+        mime_type:           data.mime_type        ?? null,
         structured_data:     data.structured_data ?? null,
         file_data:           data.file_data       ?? null,
         skill_count:         data.skill_count         ?? 0,

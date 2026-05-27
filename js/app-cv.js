@@ -286,33 +286,15 @@ let spCVUploadSetup = false;
 function setupSpCVUpload() {
     if (spCVUploadSetup) return;
     spCVUploadSetup = true;
-
-    const area  = document.getElementById('sp-cv-upload-area');
-    const input = document.getElementById('sp-cv-upload');
-    if (!area || !input) return;
-
-    area.addEventListener('dragover', e => { e.preventDefault(); area.classList.add('drag-over'); });
-    area.addEventListener('dragleave', () => area.classList.remove('drag-over'));
-    area.addEventListener('drop', e => {
-        e.preventDefault();
-        area.classList.remove('drag-over');
-        if (e.dataTransfer.files[0]) handleSpCVUpload(e.dataTransfer.files[0]);
-    });
-    input.addEventListener('change', () => {
-        if (input.files[0]) handleSpCVUpload(input.files[0]);
-        input.value = '';
+    setupUploadZone({
+        areaId:   'sp-cv-upload-area',
+        inputId:  'sp-cv-upload',
+        onFile:   handleSpCVUpload,
+        statusFn: showSpCVUploadStatus,
     });
 }
 
 async function handleSpCVUpload(file) {
-    if (!file.name.toLowerCase().endsWith('.pdf')) {
-        showSpCVUploadStatus('Endast PDF-filer är tillåtna', 'error');
-        return;
-    }
-    if (file.size > 10 * 1024 * 1024) {
-        showSpCVUploadStatus('Filen är för stor (max 10 MB)', 'error');
-        return;
-    }
 
     const area = document.getElementById('sp-cv-upload-area');
     if (area) area.classList.add('uploading');

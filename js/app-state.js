@@ -77,6 +77,62 @@ class LocalResponse {
     async text() { return JSON.stringify(this._data); }
 }
 
+// ── Upload zone component ─────────────────────────────────────────────────────
+const CV_FILE_EXTS   = ['pdf', 'docx', 'txt', 'md'];
+const CV_FILE_ACCEPT = '.pdf,.docx,.txt,.md';
+const CV_MAX_SIZE    = 10 * 1024 * 1024; // 10 MB
+
+const _MIME_MAP = {
+    pdf:  'application/pdf',
+    docx: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+    txt:  'text/plain',
+    md:   'text/markdown',
+};
+function mimeTypeForFilename(filename) {
+    const ext = (filename || '').toLowerCase().split('.').pop();
+    return _MIME_MAP[ext] || 'application/octet-stream';
+}
+
+/**
+ * Wire up a file drop zone: drag-and-drop + click-to-browse.
+ * Validates file extension and size before calling onFile(file).
+ * @param {{ areaId: string, inputId: string, onFile: (File) => void, statusFn?: (msg, type) => void }} config
+ */
+function setupUploadZone({ areaId, inputId, onFile, statusFn }) {
+    const area  = document.getElementById(areaId);
+    const input = document.getElementById(inputId);
+    if (!area || !input) return;
+
+    input.accept = CV_FILE_ACCEPT;
+
+    function validate(file) {
+        const ext = (file.name.toLowerCase().split('.').pop()) || '';
+        if (!CV_FILE_EXTS.includes(ext)) {
+            statusFn?.(`Filformatet .${ext} stöds inte. Tillåtna format: ${CV_FILE_ACCEPT}`, 'error');
+            return false;
+        }
+        if (file.size > CV_MAX_SIZE) {
+            statusFn?.('Filen är för stor (max 10 MB)', 'error');
+            return false;
+        }
+        return true;
+    }
+
+    area.addEventListener('dragover',  e => { e.preventDefault(); area.classList.add('drag-over'); });
+    area.addEventListener('dragleave', () => area.classList.remove('drag-over'));
+    area.addEventListener('drop', e => {
+        e.preventDefault();
+        area.classList.remove('drag-over');
+        const file = e.dataTransfer.files[0];
+        if (file && validate(file)) onFile(file);
+    });
+    input.addEventListener('change', () => {
+        const file = input.files[0];
+        if (file && validate(file)) onFile(file);
+        input.value = '';
+    });
+}
+
 // ── Category combo box ────────────────────────────────────────────────────────
 (function () {
     const CATS = [
@@ -268,6 +324,7 @@ async function _resolveOwnKandidatId() {
             filename:            cv.filename,
             title:               cv.title || cv.filename,
             is_processed:        true,
+            mime_type:           mimeTypeForFilename(cv.filename),
             structured_data:     cv.structured_data  || null,
             file_data:           cv.file_data         || null,
             skill_count:         (cv.structured_data?.skills         || []).length,
@@ -437,6 +494,7 @@ async function browserRoute(path, options = {}) {
                     const mergeResult = await cvCompSvc.mergeCVIntoBankForKandid(ownId, { structured_data: structured, filename: file.name });
                     const cv = await cvDb.kandCvs.add(ownId, {
                         filename: file.name, is_processed: true,
+                        mime_type: mimeTypeForFilename(file.name),
                         structured_data: structured, file_data: fileData,
                         skill_count:         mergeResult.skills_added,
                         experience_count:    (structured?.work_experience || []).length,
@@ -929,6 +987,7 @@ async function browserRoute(path, options = {}) {
                     await cvDb.kandCvs.add(kid, {
                         filename:            file.name,
                         is_processed:        true,
+                        mime_type:           mimeTypeForFilename(file.name),
                         structured_data:     structured,
                         file_data:           fileData,
                         skill_count:         skillCount,
@@ -1268,10 +1327,11 @@ async function downloadCVFile(cvId) {
     let cv = await cvDb.cvs.get(id);
     if (!cv) cv = await cvDb.kandCvs.get(id);
     if (!cv?.file_data) {
-        alert('PDF-filen är inte sparad. Ladda upp CV:t igen för att aktivera nedladdning.');
+        alert('Filen är inte sparad. Ladda upp CV:t igen för att aktivera nedladdning.');
         return;
     }
-    const blob = new Blob([cv.file_data], { type: 'application/pdf' });
+    const mime = cv.mime_type || mimeTypeForFilename(cv.filename || '');
+    const blob = new Blob([cv.file_data], { type: mime });
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;

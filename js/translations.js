@@ -267,6 +267,10 @@ sv: {
     'lang.sv':                      '🇸🇪 Svenska (SV)',
     'lang.en':                      '🇬🇧 English (EN)',
     'lang.no':                      '🇳🇴 Norsk (NO)',
+
+    'cv.review_info':               'Personnummer, e-postadresser och telefonnummer har försökts att ta bort automatiskt. Granska texten nedan och ta bort eventuell ytterligare information du inte vill skicka till AI — exempelvis ditt namn och adress. (TIPS! Använd webbläsarens sökfunktion) Klicka sedan på Analysera CV.',
+    'cv.review_title':              'Granska CV-text innan analys',
+    'cv.review_confirm':            'Analysera CV →',
 },
 
 // ── ENGLISH ───────────────────────────────────────────────────────────────────
@@ -515,6 +519,10 @@ en: {
     'lang.sv':                      '🇸🇪 Svenska (SV)',
     'lang.en':                      '🇬🇧 English (EN)',
     'lang.no':                      '🇳🇴 Norsk (NO)',
+
+    'cv.review_info':               'Personal ID numbers, email addresses and phone numbers have been attempted to be removed automatically. Review the text below and remove any additional information you do not want to send to AI — such as your name and address. (TIP! Use the browser\'s search function) Then click Analyse CV.',
+    'cv.review_title':              'Review CV text before analysis',
+    'cv.review_confirm':            'Analyse CV →',
 },
 
 // ── NORSK BOKMÅL ─────────────────────────────────────────────────────────────
@@ -763,6 +771,10 @@ no: {
     'lang.sv':                      '🇸🇪 Svenska (SV)',
     'lang.en':                      '🇬🇧 English (EN)',
     'lang.no':                      '🇳🇴 Norsk (NO)',
+
+    'cv.review_info':               'Personnummer, e-postadresser og telefonnumre er forsøkt fjernet automatisk. Gå gjennom teksten nedenfor og fjern eventuell ytterligere informasjon du ikke vil sende til AI — for eksempel ditt navn og adresse. (TIPS! Bruk nettleserens søkefunksjon) Klikk deretter på Analyser CV.',
+    'cv.review_title':              'Gjennomgå CV-tekst før analyse',
+    'cv.review_confirm':            'Analyser CV →',
 },
 
 }; // end TRANSLATIONS

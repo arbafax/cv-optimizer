@@ -526,8 +526,8 @@ const kandSkills = {
       const id = await _req(store.add({
         kandidat_id: kandidatId,
         skill_name:  data.skill_name,
-        category:    data.category  ?? 'Övrigt',
-        skill_type:  data.skill_type ?? 'technical',
+        category:    data.category   ?? 'Övrigt',
+        skill_level: data.skill_level ?? null,
       }));
       return _req(store.get(id));
     });

@@ -130,17 +130,7 @@ function renderSkillsTab() {
         groups[cat].push(s);
     });
 
-    const categoryOrder = [
-        'Mjukvaruutveckling', 'Frameworks & APIs', 'Databases',
-        'Cloud & DevOps', 'AI & Machine Learning', 'Frontend',
-        'Technical Skills', 'Tools', 'Soft Skills', 'Languages',
-        'Domain Knowledge', 'Övrigt'
-    ];
-
-    const sortedCats = [
-        ...categoryOrder.filter(c => groups[c]),
-        ...Object.keys(groups).filter(c => !categoryOrder.includes(c)).sort()
-    ];
+    const sortedCats = Object.keys(groups).sort((a, b) => a.localeCompare(b, currentLang));
 
     return addRow + sortedCats.map(cat => `
         <div class="bank-category-block">
@@ -150,7 +140,7 @@ function renderSkillsTab() {
             </div>
             <div class="bank-skills-wrap">
                 ${groups[cat].map(s => `
-                    <span class="bank-skill-chip chip-${s.skill_type || 'default'}">
+                    <span class="bank-skill-chip ${skillLevelClass(s.skill_level)}">
                         ${s.skill_name}
                         <button class="chip-delete" onclick="event.stopPropagation(); deleteSkill(${s.id}, '${s.skill_name.replace(/'/g, "\\'")}')" title="${t('action.delete')}">&times;</button>
                     </span>

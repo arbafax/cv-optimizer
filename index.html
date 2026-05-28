@@ -403,12 +403,21 @@
                     <h3 style="margin:0 0 0.75rem">Lägg till kompetens manuellt</h3>
                     <div style="display:flex; gap:0.5rem; flex-wrap:wrap; align-items:flex-end">
                         <div style="flex:1; min-width:160px">
-                            <label for="kand-skill-name" style="font-size:0.8125rem; color:var(--text-muted)">Kompetens</label>
+                            <label for="kand-skill-name" style="display:block;font-size:0.8125rem;color:var(--text-muted);margin-bottom:2px">Kompetens</label>
                             <input type="text" id="kand-skill-name" class="form-input" placeholder="t.ex. Python, Projektledning">
                         </div>
                         <div style="min-width:140px">
-                            <label for="kand-skill-category" style="font-size:0.8125rem; color:var(--text-muted)">Kategori</label>
+                            <label for="kand-skill-category" style="display:block;font-size:0.8125rem;color:var(--text-muted);margin-bottom:2px">Kategori</label>
                             <input type="text" id="kand-skill-category" class="form-input" placeholder="t.ex. Övrigt" data-cat-combo>
+                        </div>
+                        <div style="min-width:130px">
+                            <label for="kand-skill-level" style="display:block;font-size:0.8125rem;color:var(--text-muted);margin-bottom:2px">Nivå</label>
+                            <select id="kand-skill-level" class="form-input">
+                                <option value="">— Nivå —</option>
+                                <option value="Känner till">Känner till</option>
+                                <option value="Erfaren">Erfaren</option>
+                                <option value="Mycket erfaren">Mycket erfaren</option>
+                            </select>
                         </div>
                         <button class="btn btn-primary" onclick="addKandidatSkill()" style="white-space:nowrap">+ Lägg till</button>
                     </div>
@@ -441,24 +450,24 @@
                     <h3 style="margin:0 0 0.75rem">Lägg till utbildning</h3>
                     <div style="display:grid; grid-template-columns:1fr 1fr; gap:0.5rem">
                         <div>
-                            <label style="font-size:0.8125rem; color:var(--text-muted)">Examen / Utbildning <span style="color:var(--danger)">*</span></label>
+                            <label style="display:block;font-size:0.8125rem;color:var(--text-muted);margin-bottom:2px">Examen / Utbildning <span style="color:var(--danger)">*</span></label>
                             <input type="text" id="kand-edu-degree" class="form-input" placeholder="t.ex. Civilingenjör, Kandidatexamen">
                         </div>
                         <div>
-                            <label style="font-size:0.8125rem; color:var(--text-muted)">Lärosäte</label>
+                            <label style="display:block;font-size:0.8125rem;color:var(--text-muted);margin-bottom:2px">Lärosäte</label>
                             <input type="text" id="kand-edu-institution" class="form-input" placeholder="t.ex. KTH, Stockholms Universitet">
                         </div>
                         <div>
-                            <label style="font-size:0.8125rem; color:var(--text-muted)">Inriktning</label>
+                            <label style="display:block;font-size:0.8125rem;color:var(--text-muted);margin-bottom:2px">Inriktning</label>
                             <input type="text" id="kand-edu-field" class="form-input" placeholder="t.ex. Datavetenskap">
                         </div>
                         <div style="display:flex; gap:0.5rem">
                             <div style="flex:1">
-                                <label style="font-size:0.8125rem; color:var(--text-muted)">Från</label>
+                                <label style="display:block;font-size:0.8125rem;color:var(--text-muted);margin-bottom:2px">Från</label>
                                 <input type="text" id="kand-edu-start" class="form-input" placeholder="2018">
                             </div>
                             <div style="flex:1">
-                                <label style="font-size:0.8125rem; color:var(--text-muted)">Till</label>
+                                <label style="display:block;font-size:0.8125rem;color:var(--text-muted);margin-bottom:2px">Till</label>
                                 <input type="text" id="kand-edu-end" class="form-input" placeholder="2022">
                             </div>
                         </div>
@@ -942,12 +951,21 @@
                 <h3 style="margin:0 0 0.75rem">Lägg till kompetens manuellt</h3>
                 <div style="display:flex; gap:0.5rem; flex-wrap:wrap; align-items:flex-end">
                     <div style="flex:1; min-width:160px">
-                        <label for="sp-skill-name" style="font-size:0.8125rem; color:var(--text-muted)">Kompetens</label>
+                        <label for="sp-skill-name" style="display:block;font-size:0.8125rem;color:var(--text-muted);margin-bottom:2px">Kompetens</label>
                         <input type="text" id="sp-skill-name" class="form-input" placeholder="t.ex. Python, Projektledning">
                     </div>
                     <div style="min-width:140px">
-                        <label for="sp-skill-category" style="font-size:0.8125rem; color:var(--text-muted)">Kategori</label>
+                        <label for="sp-skill-category" style="display:block;font-size:0.8125rem;color:var(--text-muted);margin-bottom:2px">Kategori</label>
                         <input type="text" id="sp-skill-category" class="form-input" placeholder="t.ex. Övrigt" data-cat-combo>
+                    </div>
+                    <div style="min-width:130px">
+                        <label for="sp-skill-level" style="display:block;font-size:0.8125rem;color:var(--text-muted);margin-bottom:2px">Nivå</label>
+                        <select id="sp-skill-level" class="form-input">
+                            <option value="">— Nivå —</option>
+                            <option value="Känner till">Känner till</option>
+                            <option value="Erfaren">Erfaren</option>
+                            <option value="Mycket erfaren">Mycket erfaren</option>
+                        </select>
                     </div>
                     <button class="btn btn-primary" onclick="addSpSkill()" style="white-space:nowrap">+ Lägg till</button>
                 </div>
@@ -977,24 +995,24 @@
                 <h3 style="margin:0 0 0.75rem">Lägg till utbildning</h3>
                 <div style="display:grid; grid-template-columns:1fr 1fr; gap:0.5rem">
                     <div>
-                        <label style="font-size:0.8125rem; color:var(--text-muted)">Examen / Utbildning <span style="color:var(--danger)">*</span></label>
+                        <label style="display:block;font-size:0.8125rem;color:var(--text-muted);margin-bottom:2px">Examen / Utbildning <span style="color:var(--danger)">*</span></label>
                         <input type="text" id="sp-edu-degree" class="form-input" placeholder="t.ex. Civilingenjör, Kandidatexamen">
                     </div>
                     <div>
-                        <label style="font-size:0.8125rem; color:var(--text-muted)">Lärosäte</label>
+                        <label style="display:block;font-size:0.8125rem;color:var(--text-muted);margin-bottom:2px">Lärosäte</label>
                         <input type="text" id="sp-edu-institution" class="form-input" placeholder="t.ex. KTH, Stockholms Universitet">
                     </div>
                     <div>
-                        <label style="font-size:0.8125rem; color:var(--text-muted)">Inriktning</label>
+                        <label style="display:block;font-size:0.8125rem;color:var(--text-muted);margin-bottom:2px">Inriktning</label>
                         <input type="text" id="sp-edu-field" class="form-input" placeholder="t.ex. Datavetenskap">
                     </div>
                     <div style="display:flex; gap:0.5rem">
                         <div style="flex:1">
-                            <label style="font-size:0.8125rem; color:var(--text-muted)">Från</label>
+                            <label style="display:block;font-size:0.8125rem;color:var(--text-muted);margin-bottom:2px">Från</label>
                             <input type="text" id="sp-edu-start" class="form-input" placeholder="2018">
                         </div>
                         <div style="flex:1">
-                            <label style="font-size:0.8125rem; color:var(--text-muted)">Till</label>
+                            <label style="display:block;font-size:0.8125rem;color:var(--text-muted);margin-bottom:2px">Till</label>
                             <input type="text" id="sp-edu-end" class="form-input" placeholder="2022">
                         </div>
                     </div>

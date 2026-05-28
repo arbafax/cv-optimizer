@@ -127,13 +127,15 @@ async function addSpSkill() {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
-                skill_name: name,
-                category:   catEl.value.trim() || 'Övrigt',
+                skill_name:  name,
+                category:    catEl.value.trim() || 'Övrigt',
+                skill_level: document.getElementById('sp-skill-level').value || null,
             }),
         });
         if (!res.ok) { const e = await res.json(); throw new Error(e.detail || 'Fel'); }
         nameEl.value = '';
         catEl.value  = '';
+        document.getElementById('sp-skill-level').value = '';
         showSpSkillStatus('Kompetens tillagd', 'success');
         await loadSpKompetenser();
     } catch (err) {

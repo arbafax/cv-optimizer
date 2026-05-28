@@ -540,13 +540,15 @@ async function addKandidatSkill() {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
-                skill_name: name,
-                category:   catEl.value.trim() || 'Övrigt',
+                skill_name:  name,
+                category:    catEl.value.trim() || 'Övrigt',
+                skill_level: document.getElementById('kand-skill-level').value || null,
             }),
         });
         if (!res.ok) { const e = await res.json(); throw new Error(e.detail || 'Fel'); }
         nameEl.value = '';
         catEl.value  = '';
+        document.getElementById('kand-skill-level').value = '';
         showKandidatBankStatus('Kompetens tillagd', 'success');
         loadKandidatBank(currentKandidatId);
     } catch (err) {

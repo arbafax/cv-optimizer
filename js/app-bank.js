@@ -432,21 +432,29 @@ function showAddSkillForm() {
     const container = document.getElementById('add-skill-form-container');
     container.innerHTML = `
         <div class="bank-inline-form">
-            <input type="text" id="new-skill-name" placeholder="Skill-namn (separera med komma)" class="form-input" />
-            <select id="new-skill-category" class="form-input">
-                <option value="">Auto-kategorisera</option>
-                <option value="Mjukvaruutveckling">Mjukvaruutveckling</option>
-                <option value="Frameworks & APIs">Frameworks & APIs</option>
-                <option value="Databases">Databases</option>
-                <option value="Cloud & DevOps">Cloud & DevOps</option>
-                <option value="AI & Machine Learning">AI & Machine Learning</option>
-                <option value="Frontend">Frontend</option>
-                <option value="Tools">Tools</option>
-                <option value="Soft Skills">Soft Skills</option>
-                <option value="Languages">Languages</option>
-            </select>
-            <button class="btn btn-primary btn-small" onclick="submitNewSkill()">Spara</button>
-            <button class="btn btn-ghost btn-small" onclick="hideAddSkillForm()">Avbryt</button>
+            <div>
+                <label for="new-skill-name" style="display:block;font-size:0.8125rem;color:var(--text-muted);margin-bottom:2px">Kompetens</label>
+                <input type="text" id="new-skill-name" placeholder="t.ex. Python, Projektledning" class="form-input" />
+            </div>
+            <div>
+                <label for="new-skill-category" style="display:block;font-size:0.8125rem;color:var(--text-muted);margin-bottom:2px">Kategori</label>
+                <select id="new-skill-category" class="form-input">
+                    <option value="">Auto-kategorisera</option>
+                    <option value="Mjukvaruutveckling">Mjukvaruutveckling</option>
+                    <option value="Frameworks & APIs">Frameworks & APIs</option>
+                    <option value="Databases">Databases</option>
+                    <option value="Cloud & DevOps">Cloud & DevOps</option>
+                    <option value="AI & Machine Learning">AI & Machine Learning</option>
+                    <option value="Frontend">Frontend</option>
+                    <option value="Tools">Tools</option>
+                    <option value="Soft Skills">Soft Skills</option>
+                    <option value="Languages">Languages</option>
+                </select>
+            </div>
+            <div style="display:flex;gap:8px;align-items:flex-end">
+                <button class="btn btn-primary btn-small" onclick="submitNewSkill()">Spara</button>
+                <button class="btn btn-ghost btn-small" onclick="hideAddSkillForm()">Avbryt</button>
+            </div>
         </div>
     `;
     document.getElementById('new-skill-name').focus();

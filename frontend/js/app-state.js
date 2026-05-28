@@ -100,6 +100,30 @@ function mimeTypeForFilename(filename) {
     return _MIME_MAP[ext] || 'application/octet-stream';
 }
 
+const _MONTH_NAMES = {
+    jan:1,feb:2,mar:3,apr:4,maj:5,jun:6,jul:7,aug:8,sep:9,okt:10,nov:11,dec:12,
+    may:5,oct:10,
+    januari:1,februari:2,mars:3,april:4,juni:6,juli:7,augusti:8,september:9,oktober:10,november:11,december:12,
+    january:1,february:2,march:3,august:8,october:10,
+    januar:1,februar:2,mai:5,
+};
+function normDate(d) {
+    if (!d) return null;
+    const s = String(d).trim();
+    if (!s) return null;
+    if (/^\d{4}-\d{2}$/.test(s)) return s;
+    if (/^\d{4}$/.test(s)) return s;
+    if (/^\d{4}-\d{2}-\d{2}$/.test(s)) return s.slice(0, 7);
+    const mmy = s.match(/^([A-Za-zÀ-ÿ]+)[.\s]+(\d{4})$/);
+    if (mmy) {
+        const m = _MONTH_NAMES[mmy[1].toLowerCase()];
+        return m ? `${mmy[2]}-${String(m).padStart(2,'0')}` : mmy[2];
+    }
+    const msy = s.match(/^(\d{1,2})[\/\-](\d{4})$/);
+    if (msy) return `${msy[2]}-${String(msy[1]).padStart(2,'0')}`;
+    return s;
+}
+
 /**
  * Wire up a file drop zone: drag-and-drop + click-to-browse.
  * Validates file extension and size before calling onFile(file).
@@ -304,7 +328,7 @@ async function _resolveOwnKandidatId() {
             await cvDb.kandExperiences.add(_ownKandidatId, {
                 title: e.title, organization: e.organization || null,
                 experience_type: e.experience_type,
-                start_date: e.start_date || null, end_date: e.end_date || null,
+                start_date: normDate(e.start_date), end_date: normDate(e.end_date),
                 is_current: e.is_current || false,
                 description: e.description || null, achievements: e.achievements || [],
             });
@@ -959,8 +983,8 @@ async function browserRoute(path, options = {}) {
                             title:           e.position     || 'Okänd position',
                             organization:    e.company      || null,
                             experience_type: 'work',
-                            start_date:      e.start_date   || null,
-                            end_date:        e.end_date     || null,
+                            start_date:      normDate(e.start_date),
+                            end_date:        normDate(e.end_date),
                             is_current:      Boolean(e.current),
                             description:     e.description  || null,
                             achievements:    e.achievements || [],

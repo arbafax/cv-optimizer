@@ -60,6 +60,7 @@ tmp/
 temp/
 uploads/
 *.tmp
+body.json
 
 # Testing
 .pytest_cache/

@@ -436,6 +436,50 @@
             <!-- ── TAB: Erfarenheter ── -->
             <div id="kand-tab-erfarenheter" style="display:none">
 
+                <div class="card" style="margin-bottom:1.25rem">
+                    <h3 style="margin:0 0 0.75rem">Lägg till erfarenhet</h3>
+                    <div style="display:grid; grid-template-columns:1fr 1fr; gap:0.5rem">
+                        <div style="grid-column:1/-1">
+                            <label style="display:block;font-size:0.8125rem;color:var(--text-muted);margin-bottom:2px">Titel <span style="color:var(--danger)">*</span></label>
+                            <input type="text" id="kand-exp-title" class="form-input" placeholder="t.ex. Systemutvecklare, Backend-projekt">
+                        </div>
+                        <div>
+                            <label style="display:block;font-size:0.8125rem;color:var(--text-muted);margin-bottom:2px">Organisation</label>
+                            <input type="text" id="kand-exp-org" class="form-input" placeholder="t.ex. Företaget AB">
+                        </div>
+                        <div>
+                            <label style="display:block;font-size:0.8125rem;color:var(--text-muted);margin-bottom:2px">Typ</label>
+                            <select id="kand-exp-type" class="form-input">
+                                <option value="work">Arbete</option>
+                                <option value="project">Projekt</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label style="display:block;font-size:0.8125rem;color:var(--text-muted);margin-bottom:2px">Från (ÅÅÅÅ-MM)</label>
+                            <input type="text" id="kand-exp-start" class="form-input" placeholder="2020-01">
+                        </div>
+                        <div>
+                            <label style="display:block;font-size:0.8125rem;color:var(--text-muted);margin-bottom:2px">Till (ÅÅÅÅ-MM)</label>
+                            <input type="text" id="kand-exp-end" class="form-input" placeholder="2023-06">
+                        </div>
+                        <div style="grid-column:1/-1">
+                            <label style="font-size:0.8125rem;display:flex;align-items:center;gap:0.4rem">
+                                <input type="checkbox" id="kand-exp-current"> Pågående
+                            </label>
+                        </div>
+                        <div style="grid-column:1/-1">
+                            <label style="display:block;font-size:0.8125rem;color:var(--text-muted);margin-bottom:2px">Beskrivning</label>
+                            <textarea id="kand-exp-desc" class="form-input" rows="3" placeholder="Beskriv rollen eller projektet" style="width:100%;box-sizing:border-box"></textarea>
+                        </div>
+                        <div style="grid-column:1/-1">
+                            <label style="display:block;font-size:0.8125rem;color:var(--text-muted);margin-bottom:2px">Prestationer (en per rad)</label>
+                            <textarea id="kand-exp-ach" class="form-input" rows="3" placeholder="En prestation per rad" style="width:100%;box-sizing:border-box"></textarea>
+                        </div>
+                    </div>
+                    <div id="kand-exp-status" style="margin-top:0.5rem"></div>
+                    <button class="btn btn-primary" onclick="addKandidatExperience()" style="margin-top:0.75rem">+ Lägg till erfarenhet</button>
+                </div>
+
                 <div class="card">
                     <div id="kand-experiences-list">
                         <div class="empty-hint">Inga erfarenheter tillagda ännu.</div>
@@ -488,16 +532,20 @@
                     <h3 style="margin:0 0 0.75rem">Lägg till kurs eller certifikat</h3>
                     <div style="display:grid; grid-template-columns:1fr 1fr; gap:0.5rem">
                         <div>
-                            <label style="font-size:0.8125rem; color:var(--text-muted)">Namn <span style="color:var(--danger)">*</span></label>
+                            <label style="display:block;font-size:0.8125rem;color:var(--text-muted);margin-bottom:2px">Namn <span style="color:var(--danger)">*</span></label>
                             <input type="text" id="kand-cert-name" class="form-input" placeholder="t.ex. AWS Solutions Architect">
                         </div>
                         <div>
-                            <label style="font-size:0.8125rem; color:var(--text-muted)">Utfärdare</label>
+                            <label style="display:block;font-size:0.8125rem;color:var(--text-muted);margin-bottom:2px">Utfärdare</label>
                             <input type="text" id="kand-cert-issuer" class="form-input" placeholder="t.ex. Amazon, Coursera">
                         </div>
                         <div>
-                            <label style="font-size:0.8125rem; color:var(--text-muted)">Datum</label>
+                            <label style="display:block;font-size:0.8125rem;color:var(--text-muted);margin-bottom:2px">Datum</label>
                             <input type="text" id="kand-cert-date" class="form-input" placeholder="t.ex. 2023-05">
+                        </div>
+                        <div style="grid-column:1/-1">
+                            <label style="display:block;font-size:0.8125rem;color:var(--text-muted);margin-bottom:2px">Beskrivning</label>
+                            <textarea id="kand-cert-desc" class="form-input" rows="2" placeholder="Kort beskrivning (valfritt)"></textarea>
                         </div>
                     </div>
                     <div id="kand-cert-status" style="margin-top:0.5rem"></div>
@@ -982,6 +1030,49 @@
 
         <!-- ── TAB: Erfarenheter ── -->
         <div id="sp-tab-erfarenheter" style="display:none">
+            <div class="card" style="margin-bottom:1.25rem">
+                <h3 style="margin:0 0 0.75rem">Lägg till erfarenhet</h3>
+                <div style="display:grid; grid-template-columns:1fr 1fr; gap:0.5rem">
+                    <div style="grid-column:1/-1">
+                        <label style="display:block;font-size:0.8125rem;color:var(--text-muted);margin-bottom:2px">Titel <span style="color:var(--danger)">*</span></label>
+                        <input type="text" id="sp-exp-title" class="form-input" placeholder="t.ex. Systemutvecklare, Backend-projekt">
+                    </div>
+                    <div>
+                        <label style="display:block;font-size:0.8125rem;color:var(--text-muted);margin-bottom:2px">Organisation</label>
+                        <input type="text" id="sp-exp-org" class="form-input" placeholder="t.ex. Företaget AB">
+                    </div>
+                    <div>
+                        <label style="display:block;font-size:0.8125rem;color:var(--text-muted);margin-bottom:2px">Typ</label>
+                        <select id="sp-exp-type" class="form-input">
+                            <option value="work">Arbete</option>
+                            <option value="project">Projekt</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label style="display:block;font-size:0.8125rem;color:var(--text-muted);margin-bottom:2px">Från (ÅÅÅÅ-MM)</label>
+                        <input type="text" id="sp-exp-start" class="form-input" placeholder="2020-01">
+                    </div>
+                    <div>
+                        <label style="display:block;font-size:0.8125rem;color:var(--text-muted);margin-bottom:2px">Till (ÅÅÅÅ-MM)</label>
+                        <input type="text" id="sp-exp-end" class="form-input" placeholder="2023-06">
+                    </div>
+                    <div style="grid-column:1/-1">
+                        <label style="font-size:0.8125rem;display:flex;align-items:center;gap:0.4rem">
+                            <input type="checkbox" id="sp-exp-current"> Pågående
+                        </label>
+                    </div>
+                    <div style="grid-column:1/-1">
+                        <label style="display:block;font-size:0.8125rem;color:var(--text-muted);margin-bottom:2px">Beskrivning</label>
+                        <textarea id="sp-exp-desc" class="form-input" rows="3" placeholder="Beskriv rollen eller projektet" style="width:100%;box-sizing:border-box"></textarea>
+                    </div>
+                    <div style="grid-column:1/-1">
+                        <label style="display:block;font-size:0.8125rem;color:var(--text-muted);margin-bottom:2px">Prestationer (en per rad)</label>
+                        <textarea id="sp-exp-ach" class="form-input" rows="3" placeholder="En prestation per rad" style="width:100%;box-sizing:border-box"></textarea>
+                    </div>
+                </div>
+                <div id="sp-exp-status" style="margin-top:0.5rem"></div>
+                <button class="btn btn-primary" onclick="addSpExperience()" style="margin-top:0.75rem">+ Lägg till erfarenhet</button>
+            </div>
             <div class="card">
                 <div id="sp-experiences-list">
                     <div class="empty-hint">Laddar erfarenheter...</div>
@@ -1033,16 +1124,20 @@
                 <h3 style="margin:0 0 0.75rem">Lägg till kurs eller certifikat</h3>
                 <div style="display:grid; grid-template-columns:1fr 1fr; gap:0.5rem">
                     <div>
-                        <label style="font-size:0.8125rem; color:var(--text-muted)">Namn <span style="color:var(--danger)">*</span></label>
+                        <label style="display:block;font-size:0.8125rem;color:var(--text-muted);margin-bottom:2px">Namn <span style="color:var(--danger)">*</span></label>
                         <input type="text" id="sp-cert-name" class="form-input" placeholder="t.ex. AWS Solutions Architect">
                     </div>
                     <div>
-                        <label style="font-size:0.8125rem; color:var(--text-muted)">Utfärdare</label>
+                        <label style="display:block;font-size:0.8125rem;color:var(--text-muted);margin-bottom:2px">Utfärdare</label>
                         <input type="text" id="sp-cert-issuer" class="form-input" placeholder="t.ex. Amazon, Coursera">
                     </div>
                     <div>
-                        <label style="font-size:0.8125rem; color:var(--text-muted)">Datum</label>
+                        <label style="display:block;font-size:0.8125rem;color:var(--text-muted);margin-bottom:2px">Datum</label>
                         <input type="text" id="sp-cert-date" class="form-input" placeholder="t.ex. 2023-05">
+                    </div>
+                    <div style="grid-column:1/-1">
+                        <label style="display:block;font-size:0.8125rem;color:var(--text-muted);margin-bottom:2px">Beskrivning</label>
+                        <textarea id="sp-cert-desc" class="form-input" rows="2" placeholder="Kort beskrivning (valfritt)"></textarea>
                     </div>
                 </div>
                 <div id="sp-cert-status" style="margin-top:0.5rem"></div>

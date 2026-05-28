@@ -254,6 +254,13 @@ function renderSpExperiences(experiences) {
         container.innerHTML = '<div class="empty-hint">Inga erfarenheter i banken ännu. Ladda upp ett CV under CV-fliken.</div>';
         return;
     }
+    experiences = experiences.slice().sort((a, b) => {
+        const sa = normDate(a.start_date) || '', sb = normDate(b.start_date) || '';
+        if (sa !== sb) return sb.localeCompare(sa);
+        const ea = a.is_current ? '9999-99' : (normDate(a.end_date) || '');
+        const eb = b.is_current ? '9999-99' : (normDate(b.end_date) || '');
+        return eb.localeCompare(ea);
+    });
     const typeLabel = { work: 'Arbete', education: 'Utbildning', certification: 'Certifiering', project: 'Projekt' };
     const sel = (val, opt) => opt === val ? 'selected' : '';
     const mergeBar = `
@@ -290,7 +297,7 @@ function renderSpExperiences(experiences) {
                 </div>
             </div>`;
         }
-        const period = [e.start_date, e.is_current ? 'nu' : e.end_date].filter(Boolean).join(' – ');
+        const period = [normDate(e.start_date), e.is_current ? 'nu' : normDate(e.end_date)].filter(Boolean).join(' – ');
         const achHtml = (e.achievements || []).length
             ? `<ul class="exp-card-ach">${(e.achievements).map(a=>`<li>${esc(a)}</li>`).join('')}</ul>` : '';
         const checked = spSelectedExpIds.has(e.id);
@@ -361,8 +368,8 @@ async function saveSpExperience(id) {
         title:           document.getElementById('sp-edit-exp-title').value.trim(),
         organization:    document.getElementById('sp-edit-exp-org').value.trim()   || null,
         experience_type: document.getElementById('sp-edit-exp-type').value,
-        start_date:      document.getElementById('sp-edit-exp-start').value.trim() || null,
-        end_date:        document.getElementById('sp-edit-exp-end').value.trim()   || null,
+        start_date:      normDate(document.getElementById('sp-edit-exp-start').value.trim()),
+        end_date:        normDate(document.getElementById('sp-edit-exp-end').value.trim()),
         is_current:      document.getElementById('sp-edit-exp-current').checked,
         description:     document.getElementById('sp-edit-exp-desc').value.trim() || null,
         achievements:    document.getElementById('sp-edit-exp-ach').value.split('\n').map(s=>s.trim()).filter(Boolean),
@@ -394,6 +401,39 @@ async function clearSpExperiences() {
         if (!res.ok) { const e = await res.json(); throw new Error(e.detail || 'Fel'); }
         await loadSpErfarenheter();
     } catch (err) { alert(err.message); }
+}
+
+async function addSpExperience() {
+    const title = document.getElementById('sp-exp-title').value.trim();
+    if (!title) { showSpExpStatus('Titel krävs', 'error'); return; }
+    const body = {
+        title,
+        organization:    document.getElementById('sp-exp-org').value.trim()   || null,
+        experience_type: document.getElementById('sp-exp-type').value,
+        start_date:      normDate(document.getElementById('sp-exp-start').value.trim()),
+        end_date:        normDate(document.getElementById('sp-exp-end').value.trim()),
+        is_current:      document.getElementById('sp-exp-current').checked,
+        description:     document.getElementById('sp-exp-desc').value.trim() || null,
+        achievements:    document.getElementById('sp-exp-ach').value.split('\n').map(s => s.trim()).filter(Boolean),
+    };
+    try {
+        const res = await apiFetch(`${API_BASE_URL}/competence/experiences`, {
+            method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify(body),
+        });
+        if (!res.ok) { const e = await res.json(); throw new Error(e.detail || 'Fel'); }
+        ['sp-exp-title','sp-exp-org','sp-exp-start','sp-exp-end','sp-exp-desc','sp-exp-ach'].forEach(id => document.getElementById(id).value = '');
+        document.getElementById('sp-exp-current').checked = false;
+        showSpExpStatus('Erfarenhet tillagd', 'success');
+        await loadSpErfarenheter();
+    } catch (err) { showSpExpStatus(err.message, 'error'); }
+}
+
+function showSpExpStatus(msg, type) {
+    const el = document.getElementById('sp-exp-status');
+    if (!el) return;
+    el.textContent = msg;
+    el.className = type === 'error' ? 'form-error' : 'form-success';
+    setTimeout(() => { el.textContent = ''; el.className = ''; }, 3000);
 }
 
 // ── Utbildning ─────────────────────────────────────────────────────────────────
@@ -599,15 +639,16 @@ async function addSpCertification() {
     if (!name) { showSpCertStatus('Namn krävs', 'error'); return; }
     const body = {
         name,
-        issuer: document.getElementById('sp-cert-issuer').value.trim() || null,
-        date:   document.getElementById('sp-cert-date').value.trim()   || null,
+        issuer:      document.getElementById('sp-cert-issuer').value.trim() || null,
+        date:        document.getElementById('sp-cert-date').value.trim()   || null,
+        description: document.getElementById('sp-cert-desc').value.trim()  || null,
     };
     try {
         const res = await apiFetch(`${API_BASE_URL}/competence/certifications`, {
             method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify(body),
         });
         if (!res.ok) { const e = await res.json(); throw new Error(e.detail || 'Fel'); }
-        ['sp-cert-name','sp-cert-issuer','sp-cert-date'].forEach(id => document.getElementById(id).value = '');
+        ['sp-cert-name','sp-cert-issuer','sp-cert-date','sp-cert-desc'].forEach(id => document.getElementById(id).value = '');
         showSpCertStatus('Certifikat tillagt', 'success');
         await loadSpCertifications();
     } catch (err) { showSpCertStatus(err.message, 'error'); }

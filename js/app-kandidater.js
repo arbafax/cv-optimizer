@@ -638,6 +638,13 @@ function renderKandidatExperiences(experiences) {
         return;
     }
 
+    experiences = experiences.slice().sort((a, b) => {
+        const sa = normDate(a.start_date) || '', sb = normDate(b.start_date) || '';
+        if (sa !== sb) return sb.localeCompare(sa);
+        const ea = a.is_current ? '9999-99' : (normDate(a.end_date) || '');
+        const eb = b.is_current ? '9999-99' : (normDate(b.end_date) || '');
+        return eb.localeCompare(ea);
+    });
     const typeLabel = { work: 'Arbete', education: 'Utbildning', certification: 'Certifiering', project: 'Projekt' };
     const sel = (val, opt) => opt === val ? 'selected' : '';
     const clearBarKandExp = `<div class="list-clear-bar"><span>${experiences.length} erfarenhet${experiences.length !== 1 ? 'er' : ''}</span><button class="btn btn-danger btn-sm" onclick="clearKandExperiences(${currentKandidatId})">Rensa alla</button></div>`;
@@ -667,7 +674,7 @@ function renderKandidatExperiences(experiences) {
                 </div>
             </div>`;
         }
-        const period = [e.start_date, e.is_current ? 'nu' : e.end_date].filter(Boolean).join(' – ');
+        const period = [normDate(e.start_date), e.is_current ? 'nu' : normDate(e.end_date)].filter(Boolean).join(' – ');
         const achHtml = (e.achievements || []).length
             ? `<ul class="exp-card-ach">${(e.achievements).map(a=>`<li>${esc(a)}</li>`).join('')}</ul>` : '';
         return `<div class="exp-card">
@@ -695,8 +702,8 @@ async function saveKandExperience(id) {
         title:           document.getElementById('kand-edit-exp-title').value.trim(),
         organization:    document.getElementById('kand-edit-exp-org').value.trim()   || null,
         experience_type: document.getElementById('kand-edit-exp-type').value,
-        start_date:      document.getElementById('kand-edit-exp-start').value.trim() || null,
-        end_date:        document.getElementById('kand-edit-exp-end').value.trim()   || null,
+        start_date:      normDate(document.getElementById('kand-edit-exp-start').value.trim()),
+        end_date:        normDate(document.getElementById('kand-edit-exp-end').value.trim()),
         is_current:      document.getElementById('kand-edit-exp-current').checked,
         description:     document.getElementById('kand-edit-exp-desc').value.trim() || null,
         achievements:    document.getElementById('kand-edit-exp-ach').value.split('\n').map(s=>s.trim()).filter(Boolean),
@@ -719,6 +726,40 @@ async function deleteKandExperience(id) {
         if (!res.ok) throw new Error('Kunde inte ta bort');
         await loadKandidatBank(currentKandidatId);
     } catch (err) { alert(err.message); }
+}
+
+async function addKandidatExperience() {
+    if (!currentKandidatId) return;
+    const title = document.getElementById('kand-exp-title').value.trim();
+    if (!title) { showKandExpStatus('Titel krävs', 'error'); return; }
+    const body = {
+        title,
+        organization:    document.getElementById('kand-exp-org').value.trim()   || null,
+        experience_type: document.getElementById('kand-exp-type').value,
+        start_date:      normDate(document.getElementById('kand-exp-start').value.trim()),
+        end_date:        normDate(document.getElementById('kand-exp-end').value.trim()),
+        is_current:      document.getElementById('kand-exp-current').checked,
+        description:     document.getElementById('kand-exp-desc').value.trim() || null,
+        achievements:    document.getElementById('kand-exp-ach').value.split('\n').map(s => s.trim()).filter(Boolean),
+    };
+    try {
+        const res = await apiFetch(`${API_BASE_URL}/kandidater/${currentKandidatId}/bank/experiences`, {
+            method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify(body),
+        });
+        if (!res.ok) { const e = await res.json(); throw new Error(e.detail || 'Fel'); }
+        ['kand-exp-title','kand-exp-org','kand-exp-start','kand-exp-end','kand-exp-desc','kand-exp-ach'].forEach(id => document.getElementById(id).value = '');
+        document.getElementById('kand-exp-current').checked = false;
+        showKandExpStatus('Erfarenhet tillagd', 'success');
+        await loadKandidatBank(currentKandidatId);
+    } catch (err) { showKandExpStatus(err.message, 'error'); }
+}
+
+function showKandExpStatus(msg, type) {
+    const el = document.getElementById('kand-exp-status');
+    if (!el) return;
+    el.textContent = msg;
+    el.className = type === 'error' ? 'form-error' : 'form-success';
+    setTimeout(() => { el.textContent = ''; el.className = ''; }, 3000);
 }
 
 // ── Clear all (bulk delete) ───────────────────────────────────────────────────
@@ -1020,15 +1061,16 @@ async function addKandidatCertification() {
     if (!name) { showKandCertStatus('Namn krävs', 'error'); return; }
     const body = {
         name,
-        issuer: document.getElementById('kand-cert-issuer').value.trim() || null,
-        date:   document.getElementById('kand-cert-date').value.trim()   || null,
+        issuer:      document.getElementById('kand-cert-issuer').value.trim() || null,
+        date:        document.getElementById('kand-cert-date').value.trim()   || null,
+        description: document.getElementById('kand-cert-desc').value.trim()  || null,
     };
     try {
         const res = await apiFetch(`${API_BASE_URL}/kandidater/${currentKandidatId}/certifications`, {
             method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify(body),
         });
         if (!res.ok) { const e = await res.json(); throw new Error(e.detail || 'Fel'); }
-        ['kand-cert-name','kand-cert-issuer','kand-cert-date'].forEach(id => document.getElementById(id).value = '');
+        ['kand-cert-name','kand-cert-issuer','kand-cert-date','kand-cert-desc'].forEach(id => document.getElementById(id).value = '');
         showKandCertStatus('Certifikat tillagt', 'success');
         await loadKandidatCertifications(currentKandidatId);
     } catch (err) { showKandCertStatus(err.message, 'error'); }

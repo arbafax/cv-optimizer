@@ -295,21 +295,34 @@ function setupSpCVUpload() {
 }
 
 async function handleSpCVUpload(file) {
-
     const area = document.getElementById('sp-cv-upload-area');
     if (area) area.classList.add('uploading');
-    showSpCVUploadStatus('⏳ Laddar upp och analyserar CV...', 'loading');
-
-    const formData = new FormData();
-    formData.append('file', file);
+    showSpCVUploadStatus('⏳ Läser CV...', 'loading');
 
     try {
-        const res = await apiFetch(`${API_BASE_URL}/competence/cvs/upload`, { method: 'POST', body: formData });
-        if (!res.ok) { const e = await res.json(); throw new Error(e.detail || 'Uppladdning misslyckades'); }
+        const raw = await cvPdf.extractText(file);
+        const stripped = stripContactInfo(raw);
         if (area) area.classList.remove('uploading');
-        showSpCVUploadStatus('✅ CV uppladdat och strukturerat!', 'success');
-        await loadSpCandidateCVs();
-        loadBankData();
+        showSpCVUploadStatus('', '');
+
+        showCVReviewModal(stripped, file.name, async (reviewedText) => {
+            if (area) area.classList.add('uploading');
+            showSpCVUploadStatus('⏳ Analyserar med AI...', 'loading');
+            const formData = new FormData();
+            formData.append('file', file);
+            formData.append('reviewed_text', reviewedText);
+            try {
+                const res = await apiFetch(`${API_BASE_URL}/competence/cvs/upload`, { method: 'POST', body: formData });
+                if (!res.ok) { const e = await res.json(); throw new Error(e.detail || 'Uppladdning misslyckades'); }
+                if (area) area.classList.remove('uploading');
+                showSpCVUploadStatus('✅ CV analyserat och sparat!', 'success');
+                await loadSpCandidateCVs();
+                loadBankData();
+            } catch (err) {
+                if (area) area.classList.remove('uploading');
+                showSpCVUploadStatus(`❌ ${err.message}`, 'error');
+            }
+        });
     } catch (err) {
         if (area) area.classList.remove('uploading');
         showSpCVUploadStatus(`❌ ${err.message}`, 'error');

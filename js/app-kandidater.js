@@ -602,26 +602,37 @@ function setupKandidatUpload() {
 async function handleKandidatCVUpload(file) {
     if (!currentKandidatId) return;
 
-    showKandidatUploadStatus('⏳ Analyserar CV...', 'loading');
-
-    const formData = new FormData();
-    formData.append('file', file);
+    showKandidatUploadStatus('⏳ Läser CV...', 'loading');
 
     try {
-        const res = await apiFetch(
-            `${API_BASE_URL}/kandidater/${currentKandidatId}/bank/upload-cv`,
-            { method: 'POST', body: formData }
-        );
-        if (!res.ok) { const e = await res.json(); throw new Error(e.detail || 'Fel vid uppladdning'); }
-        const data = await res.json();
-        showKandidatUploadStatus(
-            `✅ ${data.filename || file.name} — ${data.skill_count} kompetenser, ${data.experience_count} erfarenheter tillagda`,
-            'success'
-        );
-        await loadKandidatBank(currentKandidatId);
-        await loadKandidatEducation(currentKandidatId);
-        await loadKandidatCertifications(currentKandidatId);
-        loadKandidatCVs(currentKandidatId);
+        const raw = await cvPdf.extractText(file);
+        const stripped = stripContactInfo(raw);
+        showKandidatUploadStatus('', '');
+
+        showCVReviewModal(stripped, file.name, async (reviewedText) => {
+            showKandidatUploadStatus('⏳ Analyserar med AI...', 'loading');
+            const formData = new FormData();
+            formData.append('file', file);
+            formData.append('reviewed_text', reviewedText);
+            try {
+                const res = await apiFetch(
+                    `${API_BASE_URL}/kandidater/${currentKandidatId}/bank/upload-cv`,
+                    { method: 'POST', body: formData }
+                );
+                if (!res.ok) { const e = await res.json(); throw new Error(e.detail || 'Fel vid uppladdning'); }
+                const data = await res.json();
+                showKandidatUploadStatus(
+                    `✅ ${data.filename || file.name} — ${data.skill_count} kompetenser, ${data.experience_count} erfarenheter tillagda`,
+                    'success'
+                );
+                await loadKandidatBank(currentKandidatId);
+                await loadKandidatEducation(currentKandidatId);
+                await loadKandidatCertifications(currentKandidatId);
+                loadKandidatCVs(currentKandidatId);
+            } catch (err) {
+                showKandidatUploadStatus(`❌ ${err.message}`, 'error');
+            }
+        });
     } catch (err) {
         showKandidatUploadStatus(`❌ ${err.message}`, 'error');
     }

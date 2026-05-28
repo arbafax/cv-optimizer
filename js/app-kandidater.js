@@ -479,7 +479,7 @@ function renderKandidatSkills(skills) {
 
     const clearBarKandSkills = `<div class="list-clear-bar"><span>${skills.length} kompetens${skills.length !== 1 ? 'er' : ''}</span><button class="btn btn-danger btn-sm" onclick="clearKandSkills(${currentKandidatId})">Rensa alla</button></div>`;
     const sortedEntries = Object.entries(byCategory).sort(([a], [b]) => a.localeCompare(b, currentLang));
-    container.innerHTML = clearBarKandSkills + sortedEntries.map(([cat, items]) => `
+    container.innerHTML = clearBarKandSkills + sortedEntries.map(([cat, items]) => { items = items.slice().sort((a, b) => a.skill_name.localeCompare(b.skill_name, currentLang)); return `
         <div style="margin-bottom:1rem">
             <div style="font-size:0.8125rem;font-weight:600;color:var(--text-muted);text-transform:uppercase;
                         letter-spacing:0.05em;margin-bottom:0.5rem">${cat}</div>
@@ -507,7 +507,7 @@ function renderKandidatSkills(skills) {
                 }).join('')}
             </div>
         </div>
-    `).join('');
+    `; }).join('');
 }
 
 async function saveKandSkill(id) {

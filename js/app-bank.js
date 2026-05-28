@@ -139,7 +139,7 @@ function renderSkillsTab() {
                 <span class="bank-category-count">${groups[cat].length}</span>
             </div>
             <div class="bank-skills-wrap">
-                ${groups[cat].map(s => `
+                ${groups[cat].slice().sort((a, b) => a.skill_name.localeCompare(b.skill_name, currentLang)).map(s => `
                     <span class="bank-skill-chip ${skillLevelClass(s.skill_level)}">
                         ${s.skill_name}
                         <button class="chip-delete" onclick="event.stopPropagation(); deleteSkill(${s.id}, '${s.skill_name.replace(/'/g, "\\'")}')" title="${t('action.delete')}">&times;</button>

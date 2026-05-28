@@ -147,21 +147,17 @@ function showCVReviewModal(text, filename, onConfirm) {
         <div class="modal-content modal-content--wide" style="max-height:90vh">
             <div class="modal-header">
                 <div>
-                    <h2 style="margin:0 0 2px">Granska CV-text innan analys</h2>
+                    <h2 style="margin:0 0 2px">${t('cv.review_title')}</h2>
                     <div style="font-size:0.8125rem;color:var(--text-muted)">${esc(filename)}</div>
                 </div>
                 <button class="modal-close" onclick="closeCVReviewModal()">&times;</button>
             </div>
             <div class="modal-body" style="display:flex;flex-direction:column;gap:1rem">
-                <div class="cv-review-info">
-                    <strong>Personnummer, e-postadresser och telefonnummer har tagits bort automatiskt.</strong>
-                    Granska texten nedan och ta bort eventuell ytterligare information du inte vill skicka till AI — exempelvis ditt namn.
-                    Klicka sedan på <em>Analysera CV</em>.
-                </div>
+                <div class="cv-review-info">${t('cv.review_info')}</div>
                 <textarea id="cv-review-text" class="form-input cv-review-textarea"></textarea>
                 <div style="display:flex;gap:0.75rem;justify-content:flex-end">
                     <button class="btn btn-secondary" onclick="closeCVReviewModal()">Avbryt</button>
-                    <button class="btn btn-primary" onclick="confirmCVReview()">Analysera CV →</button>
+                    <button class="btn btn-primary" onclick="confirmCVReview()">${t('cv.review_confirm')}</button>
                 </div>
             </div>
         </div>`;

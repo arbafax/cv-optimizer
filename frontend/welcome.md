@@ -15,7 +15,7 @@ Gå till **Mitt konto** och lägg in en API-nyckel för en av följande AI-lever
 |---|---|
 | **OpenAI** (GPT) | API-nyckel från [platform.openai.com](https://platform.openai.com) — [Hur?](https://www.google.com/search?client=firefox-b-d&q=youtube+hu+skaffar+jag+mig+en+api-nyckel+för+open-AI) |
 | **Anthropic** (Claude) | API-nyckel från [console.anthropic.com](https://console.anthropic.com) — [Hur?](https://www.google.com/search?client=firefox-b-d&q=youtube+hu+skaffar+jag+mig+en+api-nyckel+f%C3%B6r+antropics+claude) |
-| **Google Gemini** | API-nyckel från [aistudio.google.com](https://aistudio.google.com) — [Hur?](https://www.google.com/search?client=firefox-b-d&q=youtube+hu+skaffar+jag+mig+en+api-nyckel+f%C3%B6r+google+gemini) |
+| **Google** (Gemini) | API-nyckel från [aistudio.google.com](https://aistudio.google.com) — [Hur?](https://www.google.com/search?client=firefox-b-d&q=youtube+hu+skaffar+jag+mig+en+api-nyckel+f%C3%B6r+google+gemini) |
 | **Ollama** (lokalt) | Ollama installerat och en modell nerladdad, t.ex. llama3 |
 
 Välj sedan en roll (Kandidat eller Säljare) för att komma åt alla funktioner.

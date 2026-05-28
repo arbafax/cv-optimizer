@@ -477,9 +477,9 @@ function renderKandidatSkills(skills) {
         byCategory[cat].push(s);
     });
 
-    const typeClass = t => t === 'soft' ? 'chip-soft' : t === 'language' ? 'chip-language' : 'chip-technical';
     const clearBarKandSkills = `<div class="list-clear-bar"><span>${skills.length} kompetens${skills.length !== 1 ? 'er' : ''}</span><button class="btn btn-danger btn-sm" onclick="clearKandSkills(${currentKandidatId})">Rensa alla</button></div>`;
-    container.innerHTML = clearBarKandSkills + Object.entries(byCategory).map(([cat, items]) => `
+    const sortedEntries = Object.entries(byCategory).sort(([a], [b]) => a.localeCompare(b, currentLang));
+    container.innerHTML = clearBarKandSkills + sortedEntries.map(([cat, items]) => `
         <div style="margin-bottom:1rem">
             <div style="font-size:0.8125rem;font-weight:600;color:var(--text-muted);text-transform:uppercase;
                         letter-spacing:0.05em;margin-bottom:0.5rem">${cat}</div>
@@ -489,17 +489,17 @@ function renderKandidatSkills(skills) {
                         return `<div class="skill-edit-row">
                             <input class="form-input" id="kand-edit-skill-name" value="${esc(s.skill_name)}" placeholder="Kompetensnamn" style="flex:1;min-width:120px">
                             <input class="form-input" id="kand-edit-skill-cat"  value="${esc(s.category)}"   placeholder="Kategori"      style="flex:1;min-width:100px" data-cat-combo>
-                            <select class="form-input" id="kand-edit-skill-type" style="min-width:110px">
-                                <option value="technical" ${s.skill_type==='technical'?'selected':''}>Teknisk</option>
-                                <option value="soft"      ${s.skill_type==='soft'     ?'selected':''}>Mjuk</option>
-                                <option value="language"  ${s.skill_type==='language' ?'selected':''}>Språk</option>
-                                <option value="tool"      ${s.skill_type==='tool'     ?'selected':''}>Verktyg</option>
+                            <select class="form-input" id="kand-edit-skill-level" style="min-width:130px">
+                                <option value=""               ${!s.skill_level                    ?'selected':''}>— Nivå —</option>
+                                <option value="Känner till"    ${s.skill_level==='Känner till'    ?'selected':''}>Känner till</option>
+                                <option value="Erfaren"        ${s.skill_level==='Erfaren'        ?'selected':''}>Erfaren</option>
+                                <option value="Mycket erfaren" ${s.skill_level==='Mycket erfaren' ?'selected':''}>Mycket erfaren</option>
                             </select>
                             <button class="btn btn-primary btn-small" onclick="saveKandSkill(${s.id})">Spara</button>
                             <button class="btn btn-secondary btn-small" onclick="kandEditingSkillId=null;renderKandidatSkills(cachedKandSkills)">Avbryt</button>
                         </div>`;
                     }
-                    return `<span class="bank-skill-chip ${typeClass(s.skill_type)}">
+                    return `<span class="bank-skill-chip ${skillLevelClass(s.skill_level)}">
                         ${esc(s.skill_name)}
                         <button class="chip-delete" style="font-size:0.85em;padding:0 1px 0 3px" onclick="kandEditingSkillId=${s.id};renderKandidatSkills(cachedKandSkills)" title="${t('action.edit')}">✎</button>
                         <button class="chip-delete" onclick="deleteKandidatSkill(${s.id})" title="${t('action.delete')}">×</button>
@@ -515,7 +515,7 @@ async function saveKandSkill(id) {
     const body = {
         skill_name: document.getElementById('kand-edit-skill-name').value.trim(),
         category:   document.getElementById('kand-edit-skill-cat').value.trim()  || 'Övrigt',
-        skill_type: document.getElementById('kand-edit-skill-type').value,
+        skill_level: document.getElementById('kand-edit-skill-level').value || null,
     };
     if (!body.skill_name) { alert('Kompetensnamn krävs'); return; }
     try {

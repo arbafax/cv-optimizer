@@ -61,14 +61,10 @@ function categoriseSkill(skillName) {
   const lower = skillName.toLowerCase();
   for (const [category, keywords] of Object.entries(CATEGORY_RULES)) {
     if (keywords.some(kw => lower.includes(kw))) {
-      const skill_type =
-        category === 'Soft Skills' ? 'soft' :
-        category === 'Languages'   ? 'language' :
-        'technical';
-      return { category, skill_type };
+      return { category };
     }
   }
-  return { category: 'Övrigt', skill_type: 'technical' };
+  return { category: 'Övrigt' };
 }
 
 // ─── Hjälpfunktioner ──────────────────────────────────────────────────────────

@@ -88,6 +88,13 @@ const _MIME_MAP = {
     txt:  'text/plain',
     md:   'text/markdown',
 };
+function skillLevelClass(level) {
+    if (level === 'Känner till')    return 'chip-level-1';
+    if (level === 'Erfaren')        return 'chip-level-2';
+    if (level === 'Mycket erfaren') return 'chip-level-3';
+    return 'chip-technical';
+}
+
 function mimeTypeForFilename(filename) {
     const ext = (filename || '').toLowerCase().split('.').pop();
     return _MIME_MAP[ext] || 'application/octet-stream';
@@ -289,7 +296,7 @@ async function _resolveOwnKandidatId() {
         await cvDb.kandSkills.add(_ownKandidatId, {
             skill_name: s.skill_name,
             category:   s.category   || 'Övrigt',
-            skill_type: s.skill_type || 'technical',
+            skill_level: null,
         });
     }
     for (const e of flatExps) {
@@ -940,8 +947,8 @@ async function browserRoute(path, options = {}) {
                         const norm = (name || '').trim();
                         if (!norm || seenSkills.has(norm.toLowerCase())) continue;
                         seenSkills.add(norm.toLowerCase());
-                        const { category, skill_type } = cvCompSvc.categoriseSkill(norm);
-                        await cvDb.kandSkills.add(kid, { skill_name: norm, category, skill_type });
+                        const { category } = cvCompSvc.categoriseSkill(norm);
+                        await cvDb.kandSkills.add(kid, { skill_name: norm, category });
                         skillCount++;
                     }
 

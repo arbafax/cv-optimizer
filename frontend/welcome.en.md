@@ -15,7 +15,7 @@ Go to **My Account** and add an API key for one of the following AI providers:
 |---|---|
 | **OpenAI** (GPT) | API key from [platform.openai.com](https://platform.openai.com) — [How?](https://www.google.com/search?client=firefox-b-d&q=youtube+hu+skaffar+jag+mig+en+api-nyckel+för+open-AI) |
 | **Anthropic** (Claude) | API key from [console.anthropic.com](https://console.anthropic.com) — [How?](https://www.google.com/search?client=firefox-b-d&q=youtube+hu+skaffar+jag+mig+en+api-nyckel+f%C3%B6r+antropics+claude) |
-| **Google Gemini** | API key from [aistudio.google.com](https://aistudio.google.com) — [How?](https://www.google.com/search?client=firefox-b-d&q=youtube+hu+skaffar+jag+mig+en+api-nyckel+f%C3%B6r+google+gemini) |
+| **Google** (Gemini) | API key from [aistudio.google.com](https://aistudio.google.com) — [How?](https://www.google.com/search?client=firefox-b-d&q=youtube+hu+skaffar+jag+mig+en+api-nyckel+f%C3%B6r+google+gemini) |
 | **Ollama** (local) | Ollama installed and a model downloaded, e.g. llama3 |
 
 Then choose a role (Candidate or Salesperson) to access all features.

@@ -124,6 +124,64 @@ function normDate(d) {
     return s;
 }
 
+function stripContactInfo(text) {
+    return text
+        .replace(/\b\d{6,8}[-+]\d{4}\b/g, '[PERSONNR]')
+        .replace(/[\w.+\-]+@[\w\-]+\.[a-zA-Z]{2,}/g, '[E-POST]')
+        .replace(/\+46[\s\-]?\d[\d\s\-]{6,11}/g, '[TELEFON]')
+        .replace(/\b07\d(?:[\s\-]?\d){7}\b/g, '[TELEFON]')
+        .replace(/\b0\d{1,3}[-\s]\d{2,4}[-\s]\d{2}[-\s]\d{2}\b/g, '[TELEFON]');
+}
+
+let _cvReviewCallback = null;
+
+function showCVReviewModal(text, filename, onConfirm) {
+    _cvReviewCallback = onConfirm;
+    const existing = document.getElementById('cv-review-modal');
+    if (existing) existing.remove();
+    const modal = document.createElement('div');
+    modal.id = 'cv-review-modal';
+    modal.className = 'modal';
+    modal.innerHTML = `
+        <div class="modal-overlay" onclick="closeCVReviewModal()"></div>
+        <div class="modal-content modal-content--wide" style="max-height:90vh">
+            <div class="modal-header">
+                <div>
+                    <h2 style="margin:0 0 2px">Granska CV-text innan analys</h2>
+                    <div style="font-size:0.8125rem;color:var(--text-muted)">${esc(filename)}</div>
+                </div>
+                <button class="modal-close" onclick="closeCVReviewModal()">&times;</button>
+            </div>
+            <div class="modal-body" style="display:flex;flex-direction:column;gap:1rem">
+                <div class="cv-review-info">
+                    <strong>Personnummer, e-postadresser och telefonnummer har tagits bort automatiskt.</strong>
+                    Granska texten nedan och ta bort eventuell ytterligare information du inte vill skicka till AI — exempelvis ditt namn.
+                    Klicka sedan på <em>Analysera CV</em>.
+                </div>
+                <textarea id="cv-review-text" class="form-input cv-review-textarea"></textarea>
+                <div style="display:flex;gap:0.75rem;justify-content:flex-end">
+                    <button class="btn btn-secondary" onclick="closeCVReviewModal()">Avbryt</button>
+                    <button class="btn btn-primary" onclick="confirmCVReview()">Analysera CV →</button>
+                </div>
+            </div>
+        </div>`;
+    document.body.appendChild(modal);
+    document.getElementById('cv-review-text').value = text;
+}
+
+function closeCVReviewModal() {
+    const modal = document.getElementById('cv-review-modal');
+    if (modal) modal.remove();
+    _cvReviewCallback = null;
+}
+
+function confirmCVReview() {
+    const text = document.getElementById('cv-review-text')?.value ?? '';
+    const cb = _cvReviewCallback;
+    closeCVReviewModal();
+    if (cb) cb(text);
+}
+
 /**
  * Wire up a file drop zone: drag-and-drop + click-to-browse.
  * Validates file extension and size before calling onFile(file).
@@ -520,7 +578,11 @@ async function browserRoute(path, options = {}) {
                 if (parts[2] === 'upload' && method === 'POST') {
                     const file = body instanceof FormData ? body.get('file') : null;
                     if (!file) return new LocalResponse({ detail: 'Ingen fil' }, 400);
-                    const [text, fileData] = await Promise.all([cvPdf.extractText(file), file.arrayBuffer()]);
+                    const reviewedText = body instanceof FormData ? (body.get('reviewed_text') || '') : '';
+                    const [text, fileData] = await Promise.all([
+                        reviewedText ? Promise.resolve(reviewedText) : cvPdf.extractText(file),
+                        file.arrayBuffer(),
+                    ]);
                     const structured = await cvAI.structureCV(text);
                     const mergeResult = await cvCompSvc.mergeCVIntoBankForKandid(ownId, { structured_data: structured, filename: file.name });
                     const cv = await cvDb.kandCvs.add(ownId, {
@@ -954,8 +1016,9 @@ async function browserRoute(path, options = {}) {
                 if (parts[3] === 'upload-cv' && method === 'POST') {
                     const file = body instanceof FormData ? body.get('file') : null;
                     if (!file) return new LocalResponse({ detail: 'Ingen fil' }, 400);
+                    const reviewedText = body instanceof FormData ? (body.get('reviewed_text') || '') : '';
                     const [text, fileData] = await Promise.all([
-                        cvPdf.extractText(file),
+                        reviewedText ? Promise.resolve(reviewedText) : cvPdf.extractText(file),
                         file.arrayBuffer(),
                     ]);
                     const structured = await cvAI.structureCV(text);

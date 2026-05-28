@@ -1501,6 +1501,27 @@ body {
     max-width: 860px;
 }
 
+.cv-review-info {
+    font-size: 0.875rem;
+    line-height: 1.55;
+    background: #fffbea;
+    border: 1px solid #f0d060;
+    border-radius: var(--radius);
+    padding: 0.75rem 1rem;
+    margin: 0;
+}
+
+.cv-review-textarea {
+    min-height: 340px;
+    font-size: 0.8125rem;
+    line-height: 1.65;
+    white-space: pre-wrap;
+    resize: vertical;
+    width: 100%;
+    box-sizing: border-box;
+    font-family: inherit;
+}
+
 .modal-header-actions {
     display: flex;
     align-items: center;

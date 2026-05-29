@@ -2575,6 +2575,36 @@ body {
     margin-top: 6px;
 }
 
+.domain-scroll-list {
+    margin-top: 6px;
+    max-height: 190px;
+    overflow-y: auto;
+    border: 1px solid var(--border);
+    border-radius: var(--r-sm);
+    background: var(--surface);
+}
+
+.domain-scroll-list .checkbox-label {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 7px 12px;
+    border-bottom: 1px solid var(--border);
+    transition: background 0.1s;
+}
+
+.domain-scroll-list .checkbox-label:last-child {
+    border-bottom: none;
+}
+
+.domain-scroll-list .checkbox-label:hover {
+    background: var(--bg);
+}
+
+.domain-scroll-list .checkbox-label:has(input:checked) {
+    background: var(--blue-light);
+}
+
 .checkbox-label {
     display: flex;
     align-items: center;

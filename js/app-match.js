@@ -58,10 +58,18 @@ async function handleOptimize() {
 
     optimizeBtn.disabled = true;
     optimizeBtn.querySelector('.btn-text').style.display = 'none';
-    optimizeBtn.querySelector('.btn-loading').classList.remove('hidden');
+    const loadingEl = optimizeBtn.querySelector('.btn-loading');
+    const loadingTextEl = loadingEl.querySelector('[data-i18n]') || loadingEl.querySelector('span:last-child');
+    loadingEl.classList.remove('hidden');
     optimizeResult.classList.add('hidden');
 
+    if (loadingTextEl) loadingTextEl.textContent = ' Analyserar annons…';
+
     try {
+        // Step 1: analyze the job posting (result is cached for the match call)
+        await _getStructuredJob('', jobDescription.value.trim());
+        if (loadingTextEl) loadingTextEl.textContent = ' Matchar kompetenser…';
+
         const response = await apiFetch(`${API_BASE_URL}/competence/match-job`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
@@ -95,6 +103,7 @@ async function handleOptimize() {
         optimizeBtn.disabled = false;
         optimizeBtn.querySelector('.btn-text').style.display = 'inline';
         optimizeBtn.querySelector('.btn-loading').classList.add('hidden');
+        if (loadingTextEl) loadingTextEl.textContent = t('match.analysing') || ' Analyserar...';
         updateOptimizeButton();
     }
 }

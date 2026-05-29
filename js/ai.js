@@ -250,7 +250,10 @@ Regler:
  * Matcha kompetensbank mot strukturerad jobbannons.
  */
 async function matchJobStructured(skills, experiences, structuredJob, seekerProfile = null) {
-  const skillsList = skills.map(s => `- ${s.skill_name} (${s.category || 'Okategoriserad'})`).join('\n') || '(inga skills)';
+  const skillsList = skills.map(s => {
+    const level = s.skill_level || 'Känner till';
+    return `- ${s.skill_name} (${s.category || 'Okategoriserad'}, nivå: ${level})`;
+  }).join('\n') || '(inga skills)';
 
   const expList = experiences.map(e =>
     `[ID:${e.id}] ${e.title}`

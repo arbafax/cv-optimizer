@@ -297,7 +297,7 @@ function setupSpCVUpload() {
 async function handleSpCVUpload(file) {
     const area = document.getElementById('sp-cv-upload-area');
     if (area) area.classList.add('uploading');
-    showSpCVUploadStatus('⏳ Läser CV...', 'loading');
+    showSpCVUploadStatus('Läser CV...', 'loading');
 
     try {
         const raw = await cvPdf.extractText(file);
@@ -307,7 +307,7 @@ async function handleSpCVUpload(file) {
 
         showCVReviewModal(stripped, file.name, async (reviewedText) => {
             if (area) area.classList.add('uploading');
-            showSpCVUploadStatus('⏳ Analyserar med AI...', 'loading');
+            showSpCVUploadStatus('Analyserar med AI...', 'loading');
             const formData = new FormData();
             formData.append('file', file);
             formData.append('reviewed_text', reviewedText);
@@ -315,7 +315,7 @@ async function handleSpCVUpload(file) {
                 const res = await apiFetch(`${API_BASE_URL}/competence/cvs/upload`, { method: 'POST', body: formData });
                 if (!res.ok) { const e = await res.json(); throw new Error(e.detail || 'Uppladdning misslyckades'); }
                 if (area) area.classList.remove('uploading');
-                showSpCVUploadStatus('✅ CV analyserat och sparat!', 'success');
+                showSpCVUploadStatus('CV analyserat och sparat!', 'success');
                 await loadSpCandidateCVs();
                 loadBankData();
             } catch (err) {

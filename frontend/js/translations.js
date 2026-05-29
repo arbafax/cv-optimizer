@@ -184,6 +184,9 @@ sv: {
     'matchk.ranking_failed':        'Rankning misslyckades',
     'matchk.ranking_title':         'Rankning',
     'matchk.candidates_suffix':     'kandidater',
+    'matchk.hint_both':             'Bocka för en kandidat och klistra in en jobbannons.',
+    'matchk.hint_no_text':          'Klistra in en jobbannons för att fortsätta.',
+    'matchk.hint_no_candidate':     'Bocka för minst en kandidat för att köra detaljerad analys.',
 
     // Mina kandidater
     'kand.title':                   'Mina kandidater',
@@ -452,6 +455,9 @@ en: {
     'matchk.ranking_failed':        'Ranking failed',
     'matchk.ranking_title':         'Ranking',
     'matchk.candidates_suffix':     'candidates',
+    'matchk.hint_both':             'Check a candidate and paste a job description.',
+    'matchk.hint_no_text':          'Paste a job description to continue.',
+    'matchk.hint_no_candidate':     'Check at least one candidate to run detailed analysis.',
 
     'kand.title':                   'My candidates',
     'kand.subtitle':                'Manage your pool of candidates.',
@@ -711,6 +717,9 @@ no: {
     'matchk.ranking_failed':        'Rangering mislyktes',
     'matchk.ranking_title':         'Rangering',
     'matchk.candidates_suffix':     'kandidater',
+    'matchk.hint_both':             'Huk av en kandidat og lim inn en stillingsannonse.',
+    'matchk.hint_no_text':          'Lim inn en stillingsannonse for å fortsette.',
+    'matchk.hint_no_candidate':     'Huk av minst én kandidat for å kjøre detaljert analyse.',
 
     'kand.title':                   'Mine kandidater',
     'kand.subtitle':                'Administrer din pool med kandidater.',

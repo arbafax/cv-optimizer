@@ -110,6 +110,13 @@ async function showSkillContextModal(skillName) {
                     <span class="spinner-small"></span> Hämtar kontext ur annonsen…
                 </div>
             </div>
+            <div class="modal-footer">
+                <span id="skill-add-feedback" class="skill-add-feedback"></span>
+                <button id="skill-add-btn" class="btn btn-primary btn-sm"
+                    onclick="addSkillFromContextModal('${skillName.replace(/'/g, "\\'")}')">
+                    + Lägg till kompetensen i profilen
+                </button>
+            </div>
         </div>`;
     modal.classList.add('modal');
     document.body.appendChild(modal);
@@ -127,6 +134,41 @@ async function showSkillContextModal(skillName) {
     } catch (err) {
         document.getElementById('skill-context-body').innerHTML =
             `<p style="color:var(--danger)">Kunde inte hämta kontext: ${esc(err.message)}</p>`;
+    }
+}
+
+async function addSkillFromContextModal(skillName) {
+    const btn      = document.getElementById('skill-add-btn');
+    const feedback = document.getElementById('skill-add-feedback');
+    if (!btn) return;
+
+    btn.disabled = true;
+    btn.textContent = '…';
+
+    try {
+        const url = lastMatchKandidatId
+            ? `${API_BASE_URL}/kandidater/${lastMatchKandidatId}/bank/skills`
+            : `${API_BASE_URL}/competence/skills`;
+
+        const res = await apiFetch(url, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ skill_name: skillName, category: '' }),
+        });
+
+        if (!res.ok) {
+            const err = await res.json();
+            throw new Error(err.detail || 'Kunde inte lägga till');
+        }
+
+        btn.remove();
+        feedback.textContent = '✓ Tillagd i profilen';
+        feedback.style.color = 'var(--green)';
+    } catch (err) {
+        btn.disabled = false;
+        btn.textContent = '+ Lägg till kompetensen i profilen';
+        feedback.textContent = 'Fel: ' + err.message;
+        feedback.style.color = 'var(--danger)';
     }
 }
 
@@ -1476,7 +1518,6 @@ function displayMatchResult(result, container) {
 
         ${qualitiesHtml}
 
-        ${experiences.length > 0 ? `
         <div class="gen-cv-action">
             <button id="tips-btn" class="btn btn-secondary" onclick="handleTips()">
                 ${t('match.tips_btn')}
@@ -1487,7 +1528,7 @@ function displayMatchResult(result, container) {
             <button id="gen-hc-cv-btn" class="btn btn-primary" onclick="handleGenerateHenrikCV()">
                 ${t('match.gen_hc_btn')}
             </button>
-        </div>` : ''}
+        </div>
     `;
 
     optimizeResult.classList.remove('hidden');

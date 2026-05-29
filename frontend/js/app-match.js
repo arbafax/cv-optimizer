@@ -610,7 +610,18 @@ async function addSuggestedQuality(qualityName, rowIndex) {
 
     try {
         if (lastMatchKandidatId) {
-            await addKandQuality(qualityName);
+            const res = await apiFetch(`${API_BASE_URL}/kandidater/${lastMatchKandidatId}`);
+            if (!res.ok) throw new Error('Kunde inte hämta kandidat');
+            const kand = await res.json();
+            const existing = kand.personal_qualities || [];
+            if (!existing.includes(qualityName)) {
+                const putRes = await apiFetch(`${API_BASE_URL}/kandidater/${lastMatchKandidatId}`, {
+                    method: 'PUT',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ personal_qualities: [...existing, qualityName] }),
+                });
+                if (!putRes.ok) throw new Error('Kunde inte spara');
+            }
         } else {
             await addSpQuality(qualityName);
         }

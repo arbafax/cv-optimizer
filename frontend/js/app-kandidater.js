@@ -179,10 +179,17 @@ function updateMatchKandidatBtn() {
     const txt        = document.getElementById('mk-job-description');
     const matchBtn   = document.getElementById('mk-match-btn');
     const rankBtn    = document.getElementById('mk-rank-btn');
+    const hint       = document.getElementById('mk-match-hint');
     const hasText    = !!txt?.value.trim();
     const anyChecked = list ? list.querySelectorAll('input[type="checkbox"]:checked').length > 0 : false;
     if (matchBtn) matchBtn.disabled = !anyChecked || !hasText;
     if (rankBtn)  rankBtn.disabled  = !hasText;
+    if (hint) {
+        if (!hasText && !anyChecked) hint.textContent = t('matchk.hint_both');
+        else if (!hasText)           hint.textContent = t('matchk.hint_no_text');
+        else if (!anyChecked)        hint.textContent = t('matchk.hint_no_candidate');
+        else                         hint.textContent = '';
+    }
 }
 
 // ── Ranka alla kandidater (parallell LLM-analys) ─────────────────────────────

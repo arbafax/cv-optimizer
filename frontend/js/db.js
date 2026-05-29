@@ -817,7 +817,6 @@ const searchProfiles = {
         willing_to_commute: data.willing_to_commute ?? false,
         notes: data.notes ?? null,
         job_description: data.job_description ?? null,
-        saved_job_ads: data.saved_job_ads ?? [],
         saved_match_results: data.saved_match_results ?? [],
         created_at: new Date().toISOString(),
       }));
@@ -838,16 +837,6 @@ const searchProfiles = {
     return _tx('search_profiles', 'readwrite', (tx) =>
       _req(tx.objectStore('search_profiles').delete(id))
     );
-  },
-  async saveJob(id, jobAd) {
-    return _tx('search_profiles', 'readwrite', async (tx) => {
-      const store = tx.objectStore('search_profiles');
-      const sp = await _req(store.get(id));
-      if (!sp) throw new Error(`SearchProfile ${id} not found`);
-      sp.saved_job_ads = [...(sp.saved_job_ads ?? []), jobAd];
-      await _req(store.put(sp));
-      return sp;
-    });
   },
   async saveResult(id, result) {
     return _tx('search_profiles', 'readwrite', async (tx) => {

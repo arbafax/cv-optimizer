@@ -215,6 +215,124 @@ Viktigt:
 }
 
 /**
+ * Analysera en jobbannons och returnera strukturerad JSON.
+ */
+async function analyzeJob(title, description) {
+  const system = `Du är en expert på rekrytering och jobbanalys.
+Analysera jobbannonsen och extrahera strukturerad information i exakt detta JSON-format:
+{
+  "title": "<befattning/rolltitel>",
+  "required_skills": ["<obligatorisk kompetens>"],
+  "nice_to_have_skills": ["<meriterande kompetens>"],
+  "min_experience_years": <antal år eller null>,
+  "seniority_level": "<Junior|Mid|Senior|Lead|null>",
+  "required_education": "<utbildningskrav som sträng, eller null>",
+  "city": "<ort eller null>",
+  "employment_type": "<Heltid|Deltid|null>",
+  "duration": "<Tillsvidare|Tidsbegränsat|null>",
+  "workplace": "<På plats|Hybrid|Distans|null>",
+  "domain": "<bransch/domän, t.ex. 'IT & Data', 'Vård & omsorg', eller null>",
+  "summary": "<2-3 meningar som beskriver rollen>"
+}
+
+Regler:
+- Skilja tydligt på obligatoriska krav och meriterande ("nice to have").
+- Om information saknas i annonsen, sätt null.
+- required_skills och nice_to_have_skills ska vara korta kompetensnamn (ej meningar).`;
+
+  const user = `Jobbtitel: ${title || '(ej angiven)'}\n\nJobbannons:\n${description}`;
+  return _chatJSON(system, user, { temperature: 0.1 });
+}
+
+/**
+ * Matcha kompetensbank mot strukturerad jobbannons.
+ */
+async function matchJobStructured(skills, experiences, structuredJob, seekerProfile = null) {
+  const skillsList = skills.map(s => `- ${s.skill_name} (${s.category || 'Okategoriserad'})`).join('\n') || '(inga skills)';
+
+  const expList = experiences.map(e =>
+    `[ID:${e.id}] ${e.title}`
+    + (e.organization ? ` på ${e.organization}` : '')
+    + (e.start_date ? ` (${e.start_date}–${e.end_date || 'nu'})` : '')
+    + (e.description ? `\nBeskrivning: ${e.description}` : '')
+    + (e.achievements?.length ? '\nPrestationer:\n' + e.achievements.map(a => `- ${a}`).join('\n') : '')
+  ).join('\n\n') || '(inga erfarenheter)';
+
+  const jobSection = [
+    `Titel: ${structuredJob.title || '(ej angiven)'}`,
+    structuredJob.required_skills?.length   ? `Obligatoriska kompetenser: ${structuredJob.required_skills.join(', ')}` : null,
+    structuredJob.nice_to_have_skills?.length ? `Meriterande: ${structuredJob.nice_to_have_skills.join(', ')}` : null,
+    structuredJob.min_experience_years != null ? `Minsta erfarenhet: ${structuredJob.min_experience_years} år` : null,
+    structuredJob.seniority_level     ? `Nivå: ${structuredJob.seniority_level}` : null,
+    structuredJob.required_education  ? `Utbildningskrav: ${structuredJob.required_education}` : null,
+    structuredJob.city                ? `Ort: ${structuredJob.city}` : null,
+    structuredJob.employment_type     ? `Anställningsform: ${structuredJob.employment_type}` : null,
+    structuredJob.duration            ? `Varaktighet: ${structuredJob.duration}` : null,
+    structuredJob.workplace           ? `Arbetsplats: ${structuredJob.workplace}` : null,
+    structuredJob.domain              ? `Domän: ${structuredJob.domain}` : null,
+    structuredJob.summary             ? `Sammanfattning: ${structuredJob.summary}` : null,
+  ].filter(Boolean).join('\n');
+
+  const system = `Du är en expert på rekrytering och kompetensanalys.
+Du får en strukturerad jobbkravsprofil och en persons kompetensbank.
+Din uppgift är att analysera hur väl personen matchar jobbet.
+
+Svara ENDAST med JSON i exakt detta format:
+{
+  "overall_score": <0-100>,
+  "summary": "<2-3 meningar om matchningen totalt sett>",
+  "job_info": {
+    "city": "<ort eller null>",
+    "employment_type": "<Heltid|Deltid|null>",
+    "duration": "<Tillsvidare|Tidsbegränsat|null>",
+    "workplace": "<På plats|Hybrid|Distans|null>",
+    "domain": "<domän eller null>"
+  },
+  "profile_fit": [
+    {
+      "aspect": "<t.ex. Ort, Anställningsform, Varaktighet, Arbetsplats>",
+      "job_value": "<vad jobbet erbjuder>",
+      "preference": "<personens önskemål, eller 'Ej angiven'>",
+      "match": true/false/null,
+      "note": "<kort notering vid avvikelse, annars tom sträng>"
+    }
+  ],
+  "skills": [
+    {"skill_name": "<namn>", "score": <1-100>, "reason": "<förklaring>", "is_required": true/false}
+  ],
+  "experiences": [
+    {"id": <id>, "score": <1-100>, "reason": "<förklaring>"}
+  ],
+  "missing_required_skills": ["<obligatorisk skill som saknas>"],
+  "missing_nice_to_have_skills": ["<meriterande skill som saknas>"]
+}
+
+Regler:
+- Bygg profile_fit ENDAST om personens preferenser skickas med.
+- overall_score ska påverkas av saknade obligatoriska kompetenser och preferensavvikelser.
+- Om jobbets domän finns i icke-önskade domäner: sätt match=false och sänk overall_score med minst 20.
+- Inkludera ENDAST skills och erfarenheter med score >= 25.
+- Sortera skills och experiences med högst poäng först.
+- Skilja tydligt missing_required_skills från missing_nice_to_have_skills.`;
+
+  let seekerSection = '';
+  if (seekerProfile) {
+    const parts = [];
+    if (seekerProfile.roles)                    parts.push(`Önskade roller: ${seekerProfile.roles}`);
+    if (seekerProfile.desired_city)             parts.push(`Önskad ort: ${seekerProfile.desired_city}`);
+    if (seekerProfile.desired_employment?.length) parts.push(`Önskad anställningsform: ${seekerProfile.desired_employment.join(', ')}`);
+    if (seekerProfile.desired_workplace?.length)  parts.push(`Önskad arbetsplats: ${seekerProfile.desired_workplace.join(', ')}`);
+    if (seekerProfile.desired_domains?.length)    parts.push(`Önskade domäner: ${seekerProfile.desired_domains.join(', ')}`);
+    if (seekerProfile.unwanted_domains?.length)   parts.push(`Icke-önskade domäner: ${seekerProfile.unwanted_domains.join(', ')}`);
+    if (seekerProfile.willing_to_commute)         parts.push('Resbar: Ja');
+    if (parts.length) seekerSection = '\n---\nPersonens preferenser:\n' + parts.join('\n');
+  }
+
+  const user = `Jobbkrav (strukturerat):\n${jobSection}\n\n---\nPersonens skills:\n${skillsList}\n\nPersonens erfarenheter:\n${expList}${seekerSection}`;
+  return _chatJSON(system, user, { temperature: 0.2 });
+}
+
+/**
  * Matcha kompetensbank mot jobbannons.
  */
 async function matchJob(skills, experiences, jobTitle, jobDescription, seekerProfile = null) {
@@ -704,7 +822,9 @@ async function fetchJobUrl(url) {
 
 window.cvAI = {
   structureCV,
+  analyzeJob,
   matchJob,
+  matchJobStructured,
   generateCV,
   generateLogHouseCV,
   generateHenrikCV,

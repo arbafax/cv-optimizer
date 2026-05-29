@@ -78,6 +78,17 @@ class LocalResponse {
 }
 
 // ── Upload zone component ─────────────────────────────────────────────────────
+// ── In-memory job analysis cache (session-scoped) ─────────────────────────────
+const _jobAnalysisCache = new Map();
+function _jobCacheKey(text) { return text.slice(0, 120); }
+async function _getStructuredJob(title, description) {
+    const key = _jobCacheKey(description);
+    if (_jobAnalysisCache.has(key)) return _jobAnalysisCache.get(key);
+    const structured = await cvAI.analyzeJob(title || '', description);
+    _jobAnalysisCache.set(key, structured);
+    return structured;
+}
+
 const CV_FILE_EXTS   = ['pdf', 'docx', 'txt', 'md'];
 const CV_FILE_ACCEPT = '.pdf,.docx,.txt,.md';
 const CV_MAX_SIZE    = 10 * 1024 * 1024; // 10 MB
@@ -819,7 +830,8 @@ async function browserRoute(path, options = {}) {
                     unwanted_domains:   own.unwanted_domains   || [],
                     willing_to_commute: own.willing_to_commute || false,
                 } : null;
-                const result = await cvAI.matchJob(skills, exps, body.job_title || '', body.job_description || '', seekerProfile);
+                const structuredJob = await _getStructuredJob(body.job_title || '', body.job_description || '');
+                const result = await cvAI.matchJobStructured(skills, exps, structuredJob, seekerProfile);
                 const expById = Object.fromEntries(exps.map(e => [e.id, e]));
                 result.experiences = (result.experiences || []).map(item => {
                     const exp = expById[item.id];
@@ -910,9 +922,6 @@ async function browserRoute(path, options = {}) {
                 if (method === 'GET')    return new LocalResponse(await cvDb.searchProfiles.get(id));
                 if (method === 'PUT')    return new LocalResponse(await cvDb.searchProfiles.update(id, body));
                 if (method === 'DELETE') { await cvDb.searchProfiles.delete(id); return new LocalResponse({}); }
-            }
-            if (parts[2] === 'job' && method === 'PUT') {
-                return new LocalResponse(await cvDb.searchProfiles.saveJob(Number(parts[1]), body));
             }
             if (parts[2] === 'results' && method === 'PUT') {
                 return new LocalResponse(await cvDb.searchProfiles.saveResult(Number(parts[1]), body));
@@ -1168,13 +1177,8 @@ async function browserRoute(path, options = {}) {
                     unwanted_domains:   [],
                     willing_to_commute: profile.willing_to_commute || false,
                 } : null;
-                const result = await cvAI.matchJob(
-                    skills,
-                    exps,
-                    body.job_title || '',
-                    body.job_description || '',
-                    seekerProfile,
-                );
+                const structuredJob = await _getStructuredJob(body.job_title || '', body.job_description || '');
+                const result = await cvAI.matchJobStructured(skills, exps, structuredJob, seekerProfile);
                 const expById = Object.fromEntries(exps.map(e => [e.id, e]));
                 result.experiences = (result.experiences || []).map(item => {
                     const exp = expById[item.id];
@@ -1188,6 +1192,8 @@ async function browserRoute(path, options = {}) {
             // multi-match: rank all kandidater against a job
             if (parts[1] === 'multi-match' && method === 'POST') {
                 const allKand = (await cvDb.kandidater.list()).filter(k => !k.is_own_profile);
+                // Analyze the job once — reused for all candidates
+                const structuredJob = await _getStructuredJob(body.job_title || '', body.job_description || '');
                 const results = await Promise.all(allKand.map(async (k) => {
                     try {
                         const [skills, exps] = await Promise.all([
@@ -1206,7 +1212,7 @@ async function browserRoute(path, options = {}) {
                             unwanted_domains:   [],
                             willing_to_commute: k.willing_to_commute || false,
                         };
-                        const result = await cvAI.matchJob(skills, exps, '', body.job_description || '', seekerProfile);
+                        const result = await cvAI.matchJobStructured(skills, exps, structuredJob, seekerProfile);
                         const expById = Object.fromEntries(exps.map(e => [e.id, e]));
                         result.experiences = (result.experiences || []).map(item => {
                             const exp = expById[item.id];

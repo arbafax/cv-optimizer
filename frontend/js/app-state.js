@@ -814,10 +814,11 @@ async function browserRoute(path, options = {}) {
 
             // match-job
             if (parts[1] === 'match-job' && method === 'POST') {
-                const [skills, exps, own] = await Promise.all([
+                const [skills, exps, own, prof] = await Promise.all([
                     cvDb.kandSkills.listFor(ownId),
                     cvDb.kandExperiences.listFor(ownId),
                     cvDb.kandidater.get(ownId),
+                    cvDb.profile.get(),
                 ]);
                 if (!skills.length && !exps.length) {
                     return new LocalResponse({ detail: 'Kompetensbanken är tom' }, 400);
@@ -830,7 +831,7 @@ async function browserRoute(path, options = {}) {
                     desired_domains:    own.desired_domains    || [],
                     unwanted_domains:   own.unwanted_domains   || [],
                     willing_to_commute: own.willing_to_commute || false,
-                    personal_qualities: own.personal_qualities || [],
+                    personal_qualities: prof?.personal_qualities || own.personal_qualities || [],
                 } : null;
                 const structuredJob = await _getStructuredJob(body.job_title || '', body.job_description || '');
                 const result = await cvAI.matchJobStructured(skills, exps, structuredJob, seekerProfile);

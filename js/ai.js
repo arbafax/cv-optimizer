@@ -222,8 +222,9 @@ async function analyzeJob(title, description) {
 Analysera jobbannonsen och extrahera strukturerad information i exakt detta JSON-format:
 {
   "title": "<befattning/rolltitel>",
-  "required_skills": ["<obligatorisk kompetens>"],
-  "nice_to_have_skills": ["<meriterande kompetens>"],
+  "required_skills": ["<obligatorisk teknisk/domänkompetens>"],
+  "nice_to_have_skills": ["<meriterande teknisk/domänkompetens>"],
+  "personal_qualities": ["<personlig egenskap, t.ex. 'Analytisk', 'Självgående', 'Driven'>"],
   "min_experience_years": <antal år eller null>,
   "seniority_level": "<Junior|Mid|Senior|Lead|null>",
   "required_education": "<utbildningskrav som sträng, eller null>",
@@ -236,8 +237,9 @@ Analysera jobbannonsen och extrahera strukturerad information i exakt detta JSON
 }
 
 Regler:
-- Skilja tydligt på obligatoriska krav och meriterande ("nice to have").
-- Om information saknas i annonsen, sätt null.
+- Skilja tydligt på tekniska/domänrelaterade kompetenser (required_skills, nice_to_have_skills) och personliga egenskaper (personal_qualities).
+- personal_qualities: mjuka egenskaper och personlighetsdrag — INTE tekniska färdigheter. Tom array om inga nämns.
+- Om information saknas i annonsen, sätt null eller tom array.
 - required_skills och nice_to_have_skills ska vara korta kompetensnamn (ej meningar).`;
 
   const user = `Jobbtitel: ${title || '(ej angiven)'}\n\nJobbannons:\n${description}`;
@@ -261,7 +263,8 @@ async function matchJobStructured(skills, experiences, structuredJob, seekerProf
   const jobSection = [
     `Titel: ${structuredJob.title || '(ej angiven)'}`,
     structuredJob.required_skills?.length   ? `Obligatoriska kompetenser: ${structuredJob.required_skills.join(', ')}` : null,
-    structuredJob.nice_to_have_skills?.length ? `Meriterande: ${structuredJob.nice_to_have_skills.join(', ')}` : null,
+    structuredJob.nice_to_have_skills?.length  ? `Meriterande kompetenser: ${structuredJob.nice_to_have_skills.join(', ')}` : null,
+    structuredJob.personal_qualities?.length   ? `Önskade personliga egenskaper: ${structuredJob.personal_qualities.join(', ')}` : null,
     structuredJob.min_experience_years != null ? `Minsta erfarenhet: ${structuredJob.min_experience_years} år` : null,
     structuredJob.seniority_level     ? `Nivå: ${structuredJob.seniority_level}` : null,
     structuredJob.required_education  ? `Utbildningskrav: ${structuredJob.required_education}` : null,
@@ -304,7 +307,9 @@ Svara ENDAST med JSON i exakt detta format:
     {"id": <id>, "score": <1-100>, "reason": "<förklaring>"}
   ],
   "missing_required_skills": ["<obligatorisk skill som saknas>"],
-  "missing_nice_to_have_skills": ["<meriterande skill som saknas>"]
+  "missing_nice_to_have_skills": ["<meriterande skill som saknas>"],
+  "matching_personal_qualities": ["<egenskap som annonsen önskar och personen uppger>"],
+  "missing_personal_qualities": ["<egenskap som annonsen önskar men personen inte uppger>"]
 }
 
 Regler:
@@ -313,7 +318,8 @@ Regler:
 - Om jobbets domän finns i icke-önskade domäner: sätt match=false och sänk overall_score med minst 20.
 - Inkludera ENDAST skills och erfarenheter med score >= 25.
 - Sortera skills och experiences med högst poäng först.
-- Skilja tydligt missing_required_skills från missing_nice_to_have_skills.`;
+- Skilja tydligt missing_required_skills från missing_nice_to_have_skills.
+- personal_qualities: jämför jobbets önskade egenskaper mot personens egenskaper. Om personen inte har några egenskaper i sin profil, lägg allt i missing_personal_qualities.`;
 
   let seekerSection = '';
   if (seekerProfile) {
@@ -324,7 +330,8 @@ Regler:
     if (seekerProfile.desired_workplace?.length)  parts.push(`Önskad arbetsplats: ${seekerProfile.desired_workplace.join(', ')}`);
     if (seekerProfile.desired_domains?.length)    parts.push(`Önskade domäner: ${seekerProfile.desired_domains.join(', ')}`);
     if (seekerProfile.unwanted_domains?.length)   parts.push(`Icke-önskade domäner: ${seekerProfile.unwanted_domains.join(', ')}`);
-    if (seekerProfile.willing_to_commute)         parts.push('Resbar: Ja');
+    if (seekerProfile.willing_to_commute)              parts.push('Resbar: Ja');
+    if (seekerProfile.personal_qualities?.length)      parts.push(`Personliga egenskaper: ${seekerProfile.personal_qualities.join(', ')}`);
     if (parts.length) seekerSection = '\n---\nPersonens preferenser:\n' + parts.join('\n');
   }
 

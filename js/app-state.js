@@ -523,6 +523,7 @@ async function browserRoute(path, options = {}) {
                     searchable: prof.searchable || false,
                     available_from: prof.available_from || null,
                     description: prof.description || null,
+                    personal_qualities: prof.personal_qualities || [],
                     profile_uuid: own?.profile_uuid || null,
                 });
             }
@@ -829,6 +830,7 @@ async function browserRoute(path, options = {}) {
                     desired_domains:    own.desired_domains    || [],
                     unwanted_domains:   own.unwanted_domains   || [],
                     willing_to_commute: own.willing_to_commute || false,
+                    personal_qualities: own.personal_qualities || [],
                 } : null;
                 const structuredJob = await _getStructuredJob(body.job_title || '', body.job_description || '');
                 const result = await cvAI.matchJobStructured(skills, exps, structuredJob, seekerProfile);
@@ -941,6 +943,13 @@ async function browserRoute(path, options = {}) {
                     )
                 );
                 return new LocalResponse({ kandidater: filtered });
+            }
+
+            // GET /kandidater/{id}
+            if (method === 'GET' && parts.length === 2) {
+                const k = await cvDb.kandidater.get(kid);
+                if (!k) return new LocalResponse({ detail: 'Hittades inte' }, 404);
+                return new LocalResponse(k);
             }
 
             // POST /kandidater/
@@ -1176,6 +1185,7 @@ async function browserRoute(path, options = {}) {
                     desired_domains:    [],
                     unwanted_domains:   [],
                     willing_to_commute: profile.willing_to_commute || false,
+                    personal_qualities: profile.personal_qualities || [],
                 } : null;
                 const structuredJob = await _getStructuredJob(body.job_title || '', body.job_description || '');
                 const result = await cvAI.matchJobStructured(skills, exps, structuredJob, seekerProfile);
@@ -1211,6 +1221,7 @@ async function browserRoute(path, options = {}) {
                             desired_domains:    [],
                             unwanted_domains:   [],
                             willing_to_commute: k.willing_to_commute || false,
+                            personal_qualities: k.personal_qualities || [],
                         };
                         const result = await cvAI.matchJobStructured(skills, exps, structuredJob, seekerProfile);
                         const expById = Object.fromEntries(exps.map(e => [e.id, e]));
@@ -1301,7 +1312,10 @@ function displayMatchResult(result, container) {
     const overall = result.overall_score ?? 0;
     const skills = (result.skills ?? []).filter(s => s.score > 0);
     const experiences = (result.experiences ?? []).filter(e => e.score > 0);
-    const missing = result.missing_skills ?? [];
+    const missingRequired    = result.missing_required_skills    ?? result.missing_skills ?? [];
+    const missingNiceToHave  = result.missing_nice_to_have_skills ?? [];
+    const matchingQualities  = result.matching_personal_qualities ?? [];
+    const missingQualities   = result.missing_personal_qualities  ?? [];
     const jobInfo = result.job_info ?? {};
     const profileFit = result.profile_fit ?? [];
 
@@ -1333,9 +1347,19 @@ function displayMatchResult(result, container) {
         </div>
     `).join('');
 
-    const missingHtml = missing.length
-        ? missing.map(m => `<span class="match-missing-chip">${m}</span>`).join('')
-        : '<p class="match-empty">Inga saknade kompetenser identifierade</p>';
+    const missingRequiredHtml   = missingRequired.map(m =>
+        `<span class="match-missing-chip match-missing-required">${m}</span>`).join('');
+    const missingNiceToHaveHtml = missingNiceToHave.map(m =>
+        `<span class="match-missing-chip match-missing-nice">${m}</span>`).join('');
+
+    const qualitiesHtml = (matchingQualities.length || missingQualities.length) ? `
+        <div class="match-missing-section">
+            <h4 class="match-section-title">Personliga egenskaper</h4>
+            <div class="match-missing-chips">
+                ${matchingQualities.map(q => `<span class="match-missing-chip match-quality-match">✓ ${q}</span>`).join('')}
+                ${missingQualities.map(q =>  `<span class="match-missing-chip match-quality-missing">${q}</span>`).join('')}
+            </div>
+        </div>` : '';
 
     const jobInfoItems = [
         { icon: '📍', value: jobInfo.city },
@@ -1394,11 +1418,17 @@ function displayMatchResult(result, container) {
             </div>
         </div>
 
-        ${missing.length ? `
+        ${(missingRequired.length || missingNiceToHave.length) ? `
         <div class="match-missing-section">
-            <h4 class="match-section-title">${t('match.section_missing')} (${missing.length})</h4>
-            <div class="match-missing-chips">${missingHtml}</div>
+            ${missingRequired.length ? `
+            <h4 class="match-section-title">Saknade obligatoriska kompetenser (${missingRequired.length})</h4>
+            <div class="match-missing-chips" style="margin-bottom:0.75rem">${missingRequiredHtml}</div>` : ''}
+            ${missingNiceToHave.length ? `
+            <h4 class="match-section-title" style="margin-top:0.5rem">Meriterande som saknas (${missingNiceToHave.length})</h4>
+            <div class="match-missing-chips">${missingNiceToHaveHtml}</div>` : ''}
         </div>` : ''}
+
+        ${qualitiesHtml}
 
         ${experiences.length > 0 ? `
         <div class="gen-cv-action">

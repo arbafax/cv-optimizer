@@ -271,6 +271,13 @@ sv: {
     'cv.review_info':               'Personnummer, e-postadresser och telefonnummer har försökts att ta bort automatiskt. Granska texten nedan och ta bort eventuell ytterligare information du inte vill skicka till AI — exempelvis ditt namn och adress. (TIPS! Använd webbläsarens sökfunktion) Klicka sedan på Analysera CV.',
     'cv.review_title':              'Granska CV-text innan analys',
     'cv.review_confirm':            'Analysera CV →',
+
+    'qualities.title':              'Personliga egenskaper',
+    'qualities.desc_kand':          'Mjuka egenskaper som kandidaten besitter — t.ex. Analytisk, Självgående, Driven. Används vid matchning mot jobbannonser.',
+    'qualities.desc_sp':            'Mjuka egenskaper som du besitter — t.ex. Analytisk, Självgående, Driven. Används vid matchning mot jobbannonser.',
+    'qualities.placeholder':        'Skriv egenskap och tryck Enter…',
+    'qualities.add_btn':            '+ Lägg till',
+    'qualities.empty':              'Inga egenskaper tillagda ännu.',
 },
 
 // ── ENGLISH ───────────────────────────────────────────────────────────────────
@@ -523,6 +530,13 @@ en: {
     'cv.review_info':               'Personal ID numbers, email addresses and phone numbers have been attempted to be removed automatically. Review the text below and remove any additional information you do not want to send to AI — such as your name and address. (TIP! Use the browser\'s search function) Then click Analyse CV.',
     'cv.review_title':              'Review CV text before analysis',
     'cv.review_confirm':            'Analyse CV →',
+
+    'qualities.title':              'Personal qualities',
+    'qualities.desc_kand':          'Soft skills the candidate possesses — e.g. Analytical, Self-driven, Motivated. Used when matching against job postings.',
+    'qualities.desc_sp':            'Soft skills you possess — e.g. Analytical, Self-driven, Motivated. Used when matching against job postings.',
+    'qualities.placeholder':        'Type a quality and press Enter…',
+    'qualities.add_btn':            '+ Add',
+    'qualities.empty':              'No qualities added yet.',
 },
 
 // ── NORSK BOKMÅL ─────────────────────────────────────────────────────────────
@@ -775,6 +789,13 @@ no: {
     'cv.review_info':               'Personnummer, e-postadresser og telefonnumre er forsøkt fjernet automatisk. Gå gjennom teksten nedenfor og fjern eventuell ytterligere informasjon du ikke vil sende til AI — for eksempel ditt navn og adresse. (TIPS! Bruk nettleserens søkefunksjon) Klikk deretter på Analyser CV.',
     'cv.review_title':              'Gjennomgå CV-tekst før analyse',
     'cv.review_confirm':            'Analyser CV →',
+
+    'qualities.title':              'Personlige egenskaper',
+    'qualities.desc_kand':          'Myke egenskaper kandidaten besitter — f.eks. Analytisk, Selvstendig, Drivende. Brukes ved matching mot stillingsannonser.',
+    'qualities.desc_sp':            'Myke egenskaper du besitter — f.eks. Analytisk, Selvstendig, Drivende. Brukes ved matching mot stillingsannonser.',
+    'qualities.placeholder':        'Skriv egenskap og trykk Enter…',
+    'qualities.add_btn':            '+ Legg til',
+    'qualities.empty':              'Ingen egenskaper lagt til ennå.',
 },
 
 }; // end TRANSLATIONS

@@ -431,6 +431,17 @@
                     </div>
                 </div>
 
+                <!-- Personliga egenskaper -->
+                <div class="card" style="margin-top:1.25rem">
+                    <h3 style="margin:0 0 0.25rem" data-i18n="qualities.title">Personliga egenskaper</h3>
+                    <p class="field-desc" style="margin:0 0 0.75rem" data-i18n="qualities.desc_kand">Mjuka egenskaper som kandidaten besitter — t.ex. Analytisk, Självgående, Driven. Används vid matchning mot jobbannonser.</p>
+                    <div id="kand-qualities-pills" class="qualities-pills"></div>
+                    <div class="qualities-add-row">
+                        <input type="text" id="kand-quality-input" class="form-input" data-i18n-ph="qualities.placeholder" placeholder="Skriv egenskap och tryck Enter…" onkeydown="handleKandQualityKeydown(event)">
+                        <button class="btn btn-secondary btn-sm" onclick="addKandQualityFromInput()" style="white-space:nowrap" data-i18n="qualities.add_btn">+ Lägg till</button>
+                    </div>
+                </div>
+
             </div>
 
             <!-- ── TAB: Erfarenheter ── -->
@@ -1024,6 +1035,17 @@
             <div class="card">
                 <div id="sp-skills-list">
                     <div class="empty-hint">Laddar kompetenser...</div>
+                </div>
+            </div>
+
+            <!-- Personliga egenskaper -->
+            <div class="card" style="margin-top:1.25rem">
+                <h3 style="margin:0 0 0.25rem" data-i18n="qualities.title">Personliga egenskaper</h3>
+                <p class="field-desc" style="margin:0 0 0.75rem" data-i18n="qualities.desc_sp">Mjuka egenskaper som du besitter — t.ex. Analytisk, Självgående, Driven. Används vid matchning mot jobbannonser.</p>
+                <div id="sp-qualities-pills" class="qualities-pills"></div>
+                <div class="qualities-add-row">
+                    <input type="text" id="sp-quality-input" class="form-input" data-i18n-ph="qualities.placeholder" placeholder="Skriv egenskap och tryck Enter…" onkeydown="handleSpQualityKeydown(event)">
+                    <button class="btn btn-secondary btn-sm" onclick="addSpQualityFromInput()" style="white-space:nowrap" data-i18n="qualities.add_btn">+ Lägg till</button>
                 </div>
             </div>
         </div>

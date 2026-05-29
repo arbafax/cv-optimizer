@@ -496,12 +496,24 @@ async function handleTips() {
 function displayTips(data, overallScore) {
     const body = document.getElementById('tips-body');
 
-    const pitch           = data.pitch ?? '';
-    const suggestedSkills = data.suggested_skills ?? [];
-    const tips            = data.tips ?? [];
+    const pitch              = data.pitch ?? '';
+    const suggestedSkills    = data.suggested_skills ?? [];
+    const tips               = data.tips ?? [];
+    const missingQualities   = lastMatchResult?.missing_personal_qualities ?? [];
 
     const impactLabel = { high: 'Hög effekt', medium: 'Medel', low: 'Lägre' };
     const impactClass = { high: 'tip-impact--high', medium: 'tip-impact--medium', low: 'tip-impact--low' };
+
+    const qualitiesRowHtml = missingQualities.map((q, i) => `
+        <div class="tip-skill-row" id="tip-quality-${i}">
+            <div class="tip-skill-info">
+                <span class="tip-skill-name">${esc(q)}</span>
+            </div>
+            <button class="btn btn-secondary btn-sm" onclick="addSuggestedQuality('${q.replace(/'/g, "\\'")}', ${i})">
+                + Lägg till
+            </button>
+        </div>
+    `).join('');
 
     const skillsHtml = suggestedSkills.map((s, i) => `
         <div class="tip-skill-row" id="tip-skill-${i}">
@@ -542,6 +554,13 @@ function displayTips(data, overallScore) {
             <div class="tip-skills-list">${skillsHtml}</div>
         </div>` : ''}
 
+        ${missingQualities.length ? `
+        <div class="tips-section">
+            <h3 class="tips-section-title">Personliga egenskaper att lägga till</h3>
+            <p class="tips-section-desc">Dessa egenskaper efterfrågas i annonsen. Klicka "+ Lägg till" för att spara dem i ${lastMatchKandidatId ? 'kandidatens' : 'din'} profil.</p>
+            <div class="tip-skills-list">${qualitiesRowHtml}</div>
+        </div>` : ''}
+
         ${tipsHtml ? `
         <div class="tips-section">
             <h3 class="tips-section-title">Förbättringstips</h3>
@@ -576,6 +595,27 @@ async function addSuggestedSkill(skillName, category, rowIndex) {
         row.classList.add('tip-skill-row--added');
         btn.textContent = '✓ Tillagd';
 
+    } catch (err) {
+        btn.disabled = false;
+        btn.textContent = '+ Lägg till';
+        alert('Fel: ' + err.message);
+    }
+}
+
+async function addSuggestedQuality(qualityName, rowIndex) {
+    const row = document.getElementById(`tip-quality-${rowIndex}`);
+    const btn = row.querySelector('button');
+    btn.disabled = true;
+    btn.textContent = '…';
+
+    try {
+        if (lastMatchKandidatId) {
+            await addKandQuality(qualityName);
+        } else {
+            await addSpQuality(qualityName);
+        }
+        row.classList.add('tip-skill-row--added');
+        btn.textContent = '✓ Tillagd';
     } catch (err) {
         btn.disabled = false;
         btn.textContent = '+ Lägg till';

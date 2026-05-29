@@ -3,6 +3,7 @@
 // ════════════════════════════════════════════════════
 
 let spSelectedExpIds = new Set();
+let _spQualities     = [];
 
 async function loadSokprofil() {
     try {
@@ -32,6 +33,8 @@ async function loadSokprofil() {
             el.checked = (data.desired_workplace || []).includes(el.value);
         });
 
+        _spQualities = Array.isArray(data.personal_qualities) ? [...data.personal_qualities] : [];
+        renderSpQualities();
         document.getElementById('sp-commute').checked      = data.willing_to_commute;
         document.getElementById('sp-searchable').checked   = data.searchable;
         document.getElementById('sp-available-from').value = data.available_from || '';
@@ -69,6 +72,7 @@ async function saveSokprofil() {
                 desired_workplace,
                 desired_domains,
                 unwanted_domains,
+                personal_qualities:  [..._spQualities],
                 willing_to_commute: document.getElementById('sp-commute').checked,
                 searchable:         document.getElementById('sp-searchable').checked,
                 available_from:     document.getElementById('sp-available-from').value || null,
@@ -113,6 +117,62 @@ async function loadSpKompetenser() {
         renderSpSkills(cachedSpSkills);
     } catch (err) {
         if (err.message !== 'Inte inloggad') console.error(err);
+    }
+}
+
+// ── Personliga egenskaper (sökprofil) ────────────────────────────────────────
+
+function renderSpQualities() {
+    const container = document.getElementById('sp-qualities-pills');
+    if (!container) return;
+    if (_spQualities.length === 0) {
+        container.innerHTML = `<span class="empty-hint" style="padding:0;text-align:left">${t('qualities.empty')}</span>`;
+        return;
+    }
+    container.innerHTML = _spQualities.map((q, i) => `
+        <span class="bank-skill-chip chip-personal">
+            ${esc(q)}
+            <button class="chip-delete" onclick="removeSpQuality(${i})" title="Ta bort">×</button>
+        </span>
+    `).join('');
+}
+
+async function _saveSpQualities() {
+    await apiFetch(`${API_BASE_URL}/sokprofil/`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ personal_qualities: [..._spQualities] }),
+    });
+}
+
+async function addSpQuality(name) {
+    const trimmed = name.trim();
+    if (!trimmed || _spQualities.includes(trimmed)) return;
+    _spQualities.push(trimmed);
+    renderSpQualities();
+    await _saveSpQualities();
+}
+
+async function removeSpQuality(index) {
+    _spQualities.splice(index, 1);
+    renderSpQualities();
+    await _saveSpQualities();
+}
+
+function handleSpQualityKeydown(event) {
+    if (event.key === 'Enter') {
+        event.preventDefault();
+        addSpQualityFromInput();
+    }
+}
+
+async function addSpQualityFromInput() {
+    const input = document.getElementById('sp-quality-input');
+    if (!input) return;
+    const val = input.value.trim();
+    if (val) {
+        await addSpQuality(val);
+        input.value = '';
     }
 }
 

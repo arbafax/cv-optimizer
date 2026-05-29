@@ -482,6 +482,7 @@ const kandidater = {
         desired_employment: data.desired_employment ?? [],
         desired_workplace:  data.desired_workplace  ?? [],
         willing_to_commute: data.willing_to_commute ?? false,
+        personal_qualities: data.personal_qualities ?? [],
         searchable:         data.searchable         ?? false,
         available_from:     data.available_from     ?? null,
         description:        data.description        ?? null,

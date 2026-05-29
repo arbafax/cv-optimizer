@@ -9,6 +9,7 @@ let currentKandidatId = null;
 let kandidaterCache   = [];
 let kandUploadSetup   = false;
 let kandCandidateCVs  = [];
+let _kandQualities    = [];
 
 // ── Kandidat list ─────────────────────────────────────────────────────────────
 
@@ -116,6 +117,8 @@ function showKandidatForm(kandidat) {
         el.checked = (kandidat?.desired_workplace || []).includes(el.value);
     });
 
+    _kandQualities = Array.isArray(kandidat?.personal_qualities) ? [...kandidat.personal_qualities] : [];
+    renderKandQualities();
     document.getElementById('kand-commute').checked    = kandidat?.willing_to_commute || false;
     document.getElementById('kand-searchable').checked = kandidat?.searchable         || false;
     document.getElementById('kand-available-from').value = kandidat?.available_from   || '';
@@ -372,6 +375,7 @@ async function saveKandidat() {
         desired_city:       document.getElementById('kand-city').value.trim()          || null,
         desired_employment,
         desired_workplace,
+        personal_qualities:  [..._kandQualities],
         willing_to_commute: document.getElementById('kand-commute').checked,
         searchable:         document.getElementById('kand-searchable').checked,
         available_from:     document.getElementById('kand-available-from').value || null,
@@ -458,6 +462,63 @@ async function loadKandidatBank(kandidatId) {
         renderKandidatExperiences(cachedKandExps);
     } catch (err) {
         if (err.message !== 'Inte inloggad') console.error(err);
+    }
+}
+
+// ── Personliga egenskaper (kandidat) ─────────────────────────────────────────
+
+function renderKandQualities() {
+    const container = document.getElementById('kand-qualities-pills');
+    if (!container) return;
+    if (_kandQualities.length === 0) {
+        container.innerHTML = `<span class="empty-hint" style="padding:0;text-align:left">${t('qualities.empty')}</span>`;
+        return;
+    }
+    container.innerHTML = _kandQualities.map((q, i) => `
+        <span class="bank-skill-chip chip-personal">
+            ${esc(q)}
+            <button class="chip-delete" onclick="removeKandQuality(${i})" title="Ta bort">×</button>
+        </span>
+    `).join('');
+}
+
+async function _saveKandQualities() {
+    if (!currentKandidatId) return;
+    await apiFetch(`${API_BASE_URL}/kandidater/${currentKandidatId}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ personal_qualities: [..._kandQualities] }),
+    });
+}
+
+async function addKandQuality(name) {
+    const trimmed = name.trim();
+    if (!trimmed || _kandQualities.includes(trimmed)) return;
+    _kandQualities.push(trimmed);
+    renderKandQualities();
+    await _saveKandQualities();
+}
+
+async function removeKandQuality(index) {
+    _kandQualities.splice(index, 1);
+    renderKandQualities();
+    await _saveKandQualities();
+}
+
+function handleKandQualityKeydown(event) {
+    if (event.key === 'Enter') {
+        event.preventDefault();
+        addKandQualityFromInput();
+    }
+}
+
+async function addKandQualityFromInput() {
+    const input = document.getElementById('kand-quality-input');
+    if (!input) return;
+    const val = input.value.trim();
+    if (val) {
+        await addKandQuality(val);
+        input.value = '';
     }
 }
 

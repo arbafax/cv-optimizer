@@ -7,6 +7,7 @@
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Barlow:ital,wght@0,300;0,400;0,500;0,600;1,400&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
     <link rel="stylesheet" href="css/style.css">
 </head>
 <body>
@@ -65,33 +66,33 @@
 
     <nav class="sidebar-nav">
         <a href="#" class="nav-item hidden" id="nav-dashboard" data-requires-role="Kandidat Säljare Rekryterare" onclick="showView('dashboard', this); loadCVs(); loadBankData(); loadSpCandidateCVs()">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="3" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="3" width="7" height="7" rx="1.5"/><rect x="3" y="14" width="7" height="7" rx="1.5"/><rect x="14" y="14" width="7" height="7" rx="1.5"/></svg>
+            <span class="material-icons">grid_view</span>
             <span data-i18n="nav.dashboard">Dashboard</span>
         </a>
         <a href="#" class="nav-item hidden" data-requires-role="Kandidat" onclick="showView('optimize', this); updateMatchWarning()">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+            <span class="material-icons">manage_search</span>
             <span data-i18n="nav.match_job">Matcha jobb</span>
         </a>
         <a href="#" class="nav-item hidden" data-requires-role="Kandidat" onclick="showView('sokprofil', this); loadSokprofil(); switchSokprofilTab('basinfo')">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M22 19a2 2 0 01-2 2H4a2 2 0 01-2-2V5a2 2 0 012-2h5l2 3h9a2 2 0 012 2z"/></svg>
+            <span class="material-icons">folder_open</span>
             <span data-i18n="nav.my_profile">Min sökprofil</span>
         </a>
         <a href="#" class="nav-item hidden" id="nav-matchakandidater" data-requires-role="Säljare Rekryterare" onclick="showView('matchakandidater', this); loadMatchKandidatView()">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/><path d="M8 11h6M11 8v6"/></svg>
+            <span class="material-icons">person_search</span>
             <span data-i18n="nav.match_candidates">Matcha mot kandidater</span>
         </a>
         <a href="#" class="nav-item hidden" id="nav-minakandidater" data-requires-role="Säljare Rekryterare" onclick="showView('minakandidater', this); showKandidatListPanel()">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 00-3-3.87"/><path d="M16 3.13a4 4 0 010 7.75"/></svg>
+            <span class="material-icons">group</span>
             <span data-i18n="nav.my_candidates">Mina kandidater</span>
         </a>
 
         <a href="#" class="nav-item" id="nav-welcomepage" onclick="showView('welcomepage', this); loadWelcomePage()">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4M12 8h.01"/></svg>
+            <span class="material-icons">info</span>
             <span data-i18n="nav.welcome">Välkommen</span>
         </a>
 
         <a href="#" class="nav-item" id="nav-account" onclick="showView('account', this); loadAccountView()">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+            <span class="material-icons">manage_accounts</span>
             <span data-i18n="nav.account">Mitt konto</span>
         </a>
     </nav>
@@ -133,7 +134,7 @@
         <div class="stats-row">
             <div class="stat-card stat-card--link hidden" data-requires-role="Kandidat" onclick="showView('sokprofil', document.querySelector('[onclick*=sokprofil]')); loadSokprofil(); switchSokprofilTab('cv')">
                 <div class="stat-icon stat-icon--blue">
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+                    <span class="material-icons">description</span>
                 </div>
                 <div>
                     <div class="stat-number" id="dash-cv-count">0</div>
@@ -142,7 +143,7 @@
             </div>
             <div class="stat-card stat-card--link hidden" data-requires-role="Kandidat" onclick="showView('sokprofil', document.querySelector('[onclick*=sokprofil]')); loadSokprofil(); switchSokprofilTab('kompetenser')">
                 <div class="stat-icon stat-icon--green">
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+                    <span class="material-icons">psychology</span>
                 </div>
                 <div>
                     <div class="stat-number" id="dash-skills-count">0</div>
@@ -151,7 +152,7 @@
             </div>
             <div class="stat-card stat-card--link hidden" data-requires-role="Kandidat" onclick="showView('sokprofil', document.querySelector('[onclick*=sokprofil]')); loadSokprofil(); switchSokprofilTab('erfarenheter')">
                 <div class="stat-icon stat-icon--amber">
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
+                    <span class="material-icons">work_history</span>
                 </div>
                 <div>
                     <div class="stat-number" id="dash-exp-count">0</div>
@@ -160,7 +161,7 @@
             </div>
             <div class="stat-card stat-card--link hidden" data-requires-role="Kandidat" onclick="showView('sokprofil', document.querySelector('[onclick*=sokprofil]')); loadSokprofil(); switchSokprofilTab('utbildning')">
                 <div class="stat-icon stat-icon--blue">
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M22 10v6M2 10l10-5 10 5-10 5z"/><path d="M6 12v5c3 3 9 3 12 0v-5"/></svg>
+                    <span class="material-icons">school</span>
                 </div>
                 <div>
                     <div class="stat-number" id="dash-edu-count">0</div>
@@ -169,7 +170,7 @@
             </div>
             <div class="stat-card stat-card--link hidden" data-requires-role="Kandidat" onclick="showView('sokprofil', document.querySelector('[onclick*=sokprofil]')); loadSokprofil(); switchSokprofilTab('certifikat')">
                 <div class="stat-icon stat-icon--green">
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="8" r="6"/><path d="M15.477 12.89L17 22l-5-3-5 3 1.523-9.11"/></svg>
+                    <span class="material-icons">workspace_premium</span>
                 </div>
                 <div>
                     <div class="stat-number" id="dash-cert-count">0</div>
@@ -178,7 +179,7 @@
             </div>
             <div class="stat-card stat-card--link hidden" id="dash-seller-stat-card" data-requires-role="Säljare" onclick="showView('minakandidater', document.getElementById('nav-minakandidater')); loadKandidaterView()">
                 <div class="stat-icon stat-icon--amber">
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 00-3-3.87"/><path d="M16 3.13a4 4 0 010 7.75"/></svg>
+                    <span class="material-icons">group</span>
                 </div>
                 <div>
                     <div class="stat-number" id="dash-kandidater-count">0</div>
@@ -191,43 +192,43 @@
         <div class="action-cards">
             <div class="action-card action-card--primary hidden" data-requires-role="Kandidat" onclick="showView('sokprofil', document.querySelector('[onclick*=sokprofil]')); loadSokprofil(); switchSokprofilTab('cv')">
                 <div class="action-card-icon">
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+                    <span class="material-icons">upload_file</span>
                 </div>
                 <div>
                     <h3 data-i18n="dash.action_upload_title">Ladda upp CV</h3>
                     <p data-i18n="dash.action_upload_desc">PDF-fil, AI strukturerar automatiskt</p>
                 </div>
-                <svg class="action-card-arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg>
+                <span class="material-icons action-card-arrow">arrow_forward</span>
             </div>
             <div class="action-card action-card--secondary hidden" data-requires-role="Kandidat" onclick="showView('sokprofil', document.querySelector('[onclick*=sokprofil]')); loadSokprofil(); switchSokprofilTab('basinfo')">
                 <div class="action-card-icon action-card-icon--green">
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+                    <span class="material-icons">person</span>
                 </div>
                 <div>
                     <h3 data-i18n="dash.action_profile_title">Ändra profilen</h3>
                     <p data-i18n="dash.action_profile_desc">Uppdatera din sökprofil och kontaktuppgifter</p>
                 </div>
-                <svg class="action-card-arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg>
+                <span class="material-icons action-card-arrow">arrow_forward</span>
             </div>
             <div class="action-card action-card--secondary hidden" data-requires-role="Kandidat" onclick="showView('sokprofil', document.querySelector('[onclick*=sokprofil]')); loadSokprofil(); switchSokprofilTab('erfarenheter')">
                 <div class="action-card-icon action-card-icon--green">
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="2" y="7" width="20" height="14" rx="2"/><path d="M16 21V5a2 2 0 00-2-2h-4a2 2 0 00-2 2v16"/></svg>
+                    <span class="material-icons">work</span>
                 </div>
                 <div>
                     <h3 data-i18n="dash.action_exp_title">Ändra erfarenheter</h3>
                     <p data-i18n="dash.action_exp_desc">Redigera eller lägg till erfarenheter</p>
                 </div>
-                <svg class="action-card-arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg>
+                <span class="material-icons action-card-arrow">arrow_forward</span>
             </div>
             <div class="action-card action-card--secondary hidden" data-requires-role="Kandidat" onclick="showView('optimize', document.querySelector('[onclick*=optimize]'))">
                 <div class="action-card-icon action-card-icon--green">
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+                    <span class="material-icons">manage_search</span>
                 </div>
                 <div>
                     <h3 data-i18n="dash.action_job_title">Sök jobb</h3>
                     <p data-i18n="dash.action_job_desc">Matcha din kompetensbank mot en jobbannons</p>
                 </div>
-                <svg class="action-card-arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg>
+                <span class="material-icons action-card-arrow">arrow_forward</span>
             </div>
         </div>
 
@@ -577,7 +578,7 @@
                         <input type="file" id="kand-cv-upload" accept=".pdf,.docx,.txt,.md" hidden>
                         <label for="kand-cv-upload">
                             <div class="upload-icon-wrap">
-                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+                                <span class="material-icons">upload_file</span>
                             </div>
                             <p class="upload-main">Dra och släpp ett CV här</p>
                             <p class="upload-sub">PDF, DOCX, TXT, MD &nbsp;·&nbsp; AI extraherar kompetenser automatiskt &nbsp;·&nbsp; Max 10 MB</p>
@@ -1179,7 +1180,7 @@
                     <input type="file" id="sp-cv-upload" accept=".pdf,.docx,.txt,.md" hidden>
                     <label for="sp-cv-upload">
                         <div class="upload-icon-wrap">
-                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+                            <span class="material-icons">upload_file</span>
                         </div>
                         <p class="upload-main">Dra och släpp ditt CV här</p>
                         <p class="upload-sub">PDF, DOCX, TXT, MD &nbsp;·&nbsp; eller klicka för att välja fil &nbsp;·&nbsp; Max 10 MB</p>
@@ -1208,11 +1209,11 @@
             <h2>Log House CV-utkast</h2>
             <div class="modal-header-actions">
                 <button class="btn btn-secondary btn-sm" onclick="downloadLHCVAsMarkdown()">
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" width="15" height="15"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+                    <span class="material-icons" style="font-size:15px;vertical-align:middle">download</span>
                     Spara som markdown
                 </button>
                 <button class="btn btn-secondary btn-sm" onclick="window.print()">
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" width="15" height="15"><polyline points="6 9 6 2 18 2 18 9"/><path d="M6 18H4a2 2 0 01-2-2v-5a2 2 0 012-2h16a2 2 0 012 2v5a2 2 0 01-2 2h-2"/><rect x="6" y="14" width="12" height="8"/></svg>
+                    <span class="material-icons" style="font-size:15px;vertical-align:middle">print</span>
                     Skriv ut / Spara PDF
                 </button>
                 <button class="modal-close" onclick="closeLHCVModal()">&times;</button>
@@ -1230,11 +1231,11 @@
             <h2 data-i18n="match.gen_hc_modal_title">CV-utkast (personligt format)</h2>
             <div class="modal-header-actions">
                 <button class="btn btn-secondary btn-sm" onclick="downloadHenrikCVAsMarkdown()">
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" width="15" height="15"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+                    <span class="material-icons" style="font-size:15px;vertical-align:middle">download</span>
                     <span data-i18n="match.save_md">Spara som markdown</span>
                 </button>
                 <button class="btn btn-secondary btn-sm" onclick="window.print()">
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" width="15" height="15"><polyline points="6 9 6 2 18 2 18 9"/><path d="M6 18H4a2 2 0 01-2-2v-5a2 2 0 012-2h16a2 2 0 012 2v5a2 2 0 01-2 2h-2"/><rect x="6" y="14" width="12" height="8"/></svg>
+                    <span class="material-icons" style="font-size:15px;vertical-align:middle">print</span>
                     <span data-i18n="match.print_pdf">Skriv ut / Spara PDF</span>
                 </button>
                 <button class="modal-close" onclick="closeHenrikCVModal()">&times;</button>
@@ -1278,7 +1279,7 @@
         </div>
         <div class="modal-body">
             <div id="import-drop-zone" class="import-drop-zone" onclick="document.getElementById('import-file-input').click()">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" width="40" height="40" style="opacity:.5;margin-bottom:.75rem"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+                <span class="material-icons" style="font-size:40px;opacity:.5;margin-bottom:.75rem">upload_file</span>
                 <p data-i18n="account.import_drop_hint">Dra och släpp din exportfil här, eller klicka för att välja fil</p>
                 <input type="file" id="import-file-input" accept=".json,application/json" style="display:none" onchange="handleImportFileSelect(event)">
             </div>

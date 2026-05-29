@@ -89,6 +89,51 @@ async function _getStructuredJob(title, description) {
     return structured;
 }
 
+const _skillContextCache = new Map();
+function _skillContextKey(skillName, jobDesc) { return `${skillName}__${jobDesc.slice(0, 80)}`; }
+
+async function showSkillContextModal(skillName) {
+    const existing = document.getElementById('skill-context-modal');
+    if (existing) existing.remove();
+
+    const modal = document.createElement('div');
+    modal.id = 'skill-context-modal';
+    modal.innerHTML = `
+        <div class="modal-overlay" onclick="closeSkillContextModal()"></div>
+        <div class="modal-content" style="max-width:540px">
+            <div class="modal-header">
+                <h2>${esc(skillName)}</h2>
+                <button class="modal-close" onclick="closeSkillContextModal()">&times;</button>
+            </div>
+            <div class="modal-body" id="skill-context-body">
+                <div style="display:flex;align-items:center;gap:10px;color:var(--text-muted)">
+                    <span class="spinner-small"></span> Hämtar kontext ur annonsen…
+                </div>
+            </div>
+        </div>`;
+    modal.classList.add('modal');
+    document.body.appendChild(modal);
+
+    const cacheKey = _skillContextKey(skillName, lastJobDesc);
+    try {
+        let data = _skillContextCache.get(cacheKey);
+        if (!data) {
+            data = await cvAI.explainRequiredSkill(skillName, lastJobDesc);
+            _skillContextCache.set(cacheKey, data);
+        }
+        document.getElementById('skill-context-body').innerHTML = `
+            <div class="skill-context-excerpt">${esc(data.excerpt || '')}</div>
+            ${data.summary ? `<p style="margin:12px 0 0;font-size:0.875rem;color:var(--text-secondary)">${esc(data.summary)}</p>` : ''}`;
+    } catch (err) {
+        document.getElementById('skill-context-body').innerHTML =
+            `<p style="color:var(--danger)">Kunde inte hämta kontext: ${esc(err.message)}</p>`;
+    }
+}
+
+function closeSkillContextModal() {
+    document.getElementById('skill-context-modal')?.remove();
+}
+
 const CV_FILE_EXTS   = ['pdf', 'docx', 'txt', 'md'];
 const CV_FILE_ACCEPT = '.pdf,.docx,.txt,.md';
 const CV_MAX_SIZE    = 10 * 1024 * 1024; // 10 MB
@@ -1349,9 +1394,9 @@ function displayMatchResult(result, container) {
     `).join('');
 
     const missingRequiredHtml   = missingRequired.map(m =>
-        `<span class="match-missing-chip match-missing-required">${m}</span>`).join('');
+        `<span class="match-missing-chip match-missing-required">${esc(m)}<button class="skill-info-btn" onclick="showSkillContextModal('${m.replace(/'/g, "\\'")}')" title="Visa hur annonsen beskriver denna kompetens"><span class="material-icons">info</span></button></span>`).join('');
     const missingNiceToHaveHtml = missingNiceToHave.map(m =>
-        `<span class="match-missing-chip match-missing-nice">${m}</span>`).join('');
+        `<span class="match-missing-chip match-missing-nice">${esc(m)}<button class="skill-info-btn" onclick="showSkillContextModal('${m.replace(/'/g, "\\'")}')" title="Visa hur annonsen beskriver denna kompetens"><span class="material-icons">info</span></button></span>`).join('');
 
     const qualitiesHtml = (matchingQualities.length || missingQualities.length) ? `
         <div class="match-missing-section">

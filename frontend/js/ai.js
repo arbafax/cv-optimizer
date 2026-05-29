@@ -247,6 +247,20 @@ Regler:
 }
 
 /**
+ * Förklara hur en specifik obligatorisk kompetens beskrivs i jobbannonsen.
+ */
+async function explainRequiredSkill(skillName, jobDescription) {
+  const system = `Du är en rekryteringsexpert. Din uppgift är att hitta och lyfta fram hur en specifik kompetens beskrivs i en jobbannons.
+Svara i exakt detta JSON-format:
+{
+  "excerpt": "<Direkt citat eller nära parafras av de meningar i annonsen som nämner kompetensen. Ta med tillräckligt kontext (1-4 meningar). Om kompetensen inte nämns explicit, skriv: 'Kompetensen nämns inte explicit i annonsen.'>",
+  "summary": "<1-2 meningar som sammanfattar varför/hur kompetensen krävs enligt annonsen>"
+}`;
+  const user = `Kompetens: ${skillName}\n\nJobbannons:\n${jobDescription}`;
+  return _chatJSON(system, user, { temperature: 0.1 });
+}
+
+/**
  * Matcha kompetensbank mot strukturerad jobbannons.
  */
 async function matchJobStructured(skills, experiences, structuredJob, seekerProfile = null) {
@@ -833,6 +847,7 @@ async function fetchJobUrl(url) {
 window.cvAI = {
   structureCV,
   analyzeJob,
+  explainRequiredSkill,
   matchJob,
   matchJobStructured,
   generateCV,

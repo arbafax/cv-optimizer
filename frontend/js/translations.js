@@ -140,7 +140,7 @@ sv: {
 
     // Optimize / Match job
     'match.title':                  'Matcha jobb',
-    'match.subtitle':               'Klistra in en jobbannons – AI matchar hela din kompetensbank mot jobbet.',
+    'match.subtitle':               'Klistra in en jobbannons – Din valda LLM matchar sedan hela din kompetensbank mot jobbet. Inga personuppgifter skickas, endast dina kompetenser och erfarenheter etc.',
     'match.card_title':             'Jobbannons',
     'match.label_job':              'Klistra in jobbannonsen',
     'match.ph_job':                 'Klistra in hela jobbannonsen här...',
@@ -412,7 +412,7 @@ en: {
     'action.add_skill':             'Add skill',
 
     'match.title':                  'Match job',
-    'match.subtitle':               'Paste a job listing – AI matches your entire skill bank against the job.',
+    'match.subtitle':               'Paste a job listing – Your chosen LLM then matches your entire skill bank against the job. No personal data is sent, only your skills and experiences etc.',
     'match.card_title':             'Job listing',
     'match.label_job':              'Paste the job listing',
     'match.ph_job':                 'Paste the entire job listing here...',
@@ -674,7 +674,7 @@ no: {
     'action.add_skill':             'Legg til ferdighet',
 
     'match.title':                  'Match jobb',
-    'match.subtitle':               'Lim inn en stillingsannonse – AI matcher hele kompetansebanken din mot jobben.',
+    'match.subtitle':               'Lim inn en stillingsannonse – Din valgte LLM matcher deretter hele kompetansebanken din mot jobben. Ingen personopplysninger sendes, kun dine kompetanser og erfaringer osv.',
     'match.card_title':             'Stillingsannonse',
     'match.label_job':              'Lim inn stillingsannonsen',
     'match.ph_job':                 'Lim inn hele stillingsannonsen her...',

@@ -219,9 +219,10 @@ function showAIEditMode() {
 function hideAIEditMode() {
     document.getElementById('ai-edit-mode')?.classList.add('hidden');
     document.getElementById('ai-view-mode')?.classList.remove('hidden');
+    loadAISettings();
 }
 
-function onAIProviderChange() {
+async function onAIProviderChange() {
     const provider = document.getElementById('ai-provider')?.value || 'openai';
     const keyGroup   = document.getElementById('ai-key-group');
     const keyLabel   = document.getElementById('ai-key-label');
@@ -235,6 +236,16 @@ function onAIProviderChange() {
     if (keyLabel) keyLabel.textContent = labels[provider] || 'API-nyckel';
     if (keyGroup)   keyGroup.classList.toggle('hidden', provider === 'ollama');
     if (ollamaGroup) ollamaGroup.classList.toggle('hidden', provider !== 'ollama');
+
+    // Load saved key for newly selected provider
+    if (provider !== 'ollama') {
+        try {
+            const s = await cvDb.settings.getAll();
+            const keyMap = { openai: s.openai_key, anthropic: s.anthropic_key, gemini: s.gemini_key };
+            const keyEl = document.getElementById('ai-api-key');
+            if (keyEl) keyEl.value = keyMap[provider] || '';
+        } catch { /* ignore */ }
+    }
 }
 
 function openImportModal() {
@@ -511,8 +522,14 @@ async function saveAISettings() {
         }
 
         showAccountStatus('ai-settings-status', t('account.ai_saved') || 'AI-inställningar sparade', 'success');
-        await loadAISettings();
         if (typeof updateMatchWarning === 'function') updateMatchWarning();
+        // Update view-mode text live without switching away from edit mode
+        const s = await cvDb.settings.getAll();
+        if (_aiHasConfig(s)) {
+            const viewText = document.getElementById('ai-view-text');
+            if (viewText) viewText.textContent = _aiViewText(s);
+            document.getElementById('ai-view-mode')?.classList.remove('hidden');
+        }
     } catch (err) {
         console.error('[saveAISettings] failed:', err);
         showAccountStatus('ai-settings-status', err.message || 'Fel vid sparande', 'error');

@@ -613,21 +613,21 @@
                 <p class="view-subtitle" style="margin-bottom:1.25rem" data-i18n="account.profile_subtitle"></p>
                 <div class="form-group">
                     <label for="account-name" data-i18n="account.label_name">Namn</label>
-                    <input type="text" id="account-name" placeholder="Ditt namn" data-i18n-ph="account.ph_name" autocomplete="name">
+                    <input type="text" id="account-name" placeholder="Ditt namn" data-i18n-ph="account.ph_name" autocomplete="name" onblur="saveAccount()">
                     <small class="form-hint" data-i18n="account.hint_required"></small>
                 </div>
                 <div class="form-group">
                     <label for="account-email" data-i18n="account.label_email">E-postadress</label>
-                    <input type="email" id="account-email" placeholder="din@epost.se" data-i18n-ph="account.ph_email" autocomplete="email">
+                    <input type="email" id="account-email" placeholder="din@epost.se" data-i18n-ph="account.ph_email" autocomplete="email" onblur="saveAccount()">
                     <small class="form-hint" data-i18n="account.hint_required"></small>
                 </div>
                 <div class="form-group">
                     <label for="account-phone" data-i18n="account.label_phone">Telefonnummer</label>
-                    <input type="tel" id="account-phone" placeholder="+46 70 000 00 00" data-i18n-ph="account.ph_phone" autocomplete="tel">
+                    <input type="tel" id="account-phone" placeholder="+46 70 000 00 00" data-i18n-ph="account.ph_phone" autocomplete="tel" onblur="saveAccount()">
                 </div>
                 <div class="form-group">
                     <label for="account-address" data-i18n="account.label_address">Postadress</label>
-                    <input type="text" id="account-address" placeholder="Gatuadress, postnummer, ort" data-i18n-ph="account.ph_address" autocomplete="street-address">
+                    <input type="text" id="account-address" placeholder="Gatuadress, postnummer, ort" data-i18n-ph="account.ph_address" autocomplete="street-address" onblur="saveAccount()">
                 </div>
                 <div class="form-group">
                     <label for="account-identity" data-i18n="account.label_identity">Identitet</label>
@@ -635,7 +635,6 @@
                     <small class="form-hint" data-i18n="account.hint_identity"></small>
                 </div>
                 <div id="account-status"></div>
-                <button class="btn btn-primary" onclick="saveAccount()" data-i18n="account.save">Spara ändringar</button>
             </div>
 
             <!-- Roller -->
@@ -644,38 +643,34 @@
                 <p class="field-desc" data-i18n="account.roles_desc">Välj vilken eller vilka roller du har i systemet. Roller styr vilken funktionalitet som är tillgänglig.</p>
                 <div class="checkbox-group" style="flex-direction: column; gap: 12px; margin-top: 10px;">
                     <label class="checkbox-label">
-                        <input type="checkbox" id="role-kandidat" value="Kandidat">
+                        <input type="checkbox" id="role-kandidat" value="Kandidat" onchange="saveAccountRoles()">
                         <span data-i18n-html="account.role_kandidat"><strong>Kandidat</strong> — letar efter jobb och hanterar sin kompetensbank</span>
                     </label>
                     <label class="checkbox-label">
-                        <input type="checkbox" id="role-saljare" value="Säljare">
+                        <input type="checkbox" id="role-saljare" value="Säljare" onchange="saveAccountRoles()">
                         <span data-i18n-html="account.role_saljare"><strong>Säljare</strong> — hanterar en pool med kandidater</span>
                     </label>
                     <label class="checkbox-label hidden">
-                        <input type="checkbox" id="role-rekryterare" value="Rekryterare">
+                        <input type="checkbox" id="role-rekryterare" value="Rekryterare" onchange="saveAccountRoles()">
                         <span data-i18n-html="account.role_rekryterare"><strong>Rekryterare</strong> — söker kandidater för specifika tjänster</span>
                     </label>
                     <label class="checkbox-label hidden">
-                        <input type="checkbox" id="role-admin" value="Admin">
+                        <input type="checkbox" id="role-admin" value="Admin" onchange="saveAccountRoles()">
                         <span data-i18n-html="account.role_admin"><strong>Admin</strong> — administrerar systemets frågor och inställningar</span>
                     </label>
                 </div>
                 <div id="account-roles-status"></div>
-                <button class="btn btn-primary" onclick="saveAccountRoles()" style="margin-top: 16px;" data-i18n="account.save_roles">Spara roller</button>
             </div>
 
             <!-- Språk -->
             <div class="card">
                 <h2 class="card-title" data-i18n="account.language_title">Språk</h2>
                 <p class="field-desc" data-i18n="account.language_desc">Välj ditt föredragna gränssnittsspråk.</p>
-                <div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap">
-                    <select id="account-language" class="form-input" style="max-width:220px">
-                        <option value="sv">🇸🇪 Svenska (SV)</option>
-                        <option value="en">🇬🇧 English (EN)</option>
-                        <option value="no">🇳🇴 Norsk (NO)</option>
-                    </select>
-                    <button class="btn btn-primary" onclick="saveAccountLanguage()" data-i18n="account.save_language">Spara språk</button>
-                </div>
+                <select id="account-language" class="form-input" style="max-width:220px" onchange="saveAccountLanguage()">
+                    <option value="sv">🇸🇪 Svenska (SV)</option>
+                    <option value="en">🇬🇧 English (EN)</option>
+                    <option value="no">🇳🇴 Norsk (NO)</option>
+                </select>
             </div>
 
             <!-- AI-inställningar -->
@@ -692,7 +687,7 @@
                 <div id="ai-edit-mode">
                     <div class="form-group">
                         <label data-i18n="account.ai_label_provider">AI-leverantör</label>
-                        <select id="ai-provider" class="form-input" style="max-width:220px" onchange="onAIProviderChange()">
+                        <select id="ai-provider" class="form-input" style="max-width:220px" onchange="onAIProviderChange(); saveAISettings()">
                             <option value="openai">OpenAI (GPT-4o)</option>
                             <option value="anthropic">Anthropic (Claude)</option>
                             <option value="gemini">Google Gemini</option>
@@ -701,17 +696,16 @@
                     </div>
                     <div id="ai-key-group" class="form-group">
                         <label id="ai-key-label" data-i18n="account.ai_label_key_openai">OpenAI API-nyckel</label>
-                        <input type="password" id="ai-api-key" placeholder="sk-..." autocomplete="off" class="form-input">
+                        <input type="password" id="ai-api-key" placeholder="sk-..." autocomplete="off" class="form-input" onblur="saveAISettings()">
                     </div>
                     <div id="ai-ollama-group" class="form-group hidden">
                         <label data-i18n="account.ai_label_ollama_url">Ollama URL</label>
-                        <input type="text" id="ai-ollama-url" value="http://localhost:11434" class="form-input" style="max-width:260px">
+                        <input type="text" id="ai-ollama-url" value="http://localhost:11434" class="form-input" style="max-width:260px" onblur="saveAISettings()">
                         <label style="margin-top:8px" data-i18n="account.ai_label_ollama_model">Ollama modell</label>
-                        <input type="text" id="ai-ollama-model" value="llama3" class="form-input" style="max-width:200px">
+                        <input type="text" id="ai-ollama-model" value="llama3" class="form-input" style="max-width:200px" onblur="saveAISettings()">
                     </div>
-                    <div style="display:flex;gap:8px;margin-top:8px;align-items:center">
-                        <button class="btn btn-primary" onclick="saveAISettings()" data-i18n="account.ai_save">Spara</button>
-                        <button class="btn btn-ghost hidden" id="ai-cancel-btn" onclick="hideAIEditMode()" data-i18n="account.ai_cancel">Avbryt</button>
+                    <div style="margin-top:8px">
+                        <button class="btn btn-ghost hidden" id="ai-cancel-btn" onclick="hideAIEditMode()" data-i18n="account.ai_done">Klar</button>
                     </div>
                 </div>
 

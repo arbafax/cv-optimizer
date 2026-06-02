@@ -92,9 +92,17 @@ async function _getStructuredJob(title, description) {
 const _skillContextCache = new Map();
 function _skillContextKey(skillName, jobDesc) { return `${skillName}__${jobDesc.slice(0, 80)}`; }
 
-async function showSkillContextModal(skillName) {
+async function _showContextModal({ name, addLabel, addFnName, showLevel = false }) {
     const existing = document.getElementById('skill-context-modal');
     if (existing) existing.remove();
+
+    const escapedName = name.replace(/'/g, "\\'");
+    const levelSelect = showLevel ? `
+        <select id="skill-add-level" class="form-input" style="max-width:160px;font-size:13px">
+            <option value="Känner till">Känner till</option>
+            <option value="Erfaren">Erfaren</option>
+            <option value="Mycket erfaren">Mycket erfaren</option>
+        </select>` : '';
 
     const modal = document.createElement('div');
     modal.id = 'skill-context-modal';
@@ -102,7 +110,7 @@ async function showSkillContextModal(skillName) {
         <div class="modal-overlay" onclick="closeSkillContextModal()"></div>
         <div class="modal-content" style="max-width:540px">
             <div class="modal-header">
-                <h2>${esc(skillName)}</h2>
+                <h2>${esc(name)}</h2>
                 <button class="modal-close" onclick="closeSkillContextModal()">&times;</button>
             </div>
             <div class="modal-body" id="skill-context-body">
@@ -112,20 +120,20 @@ async function showSkillContextModal(skillName) {
             </div>
             <div class="modal-footer">
                 <span id="skill-add-feedback" class="skill-add-feedback"></span>
-                <button id="skill-add-btn" class="btn btn-primary btn-sm"
-                    onclick="addSkillFromContextModal('${skillName.replace(/'/g, "\\'")}')">
-                    + Lägg till kompetensen i profilen
-                </button>
+                ${addLabel ? `${levelSelect}<button id="skill-add-btn" class="btn btn-primary btn-sm"
+                    onclick="${addFnName}('${escapedName}')">
+                    ${esc(addLabel)}
+                </button>` : ''}
             </div>
         </div>`;
     modal.classList.add('modal');
     document.body.appendChild(modal);
 
-    const cacheKey = _skillContextKey(skillName, lastJobDesc);
+    const cacheKey = _skillContextKey(name, lastJobDesc);
     try {
         let data = _skillContextCache.get(cacheKey);
         if (!data) {
-            data = await cvAI.explainRequiredSkill(skillName, lastJobDesc);
+            data = await cvAI.explainRequiredSkill(name, lastJobDesc);
             _skillContextCache.set(cacheKey, data);
         }
         document.getElementById('skill-context-body').innerHTML = `
@@ -137,36 +145,81 @@ async function showSkillContextModal(skillName) {
     }
 }
 
+function showSkillContextModal(skillName) {
+    return _showContextModal({
+        name: skillName,
+        addLabel: '+ Lägg till kompetensen i profilen',
+        addFnName: 'addSkillFromContextModal',
+        showLevel: true,
+    });
+}
+
+function showQualityContextModal(qualityName, canAdd = true) {
+    return _showContextModal({
+        name: qualityName,
+        addLabel: canAdd ? '+ Lägg till egenskapen i profilen' : null,
+        addFnName: 'addQualityFromContextModal',
+    });
+}
+
 async function addSkillFromContextModal(skillName) {
     const btn      = document.getElementById('skill-add-btn');
     const feedback = document.getElementById('skill-add-feedback');
     if (!btn) return;
-
+    const level = document.getElementById('skill-add-level')?.value || 'Känner till';
     btn.disabled = true;
     btn.textContent = '…';
-
     try {
         const url = lastMatchKandidatId
             ? `${API_BASE_URL}/kandidater/${lastMatchKandidatId}/bank/skills`
             : `${API_BASE_URL}/competence/skills`;
-
         const res = await apiFetch(url, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ skill_name: skillName, category: '' }),
+            body: JSON.stringify({ skill_name: skillName, category: '', skill_level: level }),
         });
-
-        if (!res.ok) {
-            const err = await res.json();
-            throw new Error(err.detail || 'Kunde inte lägga till');
-        }
-
+        if (!res.ok) { const err = await res.json(); throw new Error(err.detail || 'Kunde inte lägga till'); }
         btn.remove();
+        document.getElementById('skill-add-level')?.remove();
         feedback.textContent = '✓ Tillagd i profilen';
         feedback.style.color = 'var(--green)';
     } catch (err) {
         btn.disabled = false;
         btn.textContent = '+ Lägg till kompetensen i profilen';
+        feedback.textContent = 'Fel: ' + err.message;
+        feedback.style.color = 'var(--danger)';
+    }
+}
+
+async function addQualityFromContextModal(qualityName) {
+    const btn      = document.getElementById('skill-add-btn');
+    const feedback = document.getElementById('skill-add-feedback');
+    if (!btn) return;
+    btn.disabled = true;
+    btn.textContent = '…';
+    try {
+        if (lastMatchKandidatId) {
+            const res = await apiFetch(`${API_BASE_URL}/kandidater/${lastMatchKandidatId}`);
+            if (!res.ok) throw new Error('Kunde inte hämta kandidat');
+            const kand = await res.json();
+            const existing = kand.personal_qualities || [];
+            if (!existing.includes(qualityName)) {
+                const putRes = await apiFetch(`${API_BASE_URL}/kandidater/${lastMatchKandidatId}`, {
+                    method: 'PUT',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ personal_qualities: [...existing, qualityName] }),
+                });
+                if (!putRes.ok) throw new Error('Kunde inte spara');
+            }
+        } else {
+            await addSpQuality(qualityName);
+        }
+        btn.remove();
+        feedback.textContent = '✓ Tillagd i profilen';
+        feedback.style.color = 'var(--green)';
+    } catch (err) {
+        btn.disabled = false;
+        btn.textContent = '+ Lägg till egenskapen i profilen';
         feedback.textContent = 'Fel: ' + err.message;
         feedback.style.color = 'var(--danger)';
     }
@@ -313,6 +366,46 @@ function setupUploadZone({ areaId, inputId, onFile, statusFn }) {
         const file = input.files[0];
         if (file && validate(file)) onFile(file);
         input.value = '';
+    });
+
+    // ── Paste-text toggle ───────────────────────────────────────────────────────
+    const toggle = document.createElement('div');
+    toggle.className = 'paste-toggle';
+    toggle.innerHTML = `
+        <button class="paste-toggle-btn" type="button">
+            <span class="material-icons" style="font-size:16px;vertical-align:middle">content_paste</span>
+            Klistra in text istället
+        </button>
+        <div class="paste-toggle-body">
+            <textarea class="paste-textarea" placeholder="Klistra in CV-texten här (Ctrl+V)…" rows="8"></textarea>
+            <div class="paste-toggle-actions">
+                <button class="btn btn-primary btn-sm paste-submit-btn" type="button">Bearbeta text</button>
+                <button class="btn btn-ghost btn-sm paste-cancel-btn" type="button">Avbryt</button>
+            </div>
+        </div>`;
+    area.insertAdjacentElement('afterend', toggle);
+
+    const btn      = toggle.querySelector('.paste-toggle-btn');
+    const body     = toggle.querySelector('.paste-toggle-body');
+    const textarea = toggle.querySelector('.paste-textarea');
+    const submit   = toggle.querySelector('.paste-submit-btn');
+    const cancel   = toggle.querySelector('.paste-cancel-btn');
+
+    btn.addEventListener('click', () => {
+        const open = toggle.classList.toggle('open');
+        if (open) textarea.focus();
+    });
+    cancel.addEventListener('click', () => {
+        toggle.classList.remove('open');
+        textarea.value = '';
+    });
+    submit.addEventListener('click', () => {
+        const text = textarea.value.trim();
+        if (!text) return;
+        const file = new File([text], 'inklistat.txt', { type: 'text/plain' });
+        toggle.classList.remove('open');
+        textarea.value = '';
+        onFile(file);
     });
 }
 
@@ -1444,8 +1537,8 @@ function displayMatchResult(result, container) {
         <div class="match-missing-section">
             <h4 class="match-section-title">Personliga egenskaper</h4>
             <div class="match-missing-chips">
-                ${matchingQualities.map(q => `<span class="match-missing-chip match-quality-match">✓ ${q}</span>`).join('')}
-                ${missingQualities.map(q =>  `<span class="match-missing-chip match-quality-missing">${q}</span>`).join('')}
+                ${matchingQualities.map(q => `<span class="match-missing-chip match-quality-match">✓ ${esc(q)}<button class="skill-info-btn" onclick="showQualityContextModal('${q.replace(/'/g, "\\'")}', false)" title="Visa hur annonsen beskriver denna egenskap"><span class="material-icons">info</span></button></span>`).join('')}
+                ${missingQualities.map(q =>  `<span class="match-missing-chip match-quality-missing">${esc(q)}<button class="skill-info-btn" onclick="showQualityContextModal('${q.replace(/'/g, "\\'")}', true)" title="Visa hur annonsen beskriver denna egenskap"><span class="material-icons">info</span></button></span>`).join('')}
             </div>
         </div>` : '';
 

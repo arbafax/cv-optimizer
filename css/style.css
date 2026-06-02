@@ -421,6 +421,42 @@ body {
 
 .upload-zone.uploading { opacity: .6; pointer-events: none; }
 
+.paste-toggle { margin-top: 10px; }
+.paste-toggle-btn {
+    background: none;
+    border: none;
+    color: var(--text-secondary);
+    font-size: 13px;
+    cursor: pointer;
+    padding: 4px 0;
+    display: flex;
+    align-items: center;
+    gap: 5px;
+}
+.paste-toggle-btn:hover { color: var(--blue); }
+.paste-toggle-body {
+    display: none;
+    margin-top: 8px;
+    flex-direction: column;
+    gap: 8px;
+}
+.paste-toggle.open .paste-toggle-body { display: flex; }
+.paste-textarea {
+    width: 100%;
+    box-sizing: border-box;
+    font-size: 13px;
+    font-family: inherit;
+    border: 1px solid var(--border);
+    border-radius: var(--r-sm);
+    padding: 10px 12px;
+    resize: vertical;
+    color: var(--text-primary);
+    background: var(--surface);
+    line-height: 1.5;
+}
+.paste-textarea:focus { outline: none; border-color: var(--blue); }
+.paste-toggle-actions { display: flex; gap: 8px; }
+
 /* ══════════════ CV GRID (Mina CV:n) ══════════════ */
 
 .cv-grid {

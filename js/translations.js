@@ -185,6 +185,7 @@ sv: {
     'matchk.hint_both':             'Bocka för en kandidat och klistra in en jobbannons.',
     'matchk.hint_no_text':          'Klistra in en jobbannons för att fortsätta.',
     'matchk.hint_no_candidate':     'Bocka för minst en kandidat för att köra detaljerad analys.',
+    'matchk.select_all':            'Välj alla',
 
     // Mina kandidater
     'kand.title':                   'Mina kandidater',
@@ -776,6 +777,7 @@ en: {
     'matchk.hint_both':             'Check a candidate and paste a job description.',
     'matchk.hint_no_text':          'Paste a job description to continue.',
     'matchk.hint_no_candidate':     'Check at least one candidate to run detailed analysis.',
+    'matchk.select_all':            'Select all',
 
     'kand.title':                   'My candidates',
     'kand.subtitle':                'Manage your pool of candidates.',
@@ -1358,6 +1360,7 @@ no: {
     'matchk.hint_both':             'Huk av en kandidat og lim inn en stillingsannonse.',
     'matchk.hint_no_text':          'Lim inn en stillingsannonse for å fortsette.',
     'matchk.hint_no_candidate':     'Huk av minst én kandidat for å kjøre detaljert analyse.',
+    'matchk.select_all':            'Velg alle',
 
     'kand.title':                   'Mine kandidater',
     'kand.subtitle':                'Administrer din pool med kandidater.',

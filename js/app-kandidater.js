@@ -159,19 +159,33 @@ async function loadMatchKandidatView() {
         if (kandidater.length === 0) {
             list.innerHTML = `<span class="mk-kandidat-empty">${t('matchk.empty_candidates')}</span>`;
         } else {
-            list.innerHTML = kandidater.map(k => {
-                const name  = k.public_name || '(Inget namn)';
-                const label = k.roles ? `${name} <span class="mk-kandidat-role">(${k.roles})</span>` : name;
-                return `<label class="mk-kandidat-item">
+            list.innerHTML =
+                `<label class="mk-kandidat-item mk-select-all-item">
+                    <input type="checkbox" id="mk-select-all" onchange="toggleSelectAllKandidater(this)">
+                    <strong>${t('matchk.select_all')}</strong>
+                </label>
+                <hr class="mk-kandidat-divider">` +
+                kandidater.map(k => {
+                    const name  = k.public_name || t('kand.no_name');
+                    const label = k.roles ? `${name} <span class="mk-kandidat-role">(${k.roles})</span>` : name;
+                    return `<label class="mk-kandidat-item">
                     <input type="checkbox" value="${k.id}" data-name="${name}" onchange="updateMatchKandidatBtn()">
                     ${label}
                 </label>`;
-            }).join('');
+                }).join('');
         }
         updateMatchKandidatBtn();
     } catch (err) {
         if (err.message !== 'Inte inloggad') console.error(err);
     }
+}
+
+function toggleSelectAllKandidater(selectAllCheckbox) {
+    const list = document.getElementById('mk-kandidat-list');
+    if (!list) return;
+    list.querySelectorAll('input[type="checkbox"]:not(#mk-select-all)')
+        .forEach(cb => { cb.checked = selectAllCheckbox.checked; });
+    updateMatchKandidatBtn();
 }
 
 function updateMatchKandidatBtn() {
@@ -181,7 +195,14 @@ function updateMatchKandidatBtn() {
     const rankBtn    = document.getElementById('mk-rank-btn');
     const hint       = document.getElementById('mk-match-hint');
     const hasText    = !!txt?.value.trim();
-    const anyChecked = list ? list.querySelectorAll('input[type="checkbox"]:checked').length > 0 : false;
+    const boxes      = list ? [...list.querySelectorAll('input[type="checkbox"]:not(#mk-select-all)')] : [];
+    const anyChecked = boxes.some(cb => cb.checked);
+    const allChecked = boxes.length > 0 && boxes.every(cb => cb.checked);
+    const selectAll  = document.getElementById('mk-select-all');
+    if (selectAll) {
+        selectAll.checked       = allChecked;
+        selectAll.indeterminate = anyChecked && !allChecked;
+    }
     if (matchBtn) matchBtn.disabled = !anyChecked || !hasText;
     if (rankBtn)  rankBtn.disabled  = !hasText;
     if (hint) {

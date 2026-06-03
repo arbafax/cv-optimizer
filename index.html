@@ -279,28 +279,28 @@
                     <div class="form-group">
                         <label for="kand-public-name">Namn <span style="color:var(--danger)">*</span></label>
                         <p class="field-desc">Kandidatens namn som visas för uppdragsgivare.</p>
-                        <input type="text" id="kand-public-name" class="form-input" placeholder="Kandidatens namn">
+                        <input type="text" id="kand-public-name" class="form-input" placeholder="Kandidatens namn" onblur="autoSaveKandidat()">
                     </div>
                     <div class="form-group">
                         <label for="kand-email">E-postadress</label>
                         <p class="field-desc">Kandidatens e-postadress. Används för framtida inbjudan att koppla ett konto.</p>
-                        <input type="email" id="kand-email" class="form-input" placeholder="kandidat@epost.se">
+                        <input type="email" id="kand-email" class="form-input" placeholder="kandidat@epost.se" onblur="autoSaveKandidat()">
                     </div>
                     <div class="form-group">
                         <label for="kand-public-phone">Telefonnummer</label>
                         <p class="field-desc">Kandidatens telefonnummer.</p>
-                        <input type="tel" id="kand-public-phone" class="form-input" placeholder="+46 70 000 00 00">
+                        <input type="tel" id="kand-public-phone" class="form-input" placeholder="+46 70 000 00 00" onblur="autoSaveKandidat()">
                     </div>
                     <div class="form-group">
                         <label for="kand-roles">Roller</label>
                         <p class="field-desc">Vilka typer av roller kandidaten kan tänka sig att jobba i.</p>
-                        <input type="text" id="kand-roles" class="form-input" placeholder="t.ex. Frontend-utvecklare, UX-designer">
+                        <input type="text" id="kand-roles" class="form-input" placeholder="t.ex. Frontend-utvecklare, UX-designer" onblur="autoSaveKandidat()">
                         <span class="form-hint">Separera med kommatecken</span>
                     </div>
                     <div class="form-group">
                         <label for="kand-city">Önskad ort</label>
                         <p class="field-desc">Den ort eller region där kandidaten i första hand vill arbeta.</p>
-                        <input type="text" id="kand-city" class="form-input" placeholder="t.ex. Stockholm, Göteborg">
+                        <input type="text" id="kand-city" class="form-input" placeholder="t.ex. Stockholm, Göteborg" onblur="autoSaveKandidat()">
                     </div>
 
                     <div class="form-group">
@@ -308,23 +308,23 @@
                         <p class="field-desc">Vilken eller vilka anställningsformer kandidaten är öppen för.</p>
                         <div class="checkbox-group">
                             <label class="checkbox-label">
-                                <input type="checkbox" id="kand-emp-heltid" value="Heltid">
+                                <input type="checkbox" id="kand-emp-heltid" value="Heltid" onchange="autoSaveKandidat()">
                                 <span>Heltid</span>
                             </label>
                             <label class="checkbox-label">
-                                <input type="checkbox" id="kand-emp-deltid" value="Deltid">
+                                <input type="checkbox" id="kand-emp-deltid" value="Deltid" onchange="autoSaveKandidat()">
                                 <span>Deltid</span>
                             </label>
                             <label class="checkbox-label">
-                                <input type="checkbox" id="kand-emp-timmar" value="Timmar">
+                                <input type="checkbox" id="kand-emp-timmar" value="Timmar" onchange="autoSaveKandidat()">
                                 <span>Timmar</span>
                             </label>
                             <label class="checkbox-label">
-                                <input type="checkbox" id="kand-emp-fast" value="Fast anställning">
+                                <input type="checkbox" id="kand-emp-fast" value="Fast anställning" onchange="autoSaveKandidat()">
                                 <span>Fast anställning</span>
                             </label>
                             <label class="checkbox-label">
-                                <input type="checkbox" id="kand-emp-konsult" value="Konsult">
+                                <input type="checkbox" id="kand-emp-konsult" value="Konsult" onchange="autoSaveKandidat()">
                                 <span>Konsult</span>
                             </label>
                         </div>
@@ -335,15 +335,15 @@
                         <p class="field-desc">Var kandidaten föredrar att arbeta.</p>
                         <div class="checkbox-group">
                             <label class="checkbox-label">
-                                <input type="checkbox" id="kand-wp-plats" value="På plats">
+                                <input type="checkbox" id="kand-wp-plats" value="På plats" onchange="autoSaveKandidat()">
                                 <span>På plats</span>
                             </label>
                             <label class="checkbox-label">
-                                <input type="checkbox" id="kand-wp-hybrid" value="Hybrid">
+                                <input type="checkbox" id="kand-wp-hybrid" value="Hybrid" onchange="autoSaveKandidat()">
                                 <span>Hybrid</span>
                             </label>
                             <label class="checkbox-label">
-                                <input type="checkbox" id="kand-wp-distans" value="Distans">
+                                <input type="checkbox" id="kand-wp-distans" value="Distans" onchange="autoSaveKandidat()">
                                 <span>Distans</span>
                             </label>
                         </div>
@@ -356,7 +356,7 @@
                                 <p class="field-desc">Kandidaten är villig att pendla eller resa som en del av tjänsten.</p>
                             </div>
                             <label class="toggle-switch">
-                                <input type="checkbox" id="kand-commute">
+                                <input type="checkbox" id="kand-commute" onchange="autoSaveKandidat()">
                                 <span class="toggle-slider"></span>
                             </label>
                         </div>
@@ -369,7 +369,7 @@
                                 <p class="field-desc">Kandidaten kan hittas och kontaktas av rekryterare.</p>
                             </div>
                             <label class="toggle-switch">
-                                <input type="checkbox" id="kand-searchable">
+                                <input type="checkbox" id="kand-searchable" onchange="autoSaveKandidat()">
                                 <span class="toggle-slider"></span>
                             </label>
                         </div>
@@ -378,7 +378,7 @@
                     <div class="form-group">
                         <label for="kand-available-from">Tillgänglig från</label>
                         <p class="field-desc">Det datum kandidaten tidigast kan börja ett nytt uppdrag. Lämna tomt om omedelbart tillgänglig.</p>
-                        <input type="date" id="kand-available-from" class="form-input">
+                        <input type="date" id="kand-available-from" class="form-input" onchange="autoSaveKandidat()">
                     </div>
 
                     <div class="form-group">
@@ -389,10 +389,7 @@
                     </div>
 
                     <div id="kand-status"></div>
-                    <div style="display:flex; gap:0.75rem; flex-wrap:wrap">
-                        <button class="btn btn-primary" onclick="saveKandidat()">Spara kandidat</button>
-                        <button id="kand-delete-btn" class="btn btn-danger" onclick="deleteKandidat()" style="display:none">Ta bort kandidat</button>
-                    </div>
+                    <button id="kand-delete-btn" class="btn btn-danger" onclick="deleteKandidat()" style="display:none">Ta bort kandidat</button>
                 </div>
             </div>
 
@@ -840,28 +837,28 @@
             <div class="form-group">
                 <label for="sp-public-name">Publikt namn</label>
                 <p class="field-desc">Det namn som visas för arbetsgivare och rekryterare. Kan skilja sig från ditt kontonamn om du föredrar ett kortare eller mer professionellt namn.</p>
-                <input type="text" id="sp-public-name" class="form-input" placeholder="Ditt namn som visas för arbetsgivare">
+                <input type="text" id="sp-public-name" class="form-input" placeholder="Ditt namn som visas för arbetsgivare" onblur="saveSokprofil()">
             </div>
             <div class="form-group">
                 <label for="sp-email">E-postadress</label>
                 <p class="field-desc">Den e-postadress som visas för rekryterare och arbetsgivare. Behöver inte vara samma som ditt kontos e-postadress.</p>
-                <input type="email" id="sp-email" class="form-input" placeholder="din@epost.se">
+                <input type="email" id="sp-email" class="form-input" placeholder="din@epost.se" onblur="saveSokprofil()">
             </div>
             <div class="form-group">
                 <label for="sp-public-phone">Publikt telefonnummer</label>
                 <p class="field-desc">Det telefonnummer du vill bli kontaktad på av rekryterare. Visas enbart om du är sökbar.</p>
-                <input type="tel" id="sp-public-phone" class="form-input" placeholder="+46 70 000 00 00">
+                <input type="tel" id="sp-public-phone" class="form-input" placeholder="+46 70 000 00 00" onblur="saveSokprofil()">
             </div>
             <div class="form-group">
                 <label for="sp-roles">Roller</label>
                 <p class="field-desc">Vilka typer av roller du kan tänka dig att jobba i. Används för att matcha dig mot relevanta jobb.</p>
-                <input type="text" id="sp-roles" class="form-input" placeholder="t.ex. Frontend-utvecklare, UX-designer">
+                <input type="text" id="sp-roles" class="form-input" placeholder="t.ex. Frontend-utvecklare, UX-designer" onblur="saveSokprofil()">
                 <span class="form-hint">Separera med kommatecken</span>
             </div>
             <div class="form-group">
                 <label for="sp-city">Önskad ort</label>
                 <p class="field-desc">Den ort eller region där du i första hand vill arbeta.</p>
-                <input type="text" id="sp-city" class="form-input" placeholder="t.ex. Stockholm, Göteborg">
+                <input type="text" id="sp-city" class="form-input" placeholder="t.ex. Stockholm, Göteborg" onblur="saveSokprofil()">
             </div>
 
             <div class="form-group">
@@ -869,23 +866,23 @@
                 <p class="field-desc">Vilken eller vilka anställningsformer du är öppen för. Du kan välja flera.</p>
                 <div class="checkbox-group">
                     <label class="checkbox-label">
-                        <input type="checkbox" id="sp-emp-heltid" value="Heltid">
+                        <input type="checkbox" id="sp-emp-heltid" value="Heltid" onchange="saveSokprofil()">
                         <span>Heltid</span>
                     </label>
                     <label class="checkbox-label">
-                        <input type="checkbox" id="sp-emp-deltid" value="Deltid">
+                        <input type="checkbox" id="sp-emp-deltid" value="Deltid" onchange="saveSokprofil()">
                         <span>Deltid</span>
                     </label>
                     <label class="checkbox-label">
-                        <input type="checkbox" id="sp-emp-timmar" value="Timmar">
+                        <input type="checkbox" id="sp-emp-timmar" value="Timmar" onchange="saveSokprofil()">
                         <span>Timmar</span>
                     </label>
                     <label class="checkbox-label">
-                        <input type="checkbox" id="sp-emp-fast" value="Fast anställning">
+                        <input type="checkbox" id="sp-emp-fast" value="Fast anställning" onchange="saveSokprofil()">
                         <span>Fast anställning</span>
                     </label>
                     <label class="checkbox-label">
-                        <input type="checkbox" id="sp-emp-konsult" value="Konsult">
+                        <input type="checkbox" id="sp-emp-konsult" value="Konsult" onchange="saveSokprofil()">
                         <span>Konsult</span>
                     </label>
                 </div>
@@ -896,15 +893,15 @@
                 <p class="field-desc">Var du föredrar att arbeta. Välj ett eller flera alternativ.</p>
                 <div class="checkbox-group">
                     <label class="checkbox-label">
-                        <input type="checkbox" id="sp-wp-plats" value="På plats">
+                        <input type="checkbox" id="sp-wp-plats" value="På plats" onchange="saveSokprofil()">
                         <span>På plats</span>
                     </label>
                     <label class="checkbox-label">
-                        <input type="checkbox" id="sp-wp-hybrid" value="Hybrid">
+                        <input type="checkbox" id="sp-wp-hybrid" value="Hybrid" onchange="saveSokprofil()">
                         <span>Hybrid</span>
                     </label>
                     <label class="checkbox-label">
-                        <input type="checkbox" id="sp-wp-distans" value="Distans">
+                        <input type="checkbox" id="sp-wp-distans" value="Distans" onchange="saveSokprofil()">
                         <span>Distans</span>
                     </label>
                 </div>
@@ -914,21 +911,21 @@
                 <label>Önskade domäner</label>
                 <p class="field-desc">Branscher eller sektorer du helst vill arbeta inom. Påverkar matchningspoängen positivt.</p>
                 <div class="domain-scroll-list">
-                    <label class="checkbox-label"><input type="checkbox" class="sp-domain-desired" value="Bygg & fastighet"><span>Bygg & fastighet</span></label>
-                    <label class="checkbox-label"><input type="checkbox" class="sp-domain-desired" value="Energi & miljö"><span>Energi & miljö</span></label>
-                    <label class="checkbox-label"><input type="checkbox" class="sp-domain-desired" value="Finans & bank"><span>Finans & bank</span></label>
-                    <label class="checkbox-label"><input type="checkbox" class="sp-domain-desired" value="Handel & e-handel"><span>Handel & e-handel</span></label>
-                    <label class="checkbox-label"><input type="checkbox" class="sp-domain-desired" value="Hotell & turism"><span>Hotell & turism</span></label>
-                    <label class="checkbox-label"><input type="checkbox" class="sp-domain-desired" value="IT & Data"><span>IT & Data</span></label>
-                    <label class="checkbox-label"><input type="checkbox" class="sp-domain-desired" value="Juridik"><span>Juridik</span></label>
-                    <label class="checkbox-label"><input type="checkbox" class="sp-domain-desired" value="Life science & pharma"><span>Life science & pharma</span></label>
-                    <label class="checkbox-label"><input type="checkbox" class="sp-domain-desired" value="Logistik & transport"><span>Logistik & transport</span></label>
-                    <label class="checkbox-label"><input type="checkbox" class="sp-domain-desired" value="Media & kommunikation"><span>Media & kommunikation</span></label>
-                    <label class="checkbox-label"><input type="checkbox" class="sp-domain-desired" value="Offentlig förvaltning"><span>Offentlig förvaltning</span></label>
-                    <label class="checkbox-label"><input type="checkbox" class="sp-domain-desired" value="Skola & utbildning"><span>Skola & utbildning</span></label>
-                    <label class="checkbox-label"><input type="checkbox" class="sp-domain-desired" value="Telekom"><span>Telekom</span></label>
-                    <label class="checkbox-label"><input type="checkbox" class="sp-domain-desired" value="Verkstadsindustri"><span>Verkstadsindustri</span></label>
-                    <label class="checkbox-label"><input type="checkbox" class="sp-domain-desired" value="Vård & omsorg"><span>Vård & omsorg</span></label>
+                    <label class="checkbox-label"><input type="checkbox" class="sp-domain-desired" onchange="saveSokprofil()" value="Bygg & fastighet"><span>Bygg & fastighet</span></label>
+                    <label class="checkbox-label"><input type="checkbox" class="sp-domain-desired" onchange="saveSokprofil()" value="Energi & miljö"><span>Energi & miljö</span></label>
+                    <label class="checkbox-label"><input type="checkbox" class="sp-domain-desired" onchange="saveSokprofil()" value="Finans & bank"><span>Finans & bank</span></label>
+                    <label class="checkbox-label"><input type="checkbox" class="sp-domain-desired" onchange="saveSokprofil()" value="Handel & e-handel"><span>Handel & e-handel</span></label>
+                    <label class="checkbox-label"><input type="checkbox" class="sp-domain-desired" onchange="saveSokprofil()" value="Hotell & turism"><span>Hotell & turism</span></label>
+                    <label class="checkbox-label"><input type="checkbox" class="sp-domain-desired" onchange="saveSokprofil()" value="IT & Data"><span>IT & Data</span></label>
+                    <label class="checkbox-label"><input type="checkbox" class="sp-domain-desired" onchange="saveSokprofil()" value="Juridik"><span>Juridik</span></label>
+                    <label class="checkbox-label"><input type="checkbox" class="sp-domain-desired" onchange="saveSokprofil()" value="Life science & pharma"><span>Life science & pharma</span></label>
+                    <label class="checkbox-label"><input type="checkbox" class="sp-domain-desired" onchange="saveSokprofil()" value="Logistik & transport"><span>Logistik & transport</span></label>
+                    <label class="checkbox-label"><input type="checkbox" class="sp-domain-desired" onchange="saveSokprofil()" value="Media & kommunikation"><span>Media & kommunikation</span></label>
+                    <label class="checkbox-label"><input type="checkbox" class="sp-domain-desired" onchange="saveSokprofil()" value="Offentlig förvaltning"><span>Offentlig förvaltning</span></label>
+                    <label class="checkbox-label"><input type="checkbox" class="sp-domain-desired" onchange="saveSokprofil()" value="Skola & utbildning"><span>Skola & utbildning</span></label>
+                    <label class="checkbox-label"><input type="checkbox" class="sp-domain-desired" onchange="saveSokprofil()" value="Telekom"><span>Telekom</span></label>
+                    <label class="checkbox-label"><input type="checkbox" class="sp-domain-desired" onchange="saveSokprofil()" value="Verkstadsindustri"><span>Verkstadsindustri</span></label>
+                    <label class="checkbox-label"><input type="checkbox" class="sp-domain-desired" onchange="saveSokprofil()" value="Vård & omsorg"><span>Vård & omsorg</span></label>
                 </div>
             </div>
 
@@ -936,21 +933,21 @@
                 <label>Icke-önskade domäner</label>
                 <p class="field-desc">Branscher du vill undvika. Matchningspoängen sänks om jobbet tillhör dessa.</p>
                 <div class="domain-scroll-list">
-                    <label class="checkbox-label"><input type="checkbox" class="sp-domain-unwanted" value="Bygg & fastighet"><span>Bygg & fastighet</span></label>
-                    <label class="checkbox-label"><input type="checkbox" class="sp-domain-unwanted" value="Energi & miljö"><span>Energi & miljö</span></label>
-                    <label class="checkbox-label"><input type="checkbox" class="sp-domain-unwanted" value="Finans & bank"><span>Finans & bank</span></label>
-                    <label class="checkbox-label"><input type="checkbox" class="sp-domain-unwanted" value="Handel & e-handel"><span>Handel & e-handel</span></label>
-                    <label class="checkbox-label"><input type="checkbox" class="sp-domain-unwanted" value="Hotell & turism"><span>Hotell & turism</span></label>
-                    <label class="checkbox-label"><input type="checkbox" class="sp-domain-unwanted" value="IT & Data"><span>IT & Data</span></label>
-                    <label class="checkbox-label"><input type="checkbox" class="sp-domain-unwanted" value="Juridik"><span>Juridik</span></label>
-                    <label class="checkbox-label"><input type="checkbox" class="sp-domain-unwanted" value="Life science & pharma"><span>Life science & pharma</span></label>
-                    <label class="checkbox-label"><input type="checkbox" class="sp-domain-unwanted" value="Logistik & transport"><span>Logistik & transport</span></label>
-                    <label class="checkbox-label"><input type="checkbox" class="sp-domain-unwanted" value="Media & kommunikation"><span>Media & kommunikation</span></label>
-                    <label class="checkbox-label"><input type="checkbox" class="sp-domain-unwanted" value="Offentlig förvaltning"><span>Offentlig förvaltning</span></label>
-                    <label class="checkbox-label"><input type="checkbox" class="sp-domain-unwanted" value="Skola & utbildning"><span>Skola & utbildning</span></label>
-                    <label class="checkbox-label"><input type="checkbox" class="sp-domain-unwanted" value="Telekom"><span>Telekom</span></label>
-                    <label class="checkbox-label"><input type="checkbox" class="sp-domain-unwanted" value="Verkstadsindustri"><span>Verkstadsindustri</span></label>
-                    <label class="checkbox-label"><input type="checkbox" class="sp-domain-unwanted" value="Vård & omsorg"><span>Vård & omsorg</span></label>
+                    <label class="checkbox-label"><input type="checkbox" class="sp-domain-unwanted" onchange="saveSokprofil()" value="Bygg & fastighet"><span>Bygg & fastighet</span></label>
+                    <label class="checkbox-label"><input type="checkbox" class="sp-domain-unwanted" onchange="saveSokprofil()" value="Energi & miljö"><span>Energi & miljö</span></label>
+                    <label class="checkbox-label"><input type="checkbox" class="sp-domain-unwanted" onchange="saveSokprofil()" value="Finans & bank"><span>Finans & bank</span></label>
+                    <label class="checkbox-label"><input type="checkbox" class="sp-domain-unwanted" onchange="saveSokprofil()" value="Handel & e-handel"><span>Handel & e-handel</span></label>
+                    <label class="checkbox-label"><input type="checkbox" class="sp-domain-unwanted" onchange="saveSokprofil()" value="Hotell & turism"><span>Hotell & turism</span></label>
+                    <label class="checkbox-label"><input type="checkbox" class="sp-domain-unwanted" onchange="saveSokprofil()" value="IT & Data"><span>IT & Data</span></label>
+                    <label class="checkbox-label"><input type="checkbox" class="sp-domain-unwanted" onchange="saveSokprofil()" value="Juridik"><span>Juridik</span></label>
+                    <label class="checkbox-label"><input type="checkbox" class="sp-domain-unwanted" onchange="saveSokprofil()" value="Life science & pharma"><span>Life science & pharma</span></label>
+                    <label class="checkbox-label"><input type="checkbox" class="sp-domain-unwanted" onchange="saveSokprofil()" value="Logistik & transport"><span>Logistik & transport</span></label>
+                    <label class="checkbox-label"><input type="checkbox" class="sp-domain-unwanted" onchange="saveSokprofil()" value="Media & kommunikation"><span>Media & kommunikation</span></label>
+                    <label class="checkbox-label"><input type="checkbox" class="sp-domain-unwanted" onchange="saveSokprofil()" value="Offentlig förvaltning"><span>Offentlig förvaltning</span></label>
+                    <label class="checkbox-label"><input type="checkbox" class="sp-domain-unwanted" onchange="saveSokprofil()" value="Skola & utbildning"><span>Skola & utbildning</span></label>
+                    <label class="checkbox-label"><input type="checkbox" class="sp-domain-unwanted" onchange="saveSokprofil()" value="Telekom"><span>Telekom</span></label>
+                    <label class="checkbox-label"><input type="checkbox" class="sp-domain-unwanted" onchange="saveSokprofil()" value="Verkstadsindustri"><span>Verkstadsindustri</span></label>
+                    <label class="checkbox-label"><input type="checkbox" class="sp-domain-unwanted" onchange="saveSokprofil()" value="Vård & omsorg"><span>Vård & omsorg</span></label>
                 </div>
             </div>
 
@@ -961,7 +958,7 @@
                         <p class="field-desc">Markera om du är villig att pendla eller resa som en del av tjänsten.</p>
                     </div>
                     <label class="toggle-switch">
-                        <input type="checkbox" id="sp-commute">
+                        <input type="checkbox" id="sp-commute" onchange="saveSokprofil()">
                         <span class="toggle-slider"></span>
                     </label>
                 </div>
@@ -974,7 +971,7 @@
                         <p class="field-desc">Om du aktiverar detta kan rekryterare hitta och kontakta dig baserat på din profil.</p>
                     </div>
                     <label class="toggle-switch">
-                        <input type="checkbox" id="sp-searchable">
+                        <input type="checkbox" id="sp-searchable" onchange="saveSokprofil()">
                         <span class="toggle-slider"></span>
                     </label>
                 </div>
@@ -983,7 +980,7 @@
             <div class="form-group">
                 <label for="sp-available-from">Tillgänglig från</label>
                 <p class="field-desc">Det datum du tidigast kan börja ett nytt uppdrag. Lämna tomt om du är omedelbart tillgänglig eller inte vill ange.</p>
-                <input type="date" id="sp-available-from" class="form-input">
+                <input type="date" id="sp-available-from" class="form-input" onchange="saveSokprofil()">
             </div>
 
             <div class="form-group">
@@ -994,7 +991,6 @@
             </div>
 
             <div id="sp-status"></div>
-            <button class="btn btn-primary" onclick="saveSokprofil()">Spara profil</button>
         </div>
         </div><!-- /sp-tab-basinfo -->
 

@@ -710,7 +710,11 @@ async function browserRoute(path, options = {}) {
             }
             if (method === 'PUT') {
                 await cvDb.profile.save({ ...(await cvDb.profile.get() || {}), ...body });
-                return new LocalResponse(body);
+                const ownRaw = await cvDb.kandidater.getOwn();
+                const own = (ownRaw && !ownRaw.profile_uuid)
+                    ? await cvDb.kandidater.update(ownRaw.id, { profile_uuid: crypto.randomUUID() })
+                    : ownRaw;
+                return new LocalResponse({ ...body, profile_uuid: own?.profile_uuid || null });
             }
         }
 
@@ -1116,7 +1120,7 @@ async function browserRoute(path, options = {}) {
 
             // POST /kandidater/
             if (method === 'POST' && parts.length === 1) {
-                const saved = await cvDb.kandidater.add(body);
+                const saved = await cvDb.kandidater.add({ ...body, profile_uuid: crypto.randomUUID() });
                 return new LocalResponse(saved);
             }
 

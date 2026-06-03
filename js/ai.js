@@ -448,7 +448,7 @@ Skapa ett anpassat CV-utkast för en specifik jobbannons baserat på personens e
 
 Svara ENDAST med JSON i exakt detta format:
 {
-  "pitch": "<3-5 meningar som profil/sammanfattning. Förklara varför kandidaten passar jobbet. Skriv utan personliga pronomen, som en CV-profil.>",
+  "pitch": "<3-5 meningar som profil/sammanfattning. Förklara varför XXXXX passar jobbet. Använd XXXXX konsekvent som platshållare istället för namn, pronomen eller 'kandidaten'/'personen'/'hen'.>",
   "experiences": [
     {
       "id": <id>,
@@ -537,7 +537,7 @@ Svara ENBART med JSON i exakt detta format:
 }
 
 Regler:
-- Skriv alltid i tredje person — använd förnamnet, "Personen", "Kandidaten" eller "Hen". Använd ALDRIG "Användaren".
+- Använd ALLTID "XXXXX" som platshållare för namn och pronomen — aldrig "Personen", "Kandidaten", "Hen", "Han", "Hon" eller förnamnet. Användaren ersätter XXXXX själv.
 - Anpassa innehållet till jobbannonsens krav utan att hitta på fakta
 - Max 3 kompetenser, välj de mest relevanta för jobbet
 - Uppdragslistan: nyaste uppdrag först, max 5 uppdrag
@@ -570,7 +570,7 @@ Din uppgift är att ge konkreta förslag på hur de kan höja sin matchningspoä
 
 Svara EXAKT med JSON i detta format:
 {
-  "pitch": "<2-4 meningar som säljer kandidaten till arbetsgivaren. Lyft fram kandidatens starkaste kompetenser, erfarenheter och prestationer som är relevanta för just detta jobb. Formulera det som om du presenterar kandidaten för en rekryterare — engagerande och konkret.>",
+  "pitch": "<2-4 meningar som säljer XXXXX till arbetsgivaren. Lyft fram XXXXX:s starkaste kompetenser, erfarenheter och prestationer som är relevanta för just detta jobb. Formulera det som om du presenterar XXXXX för en rekryterare — engagerande och konkret. Använd XXXXX konsekvent, aldrig 'kandidaten'/'personen'/'hen'.>",
   "suggested_skills": [
     {"skill_name": "<namn>", "category": "<kategori>", "reason": "<varför detta ökar matchningen>"}
   ],

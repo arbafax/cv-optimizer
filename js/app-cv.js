@@ -289,7 +289,7 @@ function setupSpCVUpload() {
     setupUploadZone({
         areaId:   'sp-cv-upload-area',
         inputId:  'sp-cv-upload',
-        onFile:   (file) => showCVStagingPanel(file, handleSpCVUpload, 'sp-cv-upload-area'),
+        onFile:   handleSpCVUpload,
         statusFn: showSpCVUploadStatus,
     });
 }

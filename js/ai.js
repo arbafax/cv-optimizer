@@ -261,96 +261,6 @@ Svara i exakt detta JSON-format:
 }
 
 /**
- * Analysera ett CVs visuella struktur och format för att skapa en CV-mall.
- */
-async function analyzeCVTemplate(cvText) {
-  const system = `Du är expert på CV-design, dokumentstruktur och typografi.
-Din uppgift är att noggrant analysera en extraherad CV-text och rekonstruera dess visuella och strukturella egenskaper.
-Texten är maskinextraherad ur ett PDF eller dokument – visuell layout kan delvis ha gått förlorad men strukturella ledtrådar finns kvar (radbrytningar, ordning, märken, skiljelinjer etc.).
-
-Analysera NOGGRANT och svara ENDAST med JSON i exakt detta format:
-
-{
-  "language": "<sv|en|no|de|fr|annat>",
-  "estimated_pages": <1|2|3|4>,
-  "style": "<klassisk|modern|kreativ|minimalistisk|corporate|skandinavisk>",
-  "density": "<kompakt|balanserad|luftig>",
-
-  "layout": {
-    "columns": "<en-kolumn|sidebar-vänster|sidebar-höger|två-kolumner>",
-    "has_sidebar": <true|false>,
-    "sidebar_sections": ["<sektionsnamn som troligtvis finns i sidofältet, om sidebar, annars tom array>"],
-    "has_colored_header_block": <true|false>,
-    "has_dividers_between_sections": <true|false>,
-    "contact_placement": "<header|footer|sidebar|inbäddad-i-text>"
-  },
-
-  "color_hints": {
-    "likely_accent_color": "<beskriv trolig accentfärg baserat på struktur, t.ex. 'mörkblå' om rubriker verkar kontrastrika, 'grön', 'grå', 'ingen synlig accentfärg'>",
-    "colored_elements": ["<element som troligtvis har accentfärg, t.ex. 'sektionsrubriker', 'kandidatnamnet', 'tidslinjemarkör', 'sidhuvudsbakgrund'>"],
-    "header_background": "<mörk|ljus|okänd>",
-    "text_color_variation": "<ja – rubriker och brödtext verkar ha olika färger|nej – enhetlig textfärg>"
-  },
-
-  "typography": {
-    "name_presentation": "<t.ex. 'stor centrerad rubrik', 'versaler vänsterjusterad', 'normal storlek med titel nedanför'>",
-    "section_header_style": "<t.ex. 'VERSALER fetstil med understrykning', 'mixed case med horisontell linje', 'fetstil utan extra formatering'>",
-    "job_title_format": "<hur varje yrkestitel/roll-rubrik är formaterad, t.ex. 'FETSTIL FÖRETAG / Titel – Period', 'Titel (Period) \\n Företag, Ort'>",
-    "date_format": "<t.ex. 'ÅÅÅÅ–ÅÅÅÅ', 'mån ÅÅÅÅ – mån ÅÅÅÅ', 'ÅÅÅÅ-MM – ÅÅÅÅ-MM'>",
-    "body_text_characteristics": "<t.ex. 'kort löptext per erfarenhet', 'inga meningar – bara nyckelord', 'detaljerade stycken'>"
-  },
-
-  "profile_section": {
-    "present": <true|false>,
-    "heading": "<rubriken för profilsektionen, t.ex. 'Profil', 'Om mig', 'Sammanfattning', null om ej finns>",
-    "format": "<löptext|punktlista|citat|blandat|ej tillämpligt>",
-    "approximate_word_count": <uppskattat antal ord, 0 om saknas>,
-    "paragraph_count": <antal stycken eller punkter, 0 om saknas>
-  },
-
-  "experience_format": {
-    "heading_pattern": "<beskriv hur varje erfarenhets-rubrikrad ser ut, t.ex. 'FÖRETAGSNAMN (versaler) följt av Titel och period på nästa rad', 'Titel | Företag | Ort | Period på en rad'>",
-    "entry_structure": "<beskrivning|punktlista|både-beskrivning-och-punktlista|bara-rubrik-ingen-text>",
-    "bullet_marker": "<•|–|->|-|→|siffra|inget|blandat>",
-    "typical_entry_length": "<mycket-kort (1-2 rader)|kort (3-5 rader)|medel (6-10 rader)|lång (>10 rader)>",
-    "shows_achievements_separately": <true|false>,
-    "approximate_entry_count": <uppskattat antal erfarenhetsposter>
-  },
-
-  "skills_section": {
-    "present": <true|false>,
-    "presentation_style": "<löplista|kommaseparerad|kolumner|tabell|chips-taggar|med-nivå-indikator|ej tillämpligt>",
-    "grouped_by_category": <true|false>,
-    "approximate_skill_count": <uppskattat antal kompetenser, 0 om saknas>
-  },
-
-  "education_format": {
-    "present": <true|false>,
-    "entry_style": "<en-rad-per-post|multi-rad-per-post>",
-    "typical_fields_shown": ["<t.ex. 'institution', 'examen', 'period', 'ort', 'betyg'>"]
-  },
-
-  "sections_ordered": ["<sektionsnamn i den ordning de förekommer i CV:t>"],
-  "has_photo_placeholder": <true|false>,
-
-  "notable_features": [
-    "<specifikt och märkbart designval eller strukturell egenskap, t.ex. 'Tidslinjedesign med vertikalt streck', 'Kompetenser visas som stapelgrafer', 'Kontaktikoner (telefon, e-post) i sidhuvudet', 'Två tydliga kolumner med mörk vänsterkolumn'>"
-  ],
-
-  "reconstruction_instructions": "<3-5 meningar med konkreta instruktioner för hur en AI ska strukturera och formatera ett nytt CV i samma stil. Beskriv kolumner, rubrikformat, hur erfarenheter ska struktureras, vilka sektioner som ska inkluderas och i vilken ordning, samt eventuella distinkta formateringsdrag.>"
-}
-
-Viktigt:
-- Basera analysen ENBART på vad som faktiskt kan härledas ur texten
-- Ange "okänd" eller null om information verkligen inte går att utläsa
-- color_hints är alltid uppskattningar – markera det tydligt i beskrivningarna om det är osäkert
-- Fokusera extra noga på experience_format – det är det mest kritiska för återgivning`;
-
-  const user = `CV-text att analysera:\n\n${cvText}`;
-  return _chatJSON(system, user, { temperature: 0.1 });
-}
-
-/**
  * Matcha kompetensbank mot strukturerad jobbannons.
  */
 async function matchJobStructured(skills, experiences, structuredJob, seekerProfile = null) {
@@ -616,7 +526,8 @@ Svara ENBART med JSON i exakt detta format:
     "uppdrag": [
       {
         "rubrik": "<BOLAGSNAMN – ROLLTITEL – PERIOD (versaler)>",
-        "punkter": ["<aktivitet med verb>", "<aktivitet>", "<aktivitet>"]
+        "intro": "<1-2 meningar som förklarar varför just detta uppdrag är relevant för den aktuella jobbannonsen>",
+        "punkter": ["<aktivitet med verb>", "<aktivitet>"]
       }
     ],
     "utbildning": [
@@ -626,99 +537,15 @@ Svara ENBART med JSON i exakt detta format:
 }
 
 Regler:
-- Skriv alltid i tredje person (undvik "jag/du" — använd förnamnet eller "kandidaten")
+- Skriv alltid i tredje person — använd förnamnet, "Personen", "Kandidaten" eller "Hen". Använd ALDRIG "Användaren".
 - Anpassa innehållet till jobbannonsens krav utan att hitta på fakta
 - Max 3 kompetenser, välj de mest relevanta för jobbet
-- Uppdragslistan: nyaste uppdrag först, max 5 uppdrag, 3-5 bullet points per uppdrag
+- Uppdragslistan: nyaste uppdrag först, max 5 uppdrag
+- intro per uppdrag: 1-2 meningar som tydligt kopplar uppdraget till jobbannonsens krav
+- punkter per uppdrag: variera antalet (2-6) beroende på uppdragets relevans — fler bullets för mer relevanta uppdrag
 - Alla texter på svenska`;
 
   const user = `Kandidat: ${name}\n\nJobbannons:\n${jobDescription.slice(0, 3000)}\n\n---\nErfarenheter:\n${expText}\n\nSkills: ${skillsText}\n\nUtbildning:\n${eduText}\n\nPersonlighetssvar (urval):\n${answersText.slice(0, 1500)}${cvExcerpt ? `\n\nCV-text (utdrag):\n${cvExcerpt}` : ''}`;
-
-  return _chatJSON(system, user, { temperature: 0.4 });
-}
-
-/**
- * Generera CV-utkast enligt personligt CV-format med alla sektioner.
- */
-async function generateHenrikCV(jobDescription, experiences, skills, profile, educationList, certificationList) {
-  const expText = experiences.map(e =>
-    `[ID:${e.id}] ${e.title}`
-    + (e.organization ? ` på ${e.organization}` : '')
-    + (e.city ? `, ${e.city}` : '')
-    + (e.start_date ? ` (${e.start_date}–${e.is_current ? 'nu' : (e.end_date || '')})` : '')
-    + (e.description ? `\nBeskrivning: ${e.description}` : '')
-    + (e.achievements?.length ? '\nPrestationer:\n' + e.achievements.map(a => `- ${a}`).join('\n') : '')
-  ).join('\n\n') || '(inga erfarenheter)';
-
-  const skillsText = skills.map(s => typeof s === 'string' ? s : s.skill_name).join(', ') || '(inga)';
-
-  const eduText = educationList.map(e =>
-    `- ${e.institution || ''}${e.city ? ', ' + e.city : ''}, ${e.degree || ''}${e.field_of_study ? ' i ' + e.field_of_study : ''}${e.start_date ? ' (' + e.start_date + (e.end_date ? '–' + e.end_date : '') + ')' : ''}`
-  ).join('\n') || '(ingen utbildning)';
-
-  const certText = certificationList.map(c =>
-    `- ${c.name || c.certification_name || ''}${c.issuer ? ', ' + c.issuer : ''}${c.date ? ' (' + c.date.slice(0,4) + ')' : ''}`
-  ).join('\n') || '(inga certifieringar)';
-
-  const name = profile?.public_name || profile?.full_name || 'Kandidaten';
-  const email = profile?.email || '';
-  const phone = profile?.phone || '';
-  const city  = profile?.city || profile?.address || '';
-
-  const system = `Du är en expert på CV-skrivning och skapar ett professionellt CV-utkast anpassat till en specifik jobbannons.
-
-Svara ENBART med JSON i exakt detta format:
-{
-  "profile_heading": "<varierat per ansökan, t.ex. 'Min profil', 'Varför jag?', 'Om mig'>",
-  "profile_text": "<3 stycken, 105–120 ord totalt. Stycke 1–2 i tredjeperson med 'Kandidaten' som subjekt, sista stycket kan glida mot förstaperson. Ärlig, jordnära ton utan floskler. Anpassad till rollen.>",
-  "expertise": [
-    {
-      "subheading": "<logisk kompetensgrupp, 1–4 ord>",
-      "bullets": ["<konkret punkt, max 2 rader>", "<punkt>"]
-    }
-  ],
-  "experience": [
-    {
-      "heading_line": "<Roll, Företag, Ort, Period>",
-      "description": "<3–8 meningar löptext, konkret, faktabaserat, lyfter det som matchar jobbet>"
-    }
-  ],
-  "education": ["<Institution, Ort, Examen/Program (år)>"],
-  "training": ["<Kurs/Certifiering (år)>"],
-  "technical_skills": [
-    {"category": "<kategori>", "items": ["<item>", "<item>"]}
-  ],
-  "personality": ["<egenskap med konkret förklaring, max 2 meningar>"],
-  "languages": ["<språk, nivå>"],
-  "personal_keywords": ["<ledord>"]
-}
-
-Regler:
-- expertise: 2–4 undergrupper, 2–4 bullets var – hämta ENBART från erfarenhets- och kompetensdatabasen, hitta inget på
-- experience: nyaste först, max 6 poster, lyfta det som matchar jobbannonsen
-- technical_skills: 3–5 kategorier, välj de som är relevanta för rollen
-- personality: 3–6 bullets
-- personal_keywords: 4–8 ledord som sammanfattar kandidatens värderingar och sätt att arbeta
-- languages: basera på vad som framgår av databasen och CV-texten, lägg alltid till svenska om det inte explicit saknas
-- profile_text EXAKT 105–120 ord – räkna noga
-- Allt på svenska`;
-
-  const user = `Kandidat: ${name}${email ? ' | ' + email : ''}${phone ? ' | ' + phone : ''}${city ? ' | ' + city : ''}
-
-Jobbannons:
-${jobDescription.slice(0, 3000)}
-
----
-Erfarenheter:
-${expText}
-
-Skills: ${skillsText}
-
-Utbildning:
-${eduText}
-
-Certifieringar/kurser:
-${certText}`;
 
   return _chatJSON(system, user, { temperature: 0.4 });
 }
@@ -938,12 +765,10 @@ window.cvAI = {
   structureCV,
   analyzeJob,
   explainRequiredSkill,
-  analyzeCVTemplate,
   matchJob,
   matchJobStructured,
   generateCV,
   generateLogHouseCV,
-  generateHenrikCV,
   improvementTips,
   extractPersonalityQuestions,
   generatePersonalityDescription,

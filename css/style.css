@@ -421,6 +421,40 @@ body {
 
 .upload-zone.uploading { opacity: .6; pointer-events: none; }
 
+.cv-staging-panel {
+    border: 1px solid var(--border);
+    border-radius: var(--r-md);
+    padding: 16px 20px;
+    margin-top: 10px;
+    background: var(--surface);
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+.cv-staging-file {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-weight: 500;
+    font-size: 14px;
+}
+.cv-staging-filename {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+.cv-staging-format-row {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 14px;
+    cursor: pointer;
+    user-select: none;
+}
+.cv-staging-name-row { display: flex; }
+.cv-staging-actions { display: flex; gap: 8px; align-items: center; }
+.cv-staging-status { font-size: 13px; color: var(--text-secondary); min-height: 1em; }
+
 .paste-toggle { margin-top: 10px; }
 .paste-toggle-btn {
     background: none;
@@ -1594,10 +1628,12 @@ body {
 .gen-cv-action {
     display: flex;
     justify-content: flex-end;
+    align-items: center;
     gap: 10px;
     margin-top: 24px;
     padding-top: 20px;
     border-top: 1px solid var(--border);
+    flex-wrap: wrap;
 }
 
 .gen-cv-pitch {

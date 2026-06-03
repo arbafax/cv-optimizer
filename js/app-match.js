@@ -114,6 +114,7 @@ let lastLHCV = null;
 async function handleGenerateLHCV() {
     if (!lastMatchResult) return;
     const btn = document.getElementById('gen-lh-cv-btn');
+    if (!btn) return;
     btn.disabled = true;
     btn.innerHTML = `<span class="spinner-small"></span> ${t('match.generating')}`;
 
@@ -277,6 +278,7 @@ let lastHenrikCV = null;
 async function handleGenerateHenrikCV() {
     if (!lastMatchResult) return;
     const btn = document.getElementById('gen-hc-cv-btn');
+    if (!btn) return;
     btn.disabled = true;
     btn.innerHTML = `<span class="spinner-small"></span> ${t('match.generating')}`;
 
@@ -637,3 +639,4 @@ async function addSuggestedQuality(qualityName, rowIndex) {
 function closeTipsModal() {
     document.getElementById('tips-modal').classList.add('hidden');
 }
+

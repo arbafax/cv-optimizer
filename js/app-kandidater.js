@@ -11,6 +11,34 @@ let kandUploadSetup   = false;
 let kandCandidateCVs  = [];
 let _kandQualities    = [];
 
+// ── Timestamps ────────────────────────────────────────────────────────────────
+
+function _fmtDateTime(iso) {
+    if (!iso) return '–';
+    return new Date(iso).toLocaleString(undefined, {
+        year: 'numeric', month: '2-digit', day: '2-digit',
+        hour: '2-digit', minute: '2-digit',
+    });
+}
+
+function _showKandTimestamps(kandidat) {
+    const el = document.getElementById('kand-timestamps');
+    if (!el || !kandidat) { el && el.classList.add('hidden'); return; }
+    el.innerHTML =
+        `<span>${t('kand.created_at')} ${_fmtDateTime(kandidat.created_at)}</span>` +
+        `<span>${t('kand.updated_at')} ${_fmtDateTime(kandidat.updated_at)}</span>`;
+    el.classList.remove('hidden');
+}
+
+async function touchKandidat() {
+    if (!currentKandidatId) return;
+    try {
+        await cvDb.kandidater.update(currentKandidatId, {});
+        const fresh = await cvDb.kandidater.get(currentKandidatId);
+        _showKandTimestamps(fresh);
+    } catch { /* silent */ }
+}
+
 // ── Kandidat list ─────────────────────────────────────────────────────────────
 
 async function loadDashKandidaterCount() {
@@ -126,6 +154,7 @@ function showKandidatForm(kandidat) {
     document.getElementById('kand-profile-uuid').value = kandidat?.profile_uuid || '';
     document.getElementById('kand-delete-btn').style.display = kandidat ? '' : 'none';
     document.getElementById('kand-status').textContent = '';
+    _showKandTimestamps(kandidat || null);
 
     // Dessa flikar aktiveras bara vid redigering av befintlig kandidat
     ['kand-tab-btn-kompetenser', 'kand-tab-btn-erfarenheter',
@@ -438,6 +467,8 @@ async function saveKandidat() {
             .forEach(id => { document.getElementById(id).disabled = false; });
         if (isNew) loadDashKandidaterCount();
         showKandidatStatus(t('kand.saved_msg'), 'success');
+        const fresh = await cvDb.kandidater.get(currentKandidatId);
+        _showKandTimestamps(fresh);
     } catch (err) {
         showKandidatStatus(err.message, 'error');
     }
@@ -646,6 +677,7 @@ async function addKandidatSkill() {
         document.getElementById('kand-skill-level').value = '';
         showKandidatBankStatus(t('kand.skill_added'), 'success');
         loadKandidatBank(currentKandidatId);
+        touchKandidat();
     } catch (err) {
         showKandidatBankStatus(err.message, 'error');
     }
@@ -660,6 +692,7 @@ async function deleteKandidatSkill(skillId) {
         );
         if (!res.ok) { const e = await res.json(); throw new Error(e.detail || 'Fel'); }
         loadKandidatBank(currentKandidatId);
+        touchKandidat();
     } catch (err) {
         showKandidatBankStatus(err.message, 'error');
     }
@@ -724,6 +757,7 @@ async function handleKandidatCVUpload(file) {
                 await loadKandidatEducation(currentKandidatId);
                 await loadKandidatCertifications(currentKandidatId);
                 loadKandidatCVs(currentKandidatId);
+                touchKandidat();
             } catch (err) {
                 showKandidatUploadStatus(`❌ ${err.message}`, 'error');
             }
@@ -831,6 +865,7 @@ async function deleteKandExperience(id) {
         const res = await apiFetch(`${API_BASE_URL}/kandidater/${currentKandidatId}/bank/experiences/${id}`, { method:'DELETE' });
         if (!res.ok) throw new Error('Kunde inte ta bort');
         await loadKandidatBank(currentKandidatId);
+        touchKandidat();
     } catch (err) { alert(err.message); }
 }
 
@@ -857,6 +892,7 @@ async function addKandidatExperience() {
         document.getElementById('kand-exp-current').checked = false;
         showKandExpStatus(t('kand.exp_added'), 'success');
         await loadKandidatBank(currentKandidatId);
+        touchKandidat();
     } catch (err) { showKandExpStatus(err.message, 'error'); }
 }
 
@@ -876,6 +912,7 @@ async function clearKandSkills(kandidatId) {
         const res = await apiFetch(`${API_BASE_URL}/kandidater/${kandidatId}/bank/skills`, { method: 'DELETE' });
         if (!res.ok) { const e = await res.json(); throw new Error(e.detail || 'Fel'); }
         await loadKandidatBank(kandidatId);
+        touchKandidat();
     } catch (err) { alert(err.message); }
 }
 
@@ -885,6 +922,7 @@ async function clearKandExperiences(kandidatId) {
         const res = await apiFetch(`${API_BASE_URL}/kandidater/${kandidatId}/bank/experiences`, { method: 'DELETE' });
         if (!res.ok) { const e = await res.json(); throw new Error(e.detail || 'Fel'); }
         await loadKandidatBank(kandidatId);
+        touchKandidat();
     } catch (err) { alert(err.message); }
 }
 
@@ -968,6 +1006,7 @@ async function deleteKandidatCV(cvId, kandidatId, filename) {
         const res = await apiFetch(`${API_BASE_URL}/kandidater/${kandidatId}/cvs/${cvId}`, { method:'DELETE' });
         if (!res.ok) { const e = await res.json(); throw new Error(e.detail || 'Fel'); }
         await loadKandidatCVs(kandidatId);
+        touchKandidat();
     } catch (err) { alert(`❌ ${err.message}`); }
 }
 
@@ -1070,6 +1109,7 @@ async function addKandidatEducation() {
             .forEach(id => document.getElementById(id).value = '');
         showKandEduStatus(t('kand.edu_added'), 'success');
         await loadKandidatEducation(currentKandidatId);
+        touchKandidat();
     } catch (err) { showKandEduStatus(err.message, 'error'); }
 }
 
@@ -1079,6 +1119,7 @@ async function deleteKandidatEducation(id, kandidatId) {
         const res = await apiFetch(`${API_BASE_URL}/kandidater/${kandidatId}/education/${id}`, { method:'DELETE' });
         if (!res.ok) throw new Error('Kunde inte ta bort');
         await loadKandidatEducation(kandidatId);
+        touchKandidat();
     } catch (err) { alert(err.message); }
 }
 
@@ -1179,6 +1220,7 @@ async function addKandidatCertification() {
         ['kand-cert-name','kand-cert-issuer','kand-cert-date','kand-cert-desc'].forEach(id => document.getElementById(id).value = '');
         showKandCertStatus(t('kand.cert_added'), 'success');
         await loadKandidatCertifications(currentKandidatId);
+        touchKandidat();
     } catch (err) { showKandCertStatus(err.message, 'error'); }
 }
 
@@ -1188,6 +1230,7 @@ async function deleteKandidatCertification(id, kandidatId) {
         const res = await apiFetch(`${API_BASE_URL}/kandidater/${kandidatId}/certifications/${id}`, { method:'DELETE' });
         if (!res.ok) throw new Error('Kunde inte ta bort');
         await loadKandidatCertifications(kandidatId);
+        touchKandidat();
     } catch (err) { alert(err.message); }
 }
 

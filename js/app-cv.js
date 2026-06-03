@@ -318,6 +318,7 @@ async function handleSpCVUpload(file) {
                 showSpCVUploadStatus(t('cv.upload_success'), 'success');
                 await loadSpCandidateCVs();
                 loadBankData();
+                if (typeof touchOwnKandidat === 'function') touchOwnKandidat();
             } catch (err) {
                 if (area) area.classList.remove('uploading');
                 showSpCVUploadStatus(`❌ ${err.message}`, 'error');

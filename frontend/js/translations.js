@@ -262,8 +262,6 @@ sv: {
     // Min profil (sökprofil)
     'profile.title':                'Min profil',
     'profile.subtitle':             'Hur du presenterar dig och vad du söker.<br><br>Det enklaste sättet att bygga din databas med kompetenser, erfarenheter, utbildningar etc är att läsa in ett eller flera av dina befintliga CV. Inlästa CV och dess analysresultat sparas lokalt i din webbläsare, men analysen utförs på den LLM du konfigurerat. Under "Mitt konto" kan du rensa all data från webbläsaren med ett klick.',
-    'profile.save':                 'Spara profil',
-
     // Language switcher
     'lang.sv':                      '🇸🇪 Svenska (SV)',
     'lang.en':                      '🇬🇧 English (EN)',
@@ -523,8 +521,6 @@ en: {
 
     'profile.title':                'My profile',
     'profile.subtitle':             'How you present yourself and what you are looking for.<br><br>The easiest way to build your database of skills, experiences, education etc. is to import one or more of your existing CVs. Imported CVs and their analysis results are stored locally in your browser, but the analysis is performed by the LLM you have configured. Under "My Account" you can clear all data from the browser with one click.',
-    'profile.save':                 'Save profile',
-
     'lang.sv':                      '🇸🇪 Svenska (SV)',
     'lang.en':                      '🇬🇧 English (EN)',
     'lang.no':                      '🇳🇴 Norsk (NO)',
@@ -783,8 +779,6 @@ no: {
 
     'profile.title':                'Min profil',
     'profile.subtitle':             'Hvordan du presenterer deg og hva du søker.<br><br>Den enkleste måten å bygge databasen din med kompetanser, erfaringer, utdanninger osv. er å laste inn én eller flere av dine eksisterende CV-er. Innlastede CV-er og analyseresultatene lagres lokalt i nettleseren din, men analysen utføres av den LLM-en du har konfigurert. Under "Min konto" kan du slette alle data fra nettleseren med ett klikk.',
-    'profile.save':                 'Lagre profil',
-
     'lang.sv':                      '🇸🇪 Svenska (SV)',
     'lang.en':                      '🇬🇧 English (EN)',
     'lang.no':                      '🇳🇴 Norsk (NO)',

@@ -79,6 +79,8 @@ async function saveSokprofil() {
             }),
         });
         if (!res.ok) throw new Error('Kunde inte spara');
+        const saved = await res.json();
+        if (saved.profile_uuid) document.getElementById('sp-profile-uuid').value = saved.profile_uuid;
         showSokprofilStatus('Sökprofilen sparades ✓', 'success');
     } catch (err) {
         showSokprofilStatus(err.message, 'error');

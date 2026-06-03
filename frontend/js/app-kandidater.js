@@ -359,6 +359,11 @@ async function matchKandidatJob(overrideId = null, overrideName = null) {
 
 // ── Save / delete kandidat ────────────────────────────────────────────────────
 
+function autoSaveKandidat() {
+    if (!currentKandidatId && !document.getElementById('kand-public-name').value.trim()) return;
+    saveKandidat();
+}
+
 async function saveKandidat() {
     const public_name = document.getElementById('kand-public-name').value.trim();
     if (!public_name) {
@@ -406,6 +411,7 @@ async function saveKandidat() {
         currentKandidatId = saved.id;
         document.getElementById('kandidat-form-title').textContent = `Kandidat: ${saved.public_name}`;
         document.getElementById('kand-delete-btn').style.display = '';
+        if (saved.profile_uuid) document.getElementById('kand-profile-uuid').value = saved.profile_uuid;
         ['kand-tab-btn-kompetenser', 'kand-tab-btn-erfarenheter',
          'kand-tab-btn-utbildning', 'kand-tab-btn-certifikat', 'kand-tab-btn-cv']
             .forEach(id => { document.getElementById(id).disabled = false; });

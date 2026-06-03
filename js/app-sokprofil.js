@@ -784,7 +784,7 @@ function displaySpCandidateCVs(cvs) {
                             ${processedBadge}
                         </div>
                     </div>
-                    <div style="display:flex;gap:0.5rem;align-items:center;flex-shrink:0">
+                    <div style="display:flex;gap:0.5rem;align-items:center;margin-left:auto">
                         <button class="btn btn-secondary btn-sm" onclick="downloadCVFile(${cv.id})">${t('cv.download')}</button>
                         <button class="btn btn-icon btn-danger btn-sm" title="${t('cv.btn_delete')}" onclick="deleteSpCV(${cv.id}, '${safeName}')">
                             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14H6L5 6"/><path d="M10 11v6M14 11v6"/><path d="M9 6V4h6v2"/></svg>
@@ -792,11 +792,11 @@ function displaySpCandidateCVs(cvs) {
                     </div>
                 </div>
                 <div class="cv-item-details">
-                    <div class="cv-item-detail">📅 ${date}</div>
-                    <div class="cv-item-detail">🎯 ${cv.skill_count} ${t('cv.section_skills').toLowerCase()}</div>
-                    <div class="cv-item-detail">💼 ${cv.experience_count} ${t('cv.section_experience').toLowerCase()}</div>
-                    <div class="cv-item-detail">🎓 ${cv.education_count} ${t('cv.section_education').toLowerCase()}</div>
-                    <div class="cv-item-detail">📜 ${cv.certification_count} ${t('cv.section_certifications').toLowerCase()}</div>
+                    <div class="cv-item-detail"><span class="material-icons cv-detail-icon">calendar_today</span>${date}</div>
+                    <div class="cv-item-detail"><span class="material-icons cv-detail-icon">psychology</span>${cv.skill_count} ${t('cv.section_skills').toLowerCase()}</div>
+                    <div class="cv-item-detail"><span class="material-icons cv-detail-icon">work_history</span>${cv.experience_count} ${t('cv.section_experience').toLowerCase()}</div>
+                    <div class="cv-item-detail"><span class="material-icons cv-detail-icon">school</span>${cv.education_count} ${t('cv.section_education').toLowerCase()}</div>
+                    <div class="cv-item-detail"><span class="material-icons cv-detail-icon">workspace_premium</span>${cv.certification_count} ${t('cv.section_certifications').toLowerCase()}</div>
                 </div>
             </div>`;
     }).join('');
@@ -809,7 +809,6 @@ async function deleteSpCV(cvId, filename) {
     try {
         const res = await apiFetch(`${API_BASE_URL}/competence/cvs/${cvId}`, { method:'DELETE' });
         if (!res.ok) { const e = await res.json(); throw new Error(e.detail || 'Fel'); }
-        closeSpCVDetail();
         await loadSpCandidateCVs();
     } catch (err) {
         alert(`❌ ${err.message}`);

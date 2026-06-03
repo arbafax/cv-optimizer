@@ -64,8 +64,8 @@ function renderBankContent() {
     if (bankSkills.length === 0 && bankExperiences.length === 0) {
         container.innerHTML = `
             <div class="bank-empty">
-                <p>🧠 Kompetensbanken är tom</p>
-                <p class="empty-state-hint">Ladda upp ett CV och klicka "Merge alla CV:n" för att fylla banken</p>
+                <p>🧠 ${t('bank.empty')}</p>
+                <p class="empty-state-hint">${t('bank.empty_hint')}</p>
             </div>`;
         return;
     }
@@ -74,11 +74,11 @@ function renderBankContent() {
         <div class="bank-tabs">
             <button class="bank-tab ${activeBankTab === 'skills' ? 'active' : ''}"
                     onclick="switchBankTab('skills', this)">
-                🎯 Kompetenser (${bankSkills.length})
+                ${t('bank.tab_skills')} (${bankSkills.length})
             </button>
             <button class="bank-tab ${activeBankTab === 'experiences' ? 'active' : ''}"
                     onclick="switchBankTab('experiences', this)">
-                💼 Erfarenheter (${bankExperiences.length})
+                ${t('bank.tab_exp')} (${bankExperiences.length})
             </button>
         </div>
         <div id="bank-tab-body"></div>
@@ -109,13 +109,13 @@ function renderActiveBankTab() {
 function renderSkillsTab() {
     const addRow = `
         <div class="bank-action-row">
-            <button class="btn btn-primary btn-small" onclick="showAddSkillForm()">+ Lägg till skill</button>
+            <button class="btn btn-primary btn-small" onclick="showAddSkillForm()">${t('bank.add_skill_btn')}</button>
         </div>
         <div id="add-skill-form-container"></div>
     `;
 
     if (bankSkills.length === 0) {
-        return addRow + '<div class="bank-empty"><p>Inga skills ännu</p></div>';
+        return addRow + `<div class="bank-empty"><p>${t('bank.no_skills')}</p></div>`;
     }
 
     const CATEGORY_ALIASES = {
@@ -153,15 +153,15 @@ function renderSkillsTab() {
 // Render experience timeline
 function renderExperiencesTab() {
     if (bankExperiences.length === 0) {
-        return '<div class="bank-empty"><p>Inga erfarenheter ännu</p></div>';
+        return `<div class="bank-empty"><p>${t('bank.no_exp')}</p></div>`;
     }
 
     const typeOrder = ['work', 'education', 'certification', 'project'];
     const typeLabels = {
-        work:          '● Arbetslivserfarenhet',
-        education:     '● Utbildning',
-        certification: '● Certifieringar',
-        project:       '● Projekt',
+        work:          t('bank.type_work'),
+        education:     t('bank.type_edu'),
+        certification: t('bank.type_cert'),
+        project:       t('bank.type_project'),
     };
 
     const groups = {};
@@ -178,18 +178,18 @@ function renderExperiencesTab() {
 
     const mergeBar = `
         <div class="bank-merge-bar ${selectedExperienceIds.size >= 2 ? 'visible' : ''}" id="exp-merge-bar">
-            <span>${selectedExperienceIds.size} valda</span>
+            <span>${selectedExperienceIds.size} ${t('bank.selected')}</span>
             <button class="btn btn-primary btn-small" onclick="mergeSelectedExperiences()"
                     ${selectedExperienceIds.size < 2 ? 'disabled' : ''}>
-                Slå ihop valda
+                ${t('bank.merge_selected')}
             </button>
-            <button class="btn btn-ghost btn-small" onclick="clearExperienceSelection()">Avmarkera</button>
+            <button class="btn btn-ghost btn-small" onclick="clearExperienceSelection()">${t('bank.deselect')}</button>
         </div>
     `;
 
     const addExpRow = `
         <div class="bank-action-row">
-            <button class="btn btn-primary btn-small" onclick="showAddExperienceForm()">+ Lägg till erfarenhet</button>
+            <button class="btn btn-primary btn-small" onclick="showAddExperienceForm()">${t('bank.add_exp_btn')}</button>
         </div>
         <div id="add-experience-form-container"></div>
     `;
@@ -203,7 +203,7 @@ function renderExperiencesTab() {
             <div class="bank-experience-list">
                 ${groups[type].map(e => {
                     const dateStr = e.start_date
-                        ? `${e.start_date} — ${e.is_current ? 'Nuvarande' : (e.end_date || '')}`
+                        ? `${e.start_date} — ${e.is_current ? t('bank.current') : (e.end_date || '')}`
                         : '';
                     const skills = (e.related_skills || []);
                     const achievements = (e.achievements || []);
@@ -222,11 +222,11 @@ function renderExperiencesTab() {
                                     <div>
                                         <h4>
                                             ${e.title}
-                                            ${e.is_current ? '<span class="bank-exp-badge">Nuvarande</span>' : ''}
+                                            ${e.is_current ? `<span class="bank-exp-badge">${t('bank.current')}</span>` : ''}
                                             ${sourceCount > 1 ? `<span class="bank-exp-source-badge">${sourceCount} CV:n</span>` : ''}
                                         </h4>
                                         <div class="bank-exp-date-row" id="date-row-${e.id}">
-                                            ${dateStr ? `<span class="bank-exp-date">${dateStr}</span>` : '<span class="bank-exp-date bank-exp-date-empty">Ingen tidsperiod</span>'}
+                                            ${dateStr ? `<span class="bank-exp-date">${dateStr}</span>` : `<span class="bank-exp-date bank-exp-date-empty">${t('bank.no_date')}</span>`}
                                             <button class="btn-icon btn-icon-small btn-edit-period" onclick="editPeriod(${e.id}, '${e.start_date || ''}', '${e.end_date || ''}', ${e.is_current})" title="${t('action.edit_period')}">&#9998;</button>
                                         </div>
                                         <div id="period-form-${e.id}"></div>
@@ -239,12 +239,12 @@ function renderExperiencesTab() {
                                 <div class="bank-exp-desc ${e.description ? '' : 'bank-exp-desc-empty'}"
                                      onclick="editDescription(${e.id}, this)"
                                      title="${t('action.click_to_edit')}"
-                                     id="desc-${e.id}">${e.description || '<span class="desc-placeholder">Klicka för att lägga till beskrivning...</span>'}</div>
+                                     id="desc-${e.id}">${e.description || `<span class="desc-placeholder">${t('bank.add_desc_ph')}</span>`}</div>
                                 <div class="bank-exp-achievements">
                                     <div class="bank-exp-achievements-label">
-                                        Huvudsakliga prestationer
+                                        ${t('bank.achievements_label')}
                                         <button class="btn-icon btn-icon-small" onclick="showAddAchievementForm(${e.id})" title="${t('action.add_achievement')}">+</button>
-                                        ${achievements.length > 0 ? `<button class="btn-improve-ach" onclick="improveAchievements(${e.id})" title="${t('action.improve')}">✨ Förbättra</button>` : ''}
+                                        ${achievements.length > 0 ? `<button class="btn-improve-ach" onclick="improveAchievements(${e.id})" title="${t('action.improve')}">${t('bank.improve_btn')}</button>` : ''}
                                     </div>
                                     <div id="add-achievement-form-${e.id}"></div>
                                     <div id="improve-achievement-preview-${e.id}"></div>
@@ -264,7 +264,7 @@ function renderExperiencesTab() {
                                 </div>
                                 <div class="bank-exp-skills">
                                     <div class="bank-exp-skills-label">
-                                        Relaterade skills
+                                        ${t('bank.related_skills_label')}
                                         <button class="btn-icon btn-icon-small" onclick="showAddExpSkillForm(${e.id})" title="${t('action.add_skill')}">+</button>
                                     </div>
                                     <div id="add-exp-skill-form-${e.id}"></div>
@@ -308,9 +308,9 @@ async function mergeSelectedExperiences() {
     if (selectedExperienceIds.size < 2) return;
 
     const ids = Array.from(selectedExperienceIds);
-    if (!confirm(`Slå ihop ${ids.length} erfarenheter till en post?`)) return;
+    if (!confirm(t('bank.confirm_merge_exp').replace('%n', ids.length))) return;
 
-    showMergeStatus('⏳ Slår ihop erfarenheter...', 'loading');
+    showMergeStatus(t('bank.merging_exp'), 'loading');
 
     try {
         const res = await apiFetch(`${API_BASE_URL}/competence/experiences/merge`, {
@@ -321,13 +321,13 @@ async function mergeSelectedExperiences() {
 
         if (!res.ok) {
             const err = await res.json();
-            throw new Error(err.detail || 'Sammanslagning misslyckades');
+            throw new Error(err.detail || t('bank.merge_exp_failed'));
         }
 
         const data = await res.json();
         selectedExperienceIds.clear();
         showMergeStatus(
-            `✅ ${data.merged_count} poster sammanslagna till "${data.title}"`,
+            `✅ ${data.merged_count} ${t('bank.selected')} → "${data.title}"`,
             'success'
         );
         await loadBankData();
@@ -366,11 +366,11 @@ function showMergeStatus(message, type) {
 
 async function mergeSelectedCV() {
     if (!selectedCV) {
-        alert('Välj ett CV i listan ovan först');
+        alert(t('bank.no_cv_selected'));
         return;
     }
 
-    showMergeStatus('⏳ Mergar CV...', 'loading');
+    showMergeStatus(t('bank.merging_cv'), 'loading');
     document.getElementById('merge-selected-btn').disabled = true;
 
     try {
@@ -380,12 +380,12 @@ async function mergeSelectedCV() {
 
         if (!res.ok) {
             const err = await res.json();
-            throw new Error(err.detail || 'Merge misslyckades');
+            throw new Error(err.detail || t('bank.merge_failed'));
         }
 
         const data = await res.json();
         showMergeStatus(
-            `✅ ${data.cv_name}: +${data.skills_added} skills, +${data.experiences_added} erfarenheter, ${data.duplicates_skipped} duplicat(er) hoppade över`,
+            `✅ ${data.cv_name}: +${data.skills_added} skills, +${data.experiences_added} exp, ${data.duplicates_skipped} dup`,
             'success'
         );
         await loadBankData();
@@ -399,7 +399,7 @@ async function mergeSelectedCV() {
 
 // ── Merge ALL CVs ─────────────────────────────────────────────────────────────
 async function mergeAllCVs() {
-    showMergeStatus('⏳ Mergar alla CV:n...', 'loading');
+    showMergeStatus(t('bank.merging_all'), 'loading');
     document.getElementById('merge-all-btn').disabled = true;
 
     try {
@@ -409,12 +409,12 @@ async function mergeAllCVs() {
 
         if (!res.ok) {
             const err = await res.json();
-            throw new Error(err.detail || 'Merge misslyckades');
+            throw new Error(err.detail || t('bank.merge_failed'));
         }
 
         const data = await res.json();
         showMergeStatus(
-            `✅ ${data.total_cvs_processed} CV:n processade — +${data.total_skills_added} nya skills, +${data.total_experiences_added} nya erfarenheter`,
+            `✅ ${data.total_cvs_processed} CVs — +${data.total_skills_added} skills, +${data.total_experiences_added} exp`,
             'success'
         );
         await loadBankData();
@@ -433,13 +433,13 @@ function showAddSkillForm() {
     container.innerHTML = `
         <div class="bank-inline-form">
             <div>
-                <label for="new-skill-name" style="display:block;font-size:0.8125rem;color:var(--text-muted);margin-bottom:2px">Kompetens</label>
+                <label for="new-skill-name" style="display:block;font-size:0.8125rem;color:var(--text-muted);margin-bottom:2px">${t('bank.label_skill')}</label>
                 <input type="text" id="new-skill-name" placeholder="t.ex. Python, Projektledning" class="form-input" />
             </div>
             <div>
-                <label for="new-skill-category" style="display:block;font-size:0.8125rem;color:var(--text-muted);margin-bottom:2px">Kategori</label>
+                <label for="new-skill-category" style="display:block;font-size:0.8125rem;color:var(--text-muted);margin-bottom:2px">${t('bank.label_category')}</label>
                 <select id="new-skill-category" class="form-input">
-                    <option value="">Auto-kategorisera</option>
+                    <option value="">${t('bank.auto_category')}</option>
                     <option value="Mjukvaruutveckling">Mjukvaruutveckling</option>
                     <option value="Frameworks & APIs">Frameworks & APIs</option>
                     <option value="Databases">Databases</option>
@@ -452,8 +452,8 @@ function showAddSkillForm() {
                 </select>
             </div>
             <div style="display:flex;gap:8px;align-items:flex-end">
-                <button class="btn btn-primary btn-small" onclick="submitNewSkill()">Spara</button>
-                <button class="btn btn-ghost btn-small" onclick="hideAddSkillForm()">Avbryt</button>
+                <button class="btn btn-primary btn-small" onclick="submitNewSkill()">${t('common.save')}</button>
+                <button class="btn btn-ghost btn-small" onclick="hideAddSkillForm()">${t('common.cancel')}</button>
             </div>
         </div>
     `;
@@ -467,7 +467,7 @@ function hideAddSkillForm() {
 
 async function submitNewSkill() {
     const name = document.getElementById('new-skill-name').value.trim();
-    if (!name) return alert('Ange ett skill-namn');
+    if (!name) return alert(t('bank.skill_name_required'));
     const category = document.getElementById('new-skill-category').value || null;
     try {
         const res = await apiFetch(`${API_BASE_URL}/competence/skills`, {
@@ -487,7 +487,7 @@ async function submitNewSkill() {
 }
 
 async function deleteSkill(skillId, skillName) {
-    if (!confirm(`Ta bort "${skillName}" från kompetensbanken?`)) return;
+    if (!confirm(t('bank.confirm_delete_skill').replace('%n', skillName))) return;
     try {
         const res = await apiFetch(`${API_BASE_URL}/competence/skills/${skillId}`, { method: 'DELETE' });
         if (!res.ok) throw new Error('Kunde inte ta bort skill');
@@ -500,7 +500,7 @@ async function deleteSkill(skillId, skillName) {
 // ── Experience delete ───────────────────────────────────────────────────────
 
 async function deleteExperience(expId, title) {
-    if (!confirm(`Ta bort "${title}" från kompetensbanken?`)) return;
+    if (!confirm(t('bank.confirm_delete_exp').replace('%n', title))) return;
     try {
         const res = await apiFetch(`${API_BASE_URL}/competence/experiences/${expId}`, { method: 'DELETE' });
         if (!res.ok) throw new Error('Kunde inte ta bort erfarenhet');
@@ -517,10 +517,10 @@ function showAddAchievementForm(expId) {
     const container = document.getElementById(`add-achievement-form-${expId}`);
     container.innerHTML = `
         <div class="bank-inline-form">
-            <input type="text" id="new-ach-text-${expId}" placeholder="Ny prestation..." class="form-input"
+            <input type="text" id="new-ach-text-${expId}" placeholder="${t('bank.new_ach_ph')}" class="form-input"
                    onkeydown="if(event.key==='Enter') submitNewAchievement(${expId}); if(event.key==='Escape') document.getElementById('add-achievement-form-${expId}').innerHTML='';" />
-            <button class="btn btn-primary btn-small" onclick="submitNewAchievement(${expId})">Spara</button>
-            <button class="btn btn-ghost btn-small" onclick="document.getElementById('add-achievement-form-${expId}').innerHTML=''">Avbryt</button>
+            <button class="btn btn-primary btn-small" onclick="submitNewAchievement(${expId})">${t('common.save')}</button>
+            <button class="btn btn-ghost btn-small" onclick="document.getElementById('add-achievement-form-${expId}').innerHTML=''">${t('common.cancel')}</button>
         </div>
     `;
     document.getElementById(`new-ach-text-${expId}`).focus();
@@ -551,8 +551,8 @@ function editDescription(expId, el) {
                   onkeydown="if(event.key==='Escape') cancelEditDescription(this.closest('.bank-exp-desc'))"
         >${current}</textarea>
         <div class="desc-actions">
-            <button class="btn btn-primary btn-small" onclick="event.stopPropagation(); saveDescription(${expId})">Spara</button>
-            <button class="btn btn-ghost btn-small" onclick="event.stopPropagation(); cancelEditDescription(document.getElementById('desc-${expId}'))">Avbryt</button>
+            <button class="btn btn-primary btn-small" onclick="event.stopPropagation(); saveDescription(${expId})">${t('common.save')}</button>
+            <button class="btn btn-ghost btn-small" onclick="event.stopPropagation(); cancelEditDescription(document.getElementById('desc-${expId}'))">${t('common.cancel')}</button>
         </div>
     `;
     el.dataset.desc = current;
@@ -578,7 +578,7 @@ async function saveDescription(expId) {
 
 function cancelEditDescription(el) {
     const original = el.dataset.desc || '';
-    el.innerHTML = original || '<span class="desc-placeholder">Klicka för att lägga till beskrivning...</span>';
+    el.innerHTML = original || `<span class="desc-placeholder">${t('bank.add_desc_ph')}</span>`;
     delete el.dataset.desc;
 }
 
@@ -611,7 +611,7 @@ async function submitEditAchievement(expId, index) {
 }
 
 async function deleteAchievement(expId, index) {
-    if (!confirm('Ta bort denna prestation?')) return;
+    if (!confirm(t('bank.confirm_delete_ach'))) return;
     try {
         const res = await apiFetch(`${API_BASE_URL}/competence/experiences/${expId}/achievements/${index}`, { method: 'DELETE' });
         if (!res.ok) throw new Error('Kunde inte ta bort prestation');
@@ -627,10 +627,10 @@ function showAddExpSkillForm(expId) {
     const container = document.getElementById(`add-exp-skill-form-${expId}`);
     container.innerHTML = `
         <div class="bank-inline-form">
-            <input type="text" id="new-exp-skill-${expId}" placeholder="Skills (separera med komma)" class="form-input"
+            <input type="text" id="new-exp-skill-${expId}" placeholder="${t('bank.skills_comma_ph')}" class="form-input"
                    onkeydown="if(event.key==='Enter') submitNewExpSkill(${expId}); if(event.key==='Escape') document.getElementById('add-exp-skill-form-${expId}').innerHTML='';" />
-            <button class="btn btn-primary btn-small" onclick="submitNewExpSkill(${expId})">Spara</button>
-            <button class="btn btn-ghost btn-small" onclick="document.getElementById('add-exp-skill-form-${expId}').innerHTML=''">Avbryt</button>
+            <button class="btn btn-primary btn-small" onclick="submitNewExpSkill(${expId})">${t('common.save')}</button>
+            <button class="btn btn-ghost btn-small" onclick="document.getElementById('add-exp-skill-form-${expId}').innerHTML=''">${t('common.cancel')}</button>
         </div>
     `;
     document.getElementById(`new-exp-skill-${expId}`).focus();
@@ -657,7 +657,7 @@ async function submitNewExpSkill(expId) {
 }
 
 async function removeExpSkill(expId, index, skillName) {
-    if (!confirm(`Ta bort "${skillName}" från denna erfarenhet?`)) return;
+    if (!confirm(t('bank.confirm_delete_skill').replace('%n', skillName))) return;
     try {
         const res = await apiFetch(`${API_BASE_URL}/competence/experiences/${expId}/skills/${index}`, { method: 'DELETE' });
         if (!res.ok) throw new Error('Kunde inte ta bort skill');
@@ -675,45 +675,45 @@ function showAddExperienceForm() {
         <div class="bank-add-exp-form">
             <div class="bank-form-row">
                 <div class="bank-form-field">
-                    <label>Titel *</label>
+                    <label>${t('bank.label_title')}</label>
                     <input type="text" id="new-exp-title" placeholder="T.ex. Systemutvecklare" class="form-input" />
                 </div>
                 <div class="bank-form-field">
-                    <label>Organisation</label>
+                    <label>${t('bank.label_org')}</label>
                     <input type="text" id="new-exp-org" placeholder="T.ex. Företaget AB" class="form-input" />
                 </div>
             </div>
             <div class="bank-form-row">
                 <div class="bank-form-field">
-                    <label>Typ</label>
+                    <label>${t('bank.label_type')}</label>
                     <select id="new-exp-type" class="form-input">
-                        <option value="work">Arbetslivserfarenhet</option>
-                        <option value="education">Utbildning</option>
-                        <option value="certification">Certifiering</option>
-                        <option value="project">Projekt</option>
+                        <option value="work">${t('bank.type_opt_work')}</option>
+                        <option value="education">${t('bank.type_opt_edu')}</option>
+                        <option value="certification">${t('bank.type_opt_cert')}</option>
+                        <option value="project">${t('bank.type_opt_project')}</option>
                     </select>
                 </div>
                 <div class="bank-form-field">
-                    <label>Startdatum</label>
+                    <label>${t('bank.label_start_date')}</label>
                     <input type="text" id="new-exp-start" placeholder="T.ex. 2020-01" class="form-input" />
                 </div>
                 <div class="bank-form-field">
-                    <label>Slutdatum</label>
+                    <label>${t('bank.label_end_date')}</label>
                     <input type="text" id="new-exp-end" placeholder="T.ex. 2023-06" class="form-input" />
                 </div>
                 <div class="bank-form-field bank-form-check">
-                    <label><input type="checkbox" id="new-exp-current" /> Nuvarande</label>
+                    <label><input type="checkbox" id="new-exp-current" /> ${t('bank.current')}</label>
                 </div>
             </div>
             <div class="bank-form-row">
                 <div class="bank-form-field bank-form-full">
-                    <label>Beskrivning</label>
-                    <textarea id="new-exp-desc" rows="3" placeholder="Beskriv rollen eller erfarenheten..." class="form-input"></textarea>
+                    <label>${t('bank.label_desc')}</label>
+                    <textarea id="new-exp-desc" rows="3" placeholder="${t('bank.desc_ph')}" class="form-input"></textarea>
                 </div>
             </div>
             <div class="bank-form-actions">
-                <button class="btn btn-primary btn-small" onclick="submitNewExperience()">Spara</button>
-                <button class="btn btn-ghost btn-small" onclick="hideAddExperienceForm()">Avbryt</button>
+                <button class="btn btn-primary btn-small" onclick="submitNewExperience()">${t('common.save')}</button>
+                <button class="btn btn-ghost btn-small" onclick="hideAddExperienceForm()">${t('common.cancel')}</button>
             </div>
         </div>
     `;
@@ -727,7 +727,7 @@ function hideAddExperienceForm() {
 
 async function submitNewExperience() {
     const title = document.getElementById('new-exp-title').value.trim();
-    if (!title) return alert('Titel krävs');
+    if (!title) return alert(t('bank.title_required'));
 
     const body = {
         title,
@@ -767,7 +767,7 @@ async function improveAchievements(expId) {
 
     btn.disabled = true;
     btn.textContent = '⏳';
-    preview.innerHTML = '<p class="ach-improve-loading">Analyserar prestationer...</p>';
+    preview.innerHTML = `<p class="ach-improve-loading">${t('bank.analysing_ach')}</p>`;
 
     try {
         const res = await apiFetch(`${API_BASE_URL}/competence/experiences/${expId}/improve-achievements`, {
@@ -775,14 +775,14 @@ async function improveAchievements(expId) {
         });
         if (!res.ok) {
             const err = await res.json();
-            throw new Error(err.detail || 'Kunde inte förbättra prestationer');
+            throw new Error(err.detail || '');
         }
         const data = await res.json();
         showImprovePreview(expId, data.improved, data.original);
     } catch (err) {
         preview.innerHTML = `<p class="ach-improve-error">❌ ${err.message}</p>`;
         btn.disabled = false;
-        btn.textContent = '✨ Förbättra';
+        btn.textContent = t('bank.improve_btn');
     }
 }
 
@@ -799,13 +799,13 @@ function showImprovePreview(expId, improved, original) {
     preview.innerHTML = `
         <div class="ach-improve-box">
             <div class="ach-improve-header">
-                <span class="ach-improve-title">✨ Förslag på förbättrad lista</span>
-                <span class="ach-improve-count">${improved.length} prestationer</span>
+                <span class="ach-improve-title">${t('bank.improve_title')}</span>
+                <span class="ach-improve-count">${improved.length}</span>
             </div>
             <ul class="ach-improve-list">${listHTML}</ul>
             <div class="ach-improve-actions">
-                <button class="btn btn-primary btn-small" onclick="acceptImprovedAchievements(${expId}, this)">Acceptera</button>
-                <button class="btn btn-ghost btn-small" onclick="cancelImprovedAchievements(${expId})">Avbryt</button>
+                <button class="btn btn-primary btn-small" onclick="acceptImprovedAchievements(${expId}, this)">${t('common.accept')}</button>
+                <button class="btn btn-ghost btn-small" onclick="cancelImprovedAchievements(${expId})">${t('common.cancel')}</button>
             </div>
         </div>
     `;
@@ -833,7 +833,7 @@ async function acceptImprovedAchievements(expId, btn) {
     } catch (err) {
         alert(err.message);
         btn.disabled = false;
-        btn.textContent = 'Acceptera';
+        btn.textContent = t('common.accept');
     }
 }
 
@@ -844,7 +844,7 @@ function cancelImprovedAchievements(expId) {
     const btn = document.querySelector(`button[onclick="improveAchievements(${expId})"]`);
     if (btn) {
         btn.disabled = false;
-        btn.textContent = '✨ Förbättra';
+        btn.textContent = t('bank.improve_btn');
     }
 }
 
@@ -860,24 +860,24 @@ function editPeriod(expId, startDate, endDate, isCurrent) {
         <div class="period-edit-form">
             <div class="period-edit-fields">
                 <div class="period-edit-field">
-                    <label>Startdatum</label>
+                    <label>${t('bank.label_start_date')}</label>
                     <input type="text" id="period-start-${expId}" value="${startDate}" placeholder="T.ex. 2020-01" class="form-input form-input-small" />
                 </div>
                 <div class="period-edit-field" id="period-end-wrap-${expId}" ${isCurrent ? 'style="display:none"' : ''}>
-                    <label>Slutdatum</label>
+                    <label>${t('bank.label_end_date')}</label>
                     <input type="text" id="period-end-${expId}" value="${endDate}" placeholder="T.ex. 2023-06" class="form-input form-input-small" />
                 </div>
                 <div class="period-edit-field period-edit-check">
                     <label>
                         <input type="checkbox" id="period-current-${expId}" ${isCurrent ? 'checked' : ''}
                                onchange="toggleCurrentCheckbox(${expId})" />
-                        Nuvarande
+                        ${t('bank.current')}
                     </label>
                 </div>
             </div>
             <div class="period-edit-actions">
-                <button class="btn btn-primary btn-small" onclick="savePeriod(${expId})">Spara</button>
-                <button class="btn btn-ghost btn-small" onclick="cancelEditPeriod(${expId})">Avbryt</button>
+                <button class="btn btn-primary btn-small" onclick="savePeriod(${expId})">${t('common.save')}</button>
+                <button class="btn btn-ghost btn-small" onclick="cancelEditPeriod(${expId})">${t('common.cancel')}</button>
             </div>
         </div>
     `;

@@ -147,7 +147,7 @@ function renderDashboardCVs(cvs) {
     if (!el) return;
 
     if (cvs.length === 0) {
-        el.innerHTML = '<div class="empty-hint">Inga CV:n uppladdade än</div>';
+        el.innerHTML = `<div class="empty-hint">${t('cv.no_cvs_dash')}</div>`;
         return;
     }
 
@@ -165,7 +165,7 @@ function renderDashboardCVs(cvs) {
                     <div class="dash-cv-meta">${date} &nbsp;·&nbsp; ${skills} skills</div>
                 </div>
                 <div class="dash-cv-actions">
-                    <button class="btn btn-small btn-secondary" onclick="viewCV(${cv.id}, event)">Visa</button>
+                    <button class="btn btn-small btn-secondary" onclick="viewCV(${cv.id}, event)">${t('cv.btn_view')}</button>
                 </div>
             </div>
         `;
@@ -178,7 +178,7 @@ function renderCVSelectList(cvs) {
     if (!el) return;
 
     if (cvs.length === 0) {
-        el.innerHTML = '<p class="empty-hint">Ladda upp ett CV först</p>';
+        el.innerHTML = `<p class="empty-hint">${t('cv.no_cvs_hint')}</p>`;
         return;
     }
 
@@ -198,7 +198,7 @@ function renderCVSelectList(cvs) {
 function displayCVs(cvs) {
     if (typeof cvList === 'undefined' || !cvList) return;
     if (cvs.length === 0) {
-        cvList.innerHTML = '<div class="empty-hint">Inga CV:n uppladdade ännu</div>';
+        cvList.innerHTML = `<div class="empty-hint">${t('cv.no_cvs')}</div>`;
         return;
     }
 
@@ -210,8 +210,8 @@ function displayCVs(cvs) {
         const selected = selectedCV?.id === cv.id;
 
         const mergeIndicator = cv.is_processed
-            ? `<span class="cv-merged-badge">✓ Behandlad</span>`
-            : `<button class="btn btn-small btn-merge" onclick="mergeCV(${cv.id}, event)">⚡ Behandla</button>`;
+            ? `<span class="cv-merged-badge">${t('cv.btn_processed')}</span>`
+            : `<button class="btn btn-small btn-merge" onclick="mergeCV(${cv.id}, event)">${t('cv.btn_process')}</button>`;
 
         return `
             <div class="cv-item ${selected ? 'selected' : ''}" onclick="selectCV(${cv.id})">
@@ -227,13 +227,13 @@ function displayCVs(cvs) {
                 </div>
                 <div class="cv-item-details">
                     <div class="cv-item-detail">📅 ${date}</div>
-                    <div class="cv-item-detail">💼 ${exps} arbetslivserfarenheter</div>
-                    <div class="cv-item-detail">🎯 ${skills} kompetenser</div>
+                    <div class="cv-item-detail">💼 ${exps} ${t('cv.section_experience').toLowerCase()}</div>
+                    <div class="cv-item-detail">🎯 ${skills} ${t('cv.section_skills').toLowerCase()}</div>
                 </div>
                 <div class="cv-item-actions">
-                    <button class="btn btn-small btn-secondary" onclick="editTitle(${cv.id}, event)">✏️ Titel</button>
-                    <button class="btn btn-small btn-secondary" onclick="viewCV(${cv.id}, event)">👁️ Visa</button>
-                    <button class="btn btn-small btn-danger"    onclick="deleteCV(${cv.id}, event)">🗑️ Ta bort</button>
+                    <button class="btn btn-small btn-secondary" onclick="editTitle(${cv.id}, event)">${t('cv.btn_edit_title')}</button>
+                    <button class="btn btn-small btn-secondary" onclick="viewCV(${cv.id}, event)">👁️ ${t('cv.btn_view')}</button>
+                    <button class="btn btn-small btn-danger"    onclick="deleteCV(${cv.id}, event)">${t('cv.btn_delete')}</button>
                 </div>
             </div>
         `;
@@ -246,7 +246,7 @@ function displaySpCVs(cvs) {
     if (!container) return;
 
     if (!cvs.length) {
-        container.innerHTML = '<div class="empty-hint">Inga CV:n uppladdade ännu</div>';
+        container.innerHTML = `<div class="empty-hint">${t('cv.no_cvs')}</div>`;
         return;
     }
 
@@ -266,13 +266,13 @@ function displaySpCVs(cvs) {
                 </div>
                 <div class="cv-item-details">
                     <div class="cv-item-detail">📅 ${date}</div>
-                    <div class="cv-item-detail">💼 ${exps} arbetslivserfarenheter</div>
-                    <div class="cv-item-detail">🎯 ${skills} kompetenser</div>
+                    <div class="cv-item-detail">💼 ${exps} ${t('cv.section_experience').toLowerCase()}</div>
+                    <div class="cv-item-detail">🎯 ${skills} ${t('cv.section_skills').toLowerCase()}</div>
                 </div>
                 <div class="cv-item-actions">
-                    <button class="btn btn-small btn-secondary" onclick="editTitle(${cv.id}, event)">✏️ Titel</button>
-                    <button class="btn btn-small btn-secondary" onclick="viewCV(${cv.id}, event)">👁️ Visa</button>
-                    <button class="btn btn-small btn-danger"    onclick="deleteCV(${cv.id}, event)">🗑️ Ta bort</button>
+                    <button class="btn btn-small btn-secondary" onclick="editTitle(${cv.id}, event)">${t('cv.btn_edit_title')}</button>
+                    <button class="btn btn-small btn-secondary" onclick="viewCV(${cv.id}, event)">👁️ ${t('cv.btn_view')}</button>
+                    <button class="btn btn-small btn-danger"    onclick="deleteCV(${cv.id}, event)">${t('cv.btn_delete')}</button>
                 </div>
             </div>
         `;
@@ -297,7 +297,7 @@ function setupSpCVUpload() {
 async function handleSpCVUpload(file) {
     const area = document.getElementById('sp-cv-upload-area');
     if (area) area.classList.add('uploading');
-    showSpCVUploadStatus('Läser CV...', 'loading');
+    showSpCVUploadStatus(t('cv.loading'), 'loading');
 
     try {
         const raw = await cvPdf.extractText(file);
@@ -307,15 +307,15 @@ async function handleSpCVUpload(file) {
 
         showCVReviewModal(stripped, file.name, async (reviewedText) => {
             if (area) area.classList.add('uploading');
-            showSpCVUploadStatus('Analyserar med AI...', 'loading');
+            showSpCVUploadStatus(t('cv.analysing_ai'), 'loading');
             const formData = new FormData();
             formData.append('file', file);
             formData.append('reviewed_text', reviewedText);
             try {
                 const res = await apiFetch(`${API_BASE_URL}/competence/cvs/upload`, { method: 'POST', body: formData });
-                if (!res.ok) { const e = await res.json(); throw new Error(e.detail || 'Uppladdning misslyckades'); }
+                if (!res.ok) { const e = await res.json(); throw new Error(e.detail || t('cv.upload_failed')); }
                 if (area) area.classList.remove('uploading');
-                showSpCVUploadStatus('CV analyserat och sparat!', 'success');
+                showSpCVUploadStatus(t('cv.upload_success'), 'success');
                 await loadSpCandidateCVs();
                 loadBankData();
             } catch (err) {
@@ -341,18 +341,18 @@ async function mergeCV(cvId, event) {
     event.stopPropagation();
     const btn = event.target;
     btn.disabled = true;
-    btn.textContent = '⏳ Behandlar...';
+    btn.textContent = t('cv.processing');
 
     try {
         const res = await apiFetch(`${API_BASE_URL}/competence/merge/${cvId}`, { method: 'POST' });
         if (!res.ok) {
             const err = await res.json();
-            throw new Error(err.detail || 'Behandling misslyckades');
+            throw new Error(err.detail || t('cv.merge_failed'));
         }
         await loadCVs();
     } catch (err) {
         btn.disabled = false;
-        btn.textContent = '⚡ Behandla';
+        btn.textContent = t('cv.btn_process');
         showStatus(`❌ ${err.message}`, 'error');
     }
 }
@@ -364,7 +364,7 @@ async function editTitle(id, event) {
     if (!cv) return;
 
     const current = cv.title || '';
-    const newTitle = prompt('Ange titel för detta CV:', current);
+    const newTitle = prompt(t('cv.edit_title_prompt'), current);
 
     if (newTitle === null) return;
 
@@ -446,7 +446,7 @@ function buildCVDetailsHTML(cvData) {
 
     html += `
         <div class="cv-section">
-            <h3 class="cv-section-title">Personlig Information</h3>
+            <h3 class="cv-section-title">${t('cv.section_personal')}</h3>
             <div class="cv-personal-grid">
                 ${cvData.personal_info.email ? `<div class="cv-personal-item"><strong>Email:</strong> ${cvData.personal_info.email}</div>` : ''}
                 ${cvData.personal_info.phone ? `<div class="cv-personal-item"><strong>Telefon:</strong> ${cvData.personal_info.phone}</div>` : ''}
@@ -459,14 +459,14 @@ function buildCVDetailsHTML(cvData) {
     `;
 
     if (cvData.summary) {
-        html += `<div class="cv-section"><h3 class="cv-section-title">Sammanfattning</h3><div class="cv-summary">${cvData.summary}</div></div>`;
+        html += `<div class="cv-section"><h3 class="cv-section-title">${t('cv.section_summary')}</h3><div class="cv-summary">${cvData.summary}</div></div>`;
     }
 
     if (cvData.work_experience && cvData.work_experience.length > 0) {
-        html += `<div class="cv-section"><h3 class="cv-section-title">Arbetslivserfarenhet</h3>`;
+        html += `<div class="cv-section"><h3 class="cv-section-title">${t('cv.section_experience')}</h3>`;
         cvData.work_experience.forEach(exp => {
             const startDate = exp.start_date || '';
-            const endDate = exp.current ? 'Nuvarande' : (exp.end_date || '');
+            const endDate = exp.current ? t('cv.current') : (exp.end_date || '');
             const dateStr = startDate && endDate ? `${startDate} - ${endDate}` : (startDate || endDate);
             html += `
                 <div class="cv-experience-item">
@@ -478,7 +478,7 @@ function buildCVDetailsHTML(cvData) {
                         ${dateStr ? `<div class="cv-experience-date">${dateStr}</div>` : ''}
                     </div>
                     ${exp.description ? `<div class="cv-experience-description">${exp.description}</div>` : ''}
-                    ${exp.achievements && exp.achievements.length > 0 ? `<div class="cv-achievements"><h4>Huvudsakliga prestationer</h4><ul>${exp.achievements.map(ach => `<li>${ach}</li>`).join('')}</ul></div>` : ''}
+                    ${exp.achievements && exp.achievements.length > 0 ? `<div class="cv-achievements"><h4>${t('cv.achievements')}</h4><ul>${exp.achievements.map(ach => `<li>${ach}</li>`).join('')}</ul></div>` : ''}
                     ${exp.technologies && exp.technologies.length > 0 ? `<div class="cv-tags">${exp.technologies.map(tech => `<span class="cv-tag">${tech}</span>`).join('')}</div>` : ''}
                 </div>
             `;
@@ -487,7 +487,7 @@ function buildCVDetailsHTML(cvData) {
     }
 
     if (cvData.education && cvData.education.length > 0) {
-        html += `<div class="cv-section"><h3 class="cv-section-title">Utbildning</h3>`;
+        html += `<div class="cv-section"><h3 class="cv-section-title">${t('cv.section_education')}</h3>`;
         cvData.education.forEach(edu => {
             const startDate = edu.start_date || '';
             const endDate = edu.end_date || '';
@@ -510,17 +510,17 @@ function buildCVDetailsHTML(cvData) {
     }
 
     if (cvData.skills && cvData.skills.length > 0) {
-        html += `<div class="cv-section"><h3 class="cv-section-title">Kompetenser</h3><div class="cv-skills-grid">${cvData.skills.map(skill => `<span class="cv-skill-tag">${skill}</span>`).join('')}</div></div>`;
+        html += `<div class="cv-section"><h3 class="cv-section-title">${t('cv.section_skills')}</h3><div class="cv-skills-grid">${cvData.skills.map(skill => `<span class="cv-skill-tag">${skill}</span>`).join('')}</div></div>`;
     }
 
     if (cvData.certifications && cvData.certifications.length > 0) {
-        html += `<div class="cv-section"><h3 class="cv-section-title">Certifieringar</h3>`;
+        html += `<div class="cv-section"><h3 class="cv-section-title">${t('cv.section_certifications')}</h3>`;
         cvData.certifications.forEach(cert => {
             html += `
                 <div class="cv-education-item">
-                    <h3>${cert.name || 'Certifiering'}</h3>
+                    <h3>${cert.name || t('cv.section_certifications')}</h3>
                     ${cert.issuing_organization ? `<div class="cv-experience-company">${cert.issuing_organization}</div>` : ''}
-                    ${cert.issue_date ? `<div class="cv-personal-item">Utfärdad: ${cert.issue_date}</div>` : ''}
+                    ${cert.issue_date ? `<div class="cv-personal-item">${t('cv.issued')} ${cert.issue_date}</div>` : ''}
                     ${cert.credential_id ? `<div class="cv-personal-item">ID: ${cert.credential_id}</div>` : ''}
                 </div>
             `;
@@ -529,14 +529,14 @@ function buildCVDetailsHTML(cvData) {
     }
 
     if (cvData.projects && cvData.projects.length > 0) {
-        html += `<div class="cv-section"><h3 class="cv-section-title">Projekt</h3>`;
+        html += `<div class="cv-section"><h3 class="cv-section-title">${t('cv.section_projects')}</h3>`;
         cvData.projects.forEach(proj => {
             html += `
                 <div class="cv-experience-item">
-                    <h3>${proj.name || 'Projekt'}</h3>
-                    ${proj.role ? `<div class="cv-experience-company">Roll: ${proj.role}</div>` : ''}
+                    <h3>${proj.name || t('cv.section_projects')}</h3>
+                    ${proj.role ? `<div class="cv-experience-company">${proj.role}</div>` : ''}
                     ${proj.description ? `<div class="cv-experience-description">${proj.description}</div>` : ''}
-                    ${proj.url ? `<div class="cv-personal-item"><a href="${proj.url}" target="_blank">Projektlänk</a></div>` : ''}
+                    ${proj.url ? `<div class="cv-personal-item"><a href="${proj.url}" target="_blank">${t('cv.project_link')}</a></div>` : ''}
                     ${proj.technologies && proj.technologies.length > 0 ? `<div class="cv-tags">${proj.technologies.map(tech => `<span class="cv-tag">${tech}</span>`).join('')}</div>` : ''}
                 </div>
             `;
@@ -547,7 +547,7 @@ function buildCVDetailsHTML(cvData) {
     if (cvData.languages && cvData.languages.length > 0) {
         html += `
             <div class="cv-section">
-                <h3 class="cv-section-title">Språk</h3>
+                <h3 class="cv-section-title">${t('cv.section_languages')}</h3>
                 <div class="cv-languages-grid">
                     ${cvData.languages.map(lang => `
                         <div class="cv-language-item">
@@ -569,7 +569,7 @@ async function deleteCV(id, event) {
 
     const cv = allCVs.find(c => c.id === id);
     const name = cv?.title || cv?.structured_data?.personal_info?.full_name || 'detta CV';
-    if (!confirm(`Vill du verkligen ta bort "${name}"?`)) {
+    if (!confirm(t('cv.confirm_delete').replace('%n', name))) {
         return;
     }
 

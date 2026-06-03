@@ -48,7 +48,7 @@ function renderKandidatList(kandidater) {
         return;
     }
 
-    const countBar = `<div class="list-clear-bar"><span>${kandidater.length} kandidat${kandidater.length !== 1 ? 'er' : ''}</span></div>`;
+    const countBar = `<div class="list-clear-bar"><span>${kandidater.length} ${kandidater.length !== 1 ? t('kand.candidate_plural') : t('kand.candidate_singular')}</span></div>`;
     container.innerHTML = countBar + kandidater.map(k => {
         const meta = [
             k.roles                     ? k.roles                            : null,
@@ -56,7 +56,7 @@ function renderKandidatList(kandidater) {
             k.desired_employment.length ? k.desired_employment.join(', ')    : null,
             k.desired_workplace.length  ? k.desired_workplace.join(', ')     : null,
         ].filter(Boolean).join(' · ');
-        const safeName = esc(k.public_name || '(Inget namn)');
+        const safeName = esc(k.public_name || t('kand.no_name'));
 
         return `
         <div class="cv-item" onclick="editKandidatById(${k.id})" style="cursor:pointer">
@@ -65,9 +65,9 @@ function renderKandidatList(kandidater) {
                 ${meta ? `<div class="cv-item-meta">${meta}</div>` : ''}
             </div>
             <div class="cv-item-actions">
-                ${k.searchable ? '<span class="cv-item-badge" style="background:var(--success-bg);color:var(--success)">Sökbar</span>' : ''}
-                <button class="btn btn-secondary btn-sm" onclick="event.stopPropagation(); editKandidatById(${k.id})">Redigera</button>
-                <button class="btn btn-danger btn-sm" onclick="event.stopPropagation(); deleteKandidatFromList(${k.id}, '${safeName}')">Ta bort</button>
+                ${k.searchable ? `<span class="cv-item-badge" style="background:var(--success-bg);color:var(--success)">${t('kand.searchable_badge')}</span>` : ''}
+                <button class="btn btn-secondary btn-sm" onclick="event.stopPropagation(); editKandidatById(${k.id})">${t('action.edit')}</button>
+                <button class="btn btn-danger btn-sm" onclick="event.stopPropagation(); deleteKandidatFromList(${k.id}, '${safeName}')">${t('common.delete')}</button>
             </div>
         </div>`;
     }).join('');
@@ -79,7 +79,7 @@ function editKandidatById(id) {
 }
 
 async function deleteKandidatFromList(id, name) {
-    if (!confirm(`Ta bort "${name}"? All data för kandidaten raderas och kan inte återställas.`)) return;
+    if (!confirm(t('kand.confirm_delete').replace('%n', name))) return;
     try {
         const res = await apiFetch(`${API_BASE_URL}/kandidater/${id}`, { method: 'DELETE' });
         if (!res.ok) { const e = await res.json(); throw new Error(e.detail || 'Fel vid borttagning'); }
@@ -99,7 +99,7 @@ function showKandidatForm(kandidat) {
     document.getElementById('kandidat-form-panel').style.display   = '';
 
     document.getElementById('kandidat-form-title').textContent =
-        kandidat ? `Kandidat: ${kandidat.public_name}` : 'Lägg till kandidat';
+        kandidat ? t('kand.form_title_candidate').replace('{name}', kandidat.public_name) : t('kand.form_title_add');
 
     document.getElementById('kand-public-name').value  = kandidat?.public_name  || '';
     document.getElementById('kand-email').value        = kandidat?.email        || '';
@@ -157,7 +157,7 @@ async function loadMatchKandidatView() {
         if (!list) return;
         const kandidater = data.kandidater || [];
         if (kandidater.length === 0) {
-            list.innerHTML = '<span class="mk-kandidat-empty">Inga kandidater ännu</span>';
+            list.innerHTML = `<span class="mk-kandidat-empty">${t('matchk.empty_candidates')}</span>`;
         } else {
             list.innerHTML = kandidater.map(k => {
                 const name  = k.public_name || '(Inget namn)';
@@ -322,7 +322,7 @@ async function matchKandidatJob(overrideId = null, overrideName = null) {
             });
             if (!response.ok) {
                 const err = await response.json();
-                throw new Error(err.detail || 'Matchning misslyckades');
+                throw new Error(err.detail || t('match.failed'));
             }
             result = await response.json();
         }
@@ -367,7 +367,7 @@ function autoSaveKandidat() {
 async function saveKandidat() {
     const public_name = document.getElementById('kand-public-name').value.trim();
     if (!public_name) {
-        showKandidatStatus('Namn är obligatoriskt', 'error');
+        showKandidatStatus(t('kand.name_required'), 'error');
         return;
     }
 
@@ -409,14 +409,14 @@ async function saveKandidat() {
         const saved = await res.json();
         const isNew = !currentKandidatId;
         currentKandidatId = saved.id;
-        document.getElementById('kandidat-form-title').textContent = `Kandidat: ${saved.public_name}`;
+        document.getElementById('kandidat-form-title').textContent = t('kand.form_title_candidate').replace('{name}', saved.public_name);
         document.getElementById('kand-delete-btn').style.display = '';
         if (saved.profile_uuid) document.getElementById('kand-profile-uuid').value = saved.profile_uuid;
         ['kand-tab-btn-kompetenser', 'kand-tab-btn-erfarenheter',
          'kand-tab-btn-utbildning', 'kand-tab-btn-certifikat', 'kand-tab-btn-cv']
             .forEach(id => { document.getElementById(id).disabled = false; });
         if (isNew) loadDashKandidaterCount();
-        showKandidatStatus('Kandidat sparad', 'success');
+        showKandidatStatus(t('kand.saved_msg'), 'success');
     } catch (err) {
         showKandidatStatus(err.message, 'error');
     }
@@ -425,7 +425,7 @@ async function saveKandidat() {
 async function deleteKandidat() {
     if (!currentKandidatId) return;
     const name = document.getElementById('kand-public-name').value.trim() || 'kandidaten';
-    if (!confirm(`Ta bort "${name}"? Detta kan inte ångras.`)) return;
+    if (!confirm(t('kand.confirm_delete').replace('%n', name))) return;
 
     try {
         const res = await apiFetch(`${API_BASE_URL}/kandidater/${currentKandidatId}`, { method: 'DELETE' });
@@ -540,7 +540,7 @@ function renderKandidatSkills(skills) {
     if (!container) return;
 
     if (!skills.length) {
-        container.innerHTML = '<div class="empty-hint">Inga kompetenser tillagda ännu.</div>';
+        container.innerHTML = `<div class="empty-hint">${t('kand.no_skills')}</div>`;
         return;
     }
 
@@ -551,7 +551,7 @@ function renderKandidatSkills(skills) {
         byCategory[cat].push(s);
     });
 
-    const clearBarKandSkills = `<div class="list-clear-bar"><span>${skills.length} kompetens${skills.length !== 1 ? 'er' : ''}</span><button class="btn btn-danger btn-sm" onclick="clearKandSkills(${currentKandidatId})">Rensa alla</button></div>`;
+    const clearBarKandSkills = `<div class="list-clear-bar"><span>${skills.length} ${skills.length !== 1 ? t('kand.skill_plural') : t('kand.skill_singular')}</span><button class="btn btn-danger btn-sm" onclick="clearKandSkills(${currentKandidatId})">${t('sp.clear_all')}</button></div>`;
     const sortedEntries = Object.entries(byCategory).sort(([a], [b]) => a.localeCompare(b, currentLang));
     container.innerHTML = clearBarKandSkills + sortedEntries.map(([cat, items]) => { items = items.slice().sort((a, b) => a.skill_name.localeCompare(b.skill_name, currentLang)); return `
         <div style="margin-bottom:1rem">
@@ -561,16 +561,16 @@ function renderKandidatSkills(skills) {
                 ${items.map(s => {
                     if (s.id === kandEditingSkillId) {
                         return `<div class="skill-edit-row">
-                            <input class="form-input" id="kand-edit-skill-name" value="${esc(s.skill_name)}" placeholder="Kompetensnamn" style="flex:1;min-width:120px">
-                            <input class="form-input" id="kand-edit-skill-cat"  value="${esc(s.category)}"   placeholder="Kategori"      style="flex:1;min-width:100px" data-cat-combo>
+                            <input class="form-input" id="kand-edit-skill-name" value="${esc(s.skill_name)}" placeholder="${t('bank.label_skill')}" style="flex:1;min-width:120px">
+                            <input class="form-input" id="kand-edit-skill-cat"  value="${esc(s.category)}"   placeholder="${t('bank.label_category')}" style="flex:1;min-width:100px" data-cat-combo>
                             <select class="form-input" id="kand-edit-skill-level" style="min-width:130px">
-                                <option value=""               ${!s.skill_level                    ?'selected':''}>— Nivå —</option>
-                                <option value="Känner till"    ${s.skill_level==='Känner till'    ?'selected':''}>Känner till</option>
-                                <option value="Erfaren"        ${s.skill_level==='Erfaren'        ?'selected':''}>Erfaren</option>
-                                <option value="Mycket erfaren" ${s.skill_level==='Mycket erfaren' ?'selected':''}>Mycket erfaren</option>
+                                <option value=""               ${!s.skill_level                    ?'selected':''}>${t('skill.level_ph')}</option>
+                                <option value="Känner till"    ${s.skill_level==='Känner till'    ?'selected':''}>${t('skill.level_1')}</option>
+                                <option value="Erfaren"        ${s.skill_level==='Erfaren'        ?'selected':''}>${t('skill.level_2')}</option>
+                                <option value="Mycket erfaren" ${s.skill_level==='Mycket erfaren' ?'selected':''}>${t('skill.level_3')}</option>
                             </select>
-                            <button class="btn btn-primary btn-small" onclick="saveKandSkill(${s.id})">Spara</button>
-                            <button class="btn btn-secondary btn-small" onclick="kandEditingSkillId=null;renderKandidatSkills(cachedKandSkills)">Avbryt</button>
+                            <button class="btn btn-primary btn-small" onclick="saveKandSkill(${s.id})">${t('common.save')}</button>
+                            <button class="btn btn-secondary btn-small" onclick="kandEditingSkillId=null;renderKandidatSkills(cachedKandSkills)">${t('common.cancel')}</button>
                         </div>`;
                     }
                     return `<span class="bank-skill-chip ${skillLevelClass(s.skill_level)}">
@@ -591,7 +591,7 @@ async function saveKandSkill(id) {
         category:   document.getElementById('kand-edit-skill-cat').value.trim()  || 'Övrigt',
         skill_level: document.getElementById('kand-edit-skill-level').value || null,
     };
-    if (!body.skill_name) { alert('Kompetensnamn krävs'); return; }
+    if (!body.skill_name) { alert(t('kand.skill_name_required2')); return; }
     try {
         const res = await apiFetch(`${API_BASE_URL}/kandidater/${currentKandidatId}/bank/skills/${id}`, {
             method: 'PUT', headers: {'Content-Type':'application/json'}, body: JSON.stringify(body),
@@ -607,7 +607,7 @@ async function addKandidatSkill() {
     const nameEl = document.getElementById('kand-skill-name');
     const catEl  = document.getElementById('kand-skill-category');
     const name   = nameEl.value.trim();
-    if (!name) { showKandidatBankStatus('Ange ett kompetensnamn', 'error'); return; }
+    if (!name) { showKandidatBankStatus(t('kand.skill_name_required'), 'error'); return; }
 
     try {
         const res = await apiFetch(`${API_BASE_URL}/kandidater/${currentKandidatId}/bank/skills`, {
@@ -623,7 +623,7 @@ async function addKandidatSkill() {
         nameEl.value = '';
         catEl.value  = '';
         document.getElementById('kand-skill-level').value = '';
-        showKandidatBankStatus('Kompetens tillagd', 'success');
+        showKandidatBankStatus(t('kand.skill_added'), 'success');
         loadKandidatBank(currentKandidatId);
     } catch (err) {
         showKandidatBankStatus(err.message, 'error');
@@ -676,7 +676,7 @@ function setupKandidatUpload() {
 async function handleKandidatCVUpload(file) {
     if (!currentKandidatId) return;
 
-    showKandidatUploadStatus('⏳ Läser CV...', 'loading');
+    showKandidatUploadStatus(`⏳ ${t('cv.loading')}`, 'loading');
 
     try {
         const raw = await cvPdf.extractText(file);
@@ -684,7 +684,7 @@ async function handleKandidatCVUpload(file) {
         showKandidatUploadStatus('', '');
 
         showCVReviewModal(stripped, file.name, async (reviewedText) => {
-            showKandidatUploadStatus('⏳ Analyserar med AI...', 'loading');
+            showKandidatUploadStatus(`⏳ ${t('cv.analysing_ai')}`, 'loading');
             const formData = new FormData();
             formData.append('file', file);
             formData.append('reviewed_text', reviewedText);
@@ -696,7 +696,7 @@ async function handleKandidatCVUpload(file) {
                 if (!res.ok) { const e = await res.json(); throw new Error(e.detail || 'Fel vid uppladdning'); }
                 const data = await res.json();
                 showKandidatUploadStatus(
-                    `✅ ${data.filename || file.name} — ${data.skill_count} kompetenser, ${data.experience_count} erfarenheter tillagda`,
+                    `✅ ${t('kand.cv_upload_result').replace('{filename}', data.filename || file.name).replace('{skills}', data.skill_count).replace('{exps}', data.experience_count)}`,
                     'success'
                 );
                 await loadKandidatBank(currentKandidatId);
@@ -719,7 +719,7 @@ function renderKandidatExperiences(experiences) {
     if (!container) return;
 
     if (!experiences || !experiences.length) {
-        container.innerHTML = '<div class="empty-hint">Inga erfarenheter tillagda ännu.</div>';
+        container.innerHTML = `<div class="empty-hint">${t('kand.no_exps')}</div>`;
         return;
     }
 
@@ -730,36 +730,36 @@ function renderKandidatExperiences(experiences) {
         const eb = b.is_current ? '9999-99' : (normDate(b.end_date) || '');
         return eb.localeCompare(ea);
     });
-    const typeLabel = { work: 'Arbete', education: 'Utbildning', certification: 'Certifiering', project: 'Projekt' };
+    const typeLabel = { work: t('kand.type_work'), education: t('bank.type_opt_edu'), certification: t('bank.type_opt_cert'), project: t('kand.type_project') };
     const sel = (val, opt) => opt === val ? 'selected' : '';
-    const clearBarKandExp = `<div class="list-clear-bar"><span>${experiences.length} erfarenhet${experiences.length !== 1 ? 'er' : ''}</span><button class="btn btn-danger btn-sm" onclick="clearKandExperiences(${currentKandidatId})">Rensa alla</button></div>`;
+    const clearBarKandExp = `<div class="list-clear-bar"><span>${experiences.length} ${experiences.length !== 1 ? t('kand.exp_plural') : t('kand.exp_singular')}</span><button class="btn btn-danger btn-sm" onclick="clearKandExperiences(${currentKandidatId})">${t('sp.clear_all')}</button></div>`;
     container.innerHTML = clearBarKandExp + experiences.map(e => {
         if (e.id === kandEditingExpId) {
             const achText = (e.achievements || []).join('\n');
             return `<div style="border:1px solid var(--blue);border-radius:var(--radius);padding:0.875rem 1rem;margin-bottom:0.75rem">
                 <div style="display:grid;grid-template-columns:1fr 1fr;gap:0.5rem;margin-bottom:0.5rem">
-                    <input class="form-input" id="kand-edit-exp-title" value="${esc(e.title)}" placeholder="Titel" style="grid-column:span 2">
-                    <input class="form-input" id="kand-edit-exp-org"   value="${esc(e.organization)}" placeholder="Organisation">
+                    <input class="form-input" id="kand-edit-exp-title" value="${esc(e.title)}" placeholder="${t('bank.label_title')}" style="grid-column:span 2">
+                    <input class="form-input" id="kand-edit-exp-org"   value="${esc(e.organization)}" placeholder="${t('bank.label_org')}">
                     <select class="form-input" id="kand-edit-exp-type">
-                        <option value="work"    ${sel(e.experience_type,'work')}   >Arbete</option>
-                        <option value="project" ${sel(e.experience_type,'project')}>Projekt</option>
+                        <option value="work"    ${sel(e.experience_type,'work')}   >${t('kand.type_work')}</option>
+                        <option value="project" ${sel(e.experience_type,'project')}>${t('kand.type_project')}</option>
                     </select>
-                    <input class="form-input" id="kand-edit-exp-start" value="${esc(e.start_date)}" placeholder="Från (ÅÅÅÅ-MM)">
-                    <input class="form-input" id="kand-edit-exp-end"   value="${esc(e.end_date)}"   placeholder="Till (ÅÅÅÅ-MM)">
+                    <input class="form-input" id="kand-edit-exp-start" value="${esc(e.start_date)}" placeholder="${t('bank.label_start_date')}">
+                    <input class="form-input" id="kand-edit-exp-end"   value="${esc(e.end_date)}"   placeholder="${t('bank.label_end_date')}">
                 </div>
                 <label style="font-size:0.8125rem;display:flex;align-items:center;gap:0.4rem;margin-bottom:0.5rem">
-                    <input type="checkbox" id="kand-edit-exp-current" ${e.is_current?'checked':''}> Pågående
+                    <input type="checkbox" id="kand-edit-exp-current" ${e.is_current?'checked':''}> ${t('kand.ongoing')}
                 </label>
-                <textarea class="form-input" id="kand-edit-exp-desc" placeholder="Beskrivning" rows="3" style="margin-bottom:0.5rem;width:100%;box-sizing:border-box">${esc(e.description)}</textarea>
-                <label style="font-size:0.8125rem;color:var(--text-muted);margin-bottom:0.25rem;display:block">Prestationer (en per rad)</label>
-                <textarea class="form-input" id="kand-edit-exp-ach" placeholder="En prestation per rad" rows="3" style="margin-bottom:0.5rem;width:100%;box-sizing:border-box">${esc(achText)}</textarea>
+                <textarea class="form-input" id="kand-edit-exp-desc" placeholder="${t('bank.label_desc')}" rows="3" style="margin-bottom:0.5rem;width:100%;box-sizing:border-box">${esc(e.description)}</textarea>
+                <label style="font-size:0.8125rem;color:var(--text-muted);margin-bottom:0.25rem;display:block">${t('kand.achievements_label')}</label>
+                <textarea class="form-input" id="kand-edit-exp-ach" placeholder="${t('bank.new_ach_ph')}" rows="3" style="margin-bottom:0.5rem;width:100%;box-sizing:border-box">${esc(achText)}</textarea>
                 <div style="display:flex;gap:0.5rem">
-                    <button class="btn btn-primary btn-small" onclick="saveKandExperience(${e.id})">Spara</button>
-                    <button class="btn btn-secondary btn-small" onclick="kandEditingExpId=null;renderKandidatExperiences(cachedKandExps)">Avbryt</button>
+                    <button class="btn btn-primary btn-small" onclick="saveKandExperience(${e.id})">${t('common.save')}</button>
+                    <button class="btn btn-secondary btn-small" onclick="kandEditingExpId=null;renderKandidatExperiences(cachedKandExps)">${t('common.cancel')}</button>
                 </div>
             </div>`;
         }
-        const period = [normDate(e.start_date), e.is_current ? 'nu' : normDate(e.end_date)].filter(Boolean).join(' – ');
+        const period = [normDate(e.start_date), e.is_current ? t('kand.now') : normDate(e.end_date)].filter(Boolean).join(' – ');
         const achHtml = (e.achievements || []).length
             ? `<ul class="exp-card-ach">${(e.achievements).map(a=>`<li>${esc(a)}</li>`).join('')}</ul>` : '';
         return `<div class="exp-card">
@@ -793,7 +793,7 @@ async function saveKandExperience(id) {
         description:     document.getElementById('kand-edit-exp-desc').value.trim() || null,
         achievements:    document.getElementById('kand-edit-exp-ach').value.split('\n').map(s=>s.trim()).filter(Boolean),
     };
-    if (!body.title) { alert('Titel krävs'); return; }
+    if (!body.title) { alert(t('kand.title_required')); return; }
     try {
         const res = await apiFetch(`${API_BASE_URL}/kandidater/${currentKandidatId}/bank/experiences/${id}`, {
             method: 'PUT', headers: {'Content-Type':'application/json'}, body: JSON.stringify(body),
@@ -805,7 +805,7 @@ async function saveKandExperience(id) {
 }
 
 async function deleteKandExperience(id) {
-    if (!currentKandidatId || !confirm('Ta bort erfarenheten?')) return;
+    if (!currentKandidatId || !confirm(t('kand.confirm_delete_exp'))) return;
     try {
         const res = await apiFetch(`${API_BASE_URL}/kandidater/${currentKandidatId}/bank/experiences/${id}`, { method:'DELETE' });
         if (!res.ok) throw new Error('Kunde inte ta bort');
@@ -816,7 +816,7 @@ async function deleteKandExperience(id) {
 async function addKandidatExperience() {
     if (!currentKandidatId) return;
     const title = document.getElementById('kand-exp-title').value.trim();
-    if (!title) { showKandExpStatus('Titel krävs', 'error'); return; }
+    if (!title) { showKandExpStatus(t('kand.title_required'), 'error'); return; }
     const body = {
         title,
         organization:    document.getElementById('kand-exp-org').value.trim()   || null,
@@ -834,7 +834,7 @@ async function addKandidatExperience() {
         if (!res.ok) { const e = await res.json(); throw new Error(e.detail || 'Fel'); }
         ['kand-exp-title','kand-exp-org','kand-exp-start','kand-exp-end','kand-exp-desc','kand-exp-ach'].forEach(id => document.getElementById(id).value = '');
         document.getElementById('kand-exp-current').checked = false;
-        showKandExpStatus('Erfarenhet tillagd', 'success');
+        showKandExpStatus(t('kand.exp_added'), 'success');
         await loadKandidatBank(currentKandidatId);
     } catch (err) { showKandExpStatus(err.message, 'error'); }
 }
@@ -850,7 +850,7 @@ function showKandExpStatus(msg, type) {
 // ── Clear all (bulk delete) ───────────────────────────────────────────────────
 
 async function clearKandSkills(kandidatId) {
-    if (!confirm('Radera alla kompetenser för kandidaten? Detta kan inte ångras.')) return;
+    if (!confirm(t('kand.confirm_clear_skills'))) return;
     try {
         const res = await apiFetch(`${API_BASE_URL}/kandidater/${kandidatId}/bank/skills`, { method: 'DELETE' });
         if (!res.ok) { const e = await res.json(); throw new Error(e.detail || 'Fel'); }
@@ -859,7 +859,7 @@ async function clearKandSkills(kandidatId) {
 }
 
 async function clearKandExperiences(kandidatId) {
-    if (!confirm('Radera alla erfarenheter för kandidaten? Detta kan inte ångras.')) return;
+    if (!confirm(t('kand.confirm_clear_exps'))) return;
     try {
         const res = await apiFetch(`${API_BASE_URL}/kandidater/${kandidatId}/bank/experiences`, { method: 'DELETE' });
         if (!res.ok) { const e = await res.json(); throw new Error(e.detail || 'Fel'); }
@@ -868,7 +868,7 @@ async function clearKandExperiences(kandidatId) {
 }
 
 async function clearKandEducation(kandidatId) {
-    if (!confirm('Radera all utbildning för kandidaten? Detta kan inte ångras.')) return;
+    if (!confirm(t('kand.confirm_clear_edu'))) return;
     try {
         const res = await apiFetch(`${API_BASE_URL}/kandidater/${kandidatId}/education`, { method: 'DELETE' });
         if (!res.ok) { const e = await res.json(); throw new Error(e.detail || 'Fel'); }
@@ -877,7 +877,7 @@ async function clearKandEducation(kandidatId) {
 }
 
 async function clearKandCertifications(kandidatId) {
-    if (!confirm('Radera alla certifikat för kandidaten? Detta kan inte ångras.')) return;
+    if (!confirm(t('kand.confirm_clear_certs'))) return;
     try {
         const res = await apiFetch(`${API_BASE_URL}/kandidater/${kandidatId}/certifications`, { method: 'DELETE' });
         if (!res.ok) { const e = await res.json(); throw new Error(e.detail || 'Fel'); }
@@ -902,7 +902,7 @@ function displayKandidatCVs(cvs, kandidatId) {
     const container = document.getElementById('kand-cv-list');
     if (!container) return;
     if (!cvs.length) {
-        container.innerHTML = '<div class="empty-hint">Inga CV:n uppladdade än</div>';
+        container.innerHTML = `<div class="empty-hint">${t('cv.no_cvs')}</div>`;
         return;
     }
     container.innerHTML = cvs.map(cv => {
@@ -910,8 +910,8 @@ function displayKandidatCVs(cvs, kandidatId) {
             ? new Date(cv.upload_date).toLocaleDateString('sv-SE', { year:'numeric', month:'short', day:'numeric' })
             : '—';
         const processedBadge = cv.is_processed
-            ? '<span class="cv-badge cv-badge--green">✓ Behandlad</span>'
-            : '<span class="cv-badge cv-badge--blue">Ej behandlad</span>';
+            ? `<span class="cv-badge cv-badge--green">✓ ${t('cv.badge_processed')}</span>`
+            : `<span class="cv-badge cv-badge--blue">${t('cv.badge_unprocessed')}</span>`;
         const safeName = cv.filename.replace(/'/g, "\\'");
         return `
             <div class="cv-item">
@@ -923,18 +923,18 @@ function displayKandidatCVs(cvs, kandidatId) {
                         </div>
                     </div>
                     <div style="display:flex;gap:0.5rem;align-items:center;flex-shrink:0">
-                        <button class="btn btn-secondary btn-sm" onclick="downloadCVFile(${cv.id})">⬇ Ladda ner</button>
-                        <button class="btn btn-icon btn-danger btn-sm" title="Ta bort" onclick="deleteKandidatCV(${cv.id}, ${kandidatId}, '${safeName}')">
+                        <button class="btn btn-secondary btn-sm" onclick="downloadCVFile(${cv.id})">⬇ ${t('cv.download')}</button>
+                        <button class="btn btn-icon btn-danger btn-sm" title="${t('cv.btn_delete')}" onclick="deleteKandidatCV(${cv.id}, ${kandidatId}, '${safeName}')">
                             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14H6L5 6"/><path d="M10 11v6M14 11v6"/><path d="M9 6V4h6v2"/></svg>
                         </button>
                     </div>
                 </div>
                 <div class="cv-item-details">
                     <div class="cv-item-detail">📅 ${date}</div>
-                    <div class="cv-item-detail">🎯 ${cv.skill_count} kompetenser</div>
-                    <div class="cv-item-detail">💼 ${cv.experience_count} erfarenheter</div>
-                    <div class="cv-item-detail">🎓 ${cv.education_count} utbildningar</div>
-                    <div class="cv-item-detail">📜 ${cv.certification_count} certifikat</div>
+                    <div class="cv-item-detail">🎯 ${cv.skill_count} ${t('cv.section_skills').toLowerCase()}</div>
+                    <div class="cv-item-detail">💼 ${cv.experience_count} ${t('cv.section_experience').toLowerCase()}</div>
+                    <div class="cv-item-detail">🎓 ${cv.education_count} ${t('cv.section_education').toLowerCase()}</div>
+                    <div class="cv-item-detail">📜 ${cv.certification_count} ${t('cv.section_certifications').toLowerCase()}</div>
                 </div>
             </div>`;
     }).join('');
@@ -942,7 +942,7 @@ function displayKandidatCVs(cvs, kandidatId) {
 
 
 async function deleteKandidatCV(cvId, kandidatId, filename) {
-    if (!confirm(`Ta bort "${filename}"?`)) return;
+    if (!confirm(t('kand.confirm_delete_cv').replace('%n', filename))) return;
     try {
         const res = await apiFetch(`${API_BASE_URL}/kandidater/${kandidatId}/cvs/${cvId}`, { method:'DELETE' });
         if (!res.ok) { const e = await res.json(); throw new Error(e.detail || 'Fel'); }
@@ -969,10 +969,10 @@ function renderKandidatEducation(items, kandidatId) {
     const container = document.getElementById('kand-education-list');
     if (!container) return;
     if (!items.length) {
-        container.innerHTML = '<div class="empty-hint">Inga utbildningar tillagda ännu.</div>';
+        container.innerHTML = `<div class="empty-hint">${t('kand.no_edu')}</div>`;
         return;
     }
-    const clearBarKandEdu = `<div class="list-clear-bar"><span>${items.length} utbildning${items.length !== 1 ? 'ar' : ''}</span><button class="btn btn-danger btn-sm" onclick="clearKandEducation(${kandidatId})">Rensa alla</button></div>`;
+    const clearBarKandEdu = `<div class="list-clear-bar"><span>${items.length} ${items.length !== 1 ? t('kand.edu_plural') : t('kand.edu_singular')}</span><button class="btn btn-danger btn-sm" onclick="clearKandEducation(${kandidatId})">${t('sp.clear_all')}</button></div>`;
     container.innerHTML = clearBarKandEdu + items.map(e => {
         if (e.id === kandEditingEduId) {
             return `<div style="border:1px solid var(--blue);border-radius:var(--radius);padding:0.875rem 1rem;margin-bottom:0.75rem">
@@ -987,8 +987,8 @@ function renderKandidatEducation(items, kandidatId) {
                     <textarea class="form-input" id="kand-edit-edu-desc" placeholder="Beskrivning" rows="2">${esc(e.description)}</textarea>
                 </div>
                 <div style="display:flex;gap:0.5rem">
-                    <button class="btn btn-primary btn-small" onclick="saveKandEducation(${e.id},${kandidatId})">Spara</button>
-                    <button class="btn btn-secondary btn-small" onclick="kandEditingEduId=null;renderKandidatEducation(cachedKandEdu,${kandidatId})">Avbryt</button>
+                    <button class="btn btn-primary btn-small" onclick="saveKandEducation(${e.id},${kandidatId})">${t('common.save')}</button>
+                    <button class="btn btn-secondary btn-small" onclick="kandEditingEduId=null;renderKandidatEducation(cachedKandEdu,${kandidatId})">${t('common.cancel')}</button>
                 </div>
             </div>`;
         }
@@ -1017,14 +1017,14 @@ async function saveKandEducation(id, kandidatId) {
         end_date:       document.getElementById('kand-edit-edu-end').value.trim()         || null,
         description:    document.getElementById('kand-edit-edu-desc').value.trim()        || null,
     };
-    if (!body.degree) { showKandEduStatus('Examen / Utbildning krävs', 'error'); return; }
+    if (!body.degree) { showKandEduStatus(t('kand.degree_required'), 'error'); return; }
     try {
         const res = await apiFetch(`${API_BASE_URL}/kandidater/${kandidatId}/education/${id}`, {
             method: 'PUT', headers: {'Content-Type':'application/json'}, body: JSON.stringify(body),
         });
         if (!res.ok) { const e = await res.json(); throw new Error(e.detail || 'Fel'); }
         kandEditingEduId = null;
-        showKandEduStatus('Utbildning sparad', 'success');
+        showKandEduStatus(t('kand.edu_saved'), 'success');
         await loadKandidatEducation(kandidatId);
     } catch (err) { showKandEduStatus(err.message, 'error'); }
 }
@@ -1032,7 +1032,7 @@ async function saveKandEducation(id, kandidatId) {
 async function addKandidatEducation() {
     if (!currentKandidatId) return;
     const degree = document.getElementById('kand-edu-degree').value.trim();
-    if (!degree) { showKandEduStatus('Examen / Utbildning krävs', 'error'); return; }
+    if (!degree) { showKandEduStatus(t('kand.degree_required'), 'error'); return; }
     const body = {
         degree,
         institution:    document.getElementById('kand-edu-institution').value.trim() || null,
@@ -1047,13 +1047,13 @@ async function addKandidatEducation() {
         if (!res.ok) { const e = await res.json(); throw new Error(e.detail || 'Fel'); }
         ['kand-edu-degree','kand-edu-institution','kand-edu-field','kand-edu-start','kand-edu-end']
             .forEach(id => document.getElementById(id).value = '');
-        showKandEduStatus('Utbildning tillagd', 'success');
+        showKandEduStatus(t('kand.edu_added'), 'success');
         await loadKandidatEducation(currentKandidatId);
     } catch (err) { showKandEduStatus(err.message, 'error'); }
 }
 
 async function deleteKandidatEducation(id, kandidatId) {
-    if (!confirm('Ta bort utbildningen?')) return;
+    if (!confirm(t('kand.confirm_delete_edu'))) return;
     try {
         const res = await apiFetch(`${API_BASE_URL}/kandidater/${kandidatId}/education/${id}`, { method:'DELETE' });
         if (!res.ok) throw new Error('Kunde inte ta bort');
@@ -1088,10 +1088,10 @@ function renderKandidatCertifications(items, kandidatId) {
     const container = document.getElementById('kand-certifications-list');
     if (!container) return;
     if (!items.length) {
-        container.innerHTML = '<div class="empty-hint">Inga kurser eller certifikat tillagda ännu.</div>';
+        container.innerHTML = `<div class="empty-hint">${t('kand.no_cert')}</div>`;
         return;
     }
-    const clearBarKandCert = `<div class="list-clear-bar"><span>${items.length} certifikat</span><button class="btn btn-danger btn-sm" onclick="clearKandCertifications(${kandidatId})">Rensa alla</button></div>`;
+    const clearBarKandCert = `<div class="list-clear-bar"><span>${items.length} ${t('kand.cert_word')}</span><button class="btn btn-danger btn-sm" onclick="clearKandCertifications(${kandidatId})">${t('sp.clear_all')}</button></div>`;
     container.innerHTML = clearBarKandCert + items.map(c => {
         if (c.id === kandEditingCertId) {
             return `<div style="border:1px solid var(--blue);border-radius:var(--radius);padding:0.875rem 1rem;margin-bottom:0.75rem">
@@ -1102,8 +1102,8 @@ function renderKandidatCertifications(items, kandidatId) {
                     <textarea class="form-input" id="kand-edit-cert-desc" placeholder="Beskrivning" rows="2">${esc(c.description)}</textarea>
                 </div>
                 <div style="display:flex;gap:0.5rem">
-                    <button class="btn btn-primary btn-small" onclick="saveKandCertification(${c.id},${kandidatId})">Spara</button>
-                    <button class="btn btn-secondary btn-small" onclick="kandEditingCertId=null;renderKandidatCertifications(cachedKandCerts,${kandidatId})">Avbryt</button>
+                    <button class="btn btn-primary btn-small" onclick="saveKandCertification(${c.id},${kandidatId})">${t('common.save')}</button>
+                    <button class="btn btn-secondary btn-small" onclick="kandEditingCertId=null;renderKandidatCertifications(cachedKandCerts,${kandidatId})">${t('common.cancel')}</button>
                 </div>
             </div>`;
         }
@@ -1128,14 +1128,14 @@ async function saveKandCertification(id, kandidatId) {
         date:        document.getElementById('kand-edit-cert-date').value.trim()   || null,
         description: document.getElementById('kand-edit-cert-desc').value.trim()  || null,
     };
-    if (!body.name) { showKandCertStatus('Namn krävs', 'error'); return; }
+    if (!body.name) { showKandCertStatus(t('kand.cert_name_required'), 'error'); return; }
     try {
         const res = await apiFetch(`${API_BASE_URL}/kandidater/${kandidatId}/certifications/${id}`, {
             method: 'PUT', headers: {'Content-Type':'application/json'}, body: JSON.stringify(body),
         });
         if (!res.ok) { const e = await res.json(); throw new Error(e.detail || 'Fel'); }
         kandEditingCertId = null;
-        showKandCertStatus('Certifikat sparat', 'success');
+        showKandCertStatus(t('kand.cert_saved'), 'success');
         await loadKandidatCertifications(kandidatId);
     } catch (err) { showKandCertStatus(err.message, 'error'); }
 }
@@ -1143,7 +1143,7 @@ async function saveKandCertification(id, kandidatId) {
 async function addKandidatCertification() {
     if (!currentKandidatId) return;
     const name = document.getElementById('kand-cert-name').value.trim();
-    if (!name) { showKandCertStatus('Namn krävs', 'error'); return; }
+    if (!name) { showKandCertStatus(t('kand.cert_name_required'), 'error'); return; }
     const body = {
         name,
         issuer:      document.getElementById('kand-cert-issuer').value.trim() || null,
@@ -1156,13 +1156,13 @@ async function addKandidatCertification() {
         });
         if (!res.ok) { const e = await res.json(); throw new Error(e.detail || 'Fel'); }
         ['kand-cert-name','kand-cert-issuer','kand-cert-date','kand-cert-desc'].forEach(id => document.getElementById(id).value = '');
-        showKandCertStatus('Certifikat tillagt', 'success');
+        showKandCertStatus(t('kand.cert_added'), 'success');
         await loadKandidatCertifications(currentKandidatId);
     } catch (err) { showKandCertStatus(err.message, 'error'); }
 }
 
 async function deleteKandidatCertification(id, kandidatId) {
-    if (!confirm('Ta bort certifikatet?')) return;
+    if (!confirm(t('kand.confirm_delete_cert'))) return;
     try {
         const res = await apiFetch(`${API_BASE_URL}/kandidater/${kandidatId}/certifications/${id}`, { method:'DELETE' });
         if (!res.ok) throw new Error('Kunde inte ta bort');

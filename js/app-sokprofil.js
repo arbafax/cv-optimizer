@@ -81,7 +81,7 @@ async function saveSokprofil() {
         if (!res.ok) throw new Error('Kunde inte spara');
         const saved = await res.json();
         if (saved.profile_uuid) document.getElementById('sp-profile-uuid').value = saved.profile_uuid;
-        showSokprofilStatus('Sökprofilen sparades ✓', 'success');
+        showSokprofilStatus(t('sp.saved'), 'success');
     } catch (err) {
         showSokprofilStatus(err.message, 'error');
     }
@@ -182,7 +182,7 @@ async function addSpSkill() {
     const nameEl = document.getElementById('sp-skill-name');
     const catEl  = document.getElementById('sp-skill-category');
     const name   = nameEl.value.trim();
-    if (!name) { showSpSkillStatus('Ange ett kompetensnamn', 'error'); return; }
+    if (!name) { showSpSkillStatus(t('sp.skill_name_required'), 'error'); return; }
 
     try {
         const res = await apiFetch(`${API_BASE_URL}/competence/skills`, {
@@ -198,7 +198,7 @@ async function addSpSkill() {
         nameEl.value = '';
         catEl.value  = '';
         document.getElementById('sp-skill-level').value = '';
-        showSpSkillStatus('Kompetens tillagd', 'success');
+        showSpSkillStatus(t('sp.skill_added'), 'success');
         await loadSpKompetenser();
     } catch (err) {
         showSpSkillStatus(err.message, 'error');
@@ -217,7 +217,7 @@ function renderSpSkills(skills) {
     const container = document.getElementById('sp-skills-list');
     if (!container) return;
     if (!skills || !skills.length) {
-        container.innerHTML = '<div class="empty-hint">Inga kompetenser i banken ännu. Ladda upp ett CV under CV-fliken.</div>';
+        container.innerHTML = `<div class="empty-hint">${t('sp.no_skills')}</div>`;
         return;
     }
     const byCategory = {};
@@ -226,7 +226,7 @@ function renderSpSkills(skills) {
         if (!byCategory[cat]) byCategory[cat] = [];
         byCategory[cat].push(s);
     });
-    const clearBarSkills = `<div class="list-clear-bar"><span>${skills.length} kompetens${skills.length !== 1 ? 'er' : ''}</span><button class="btn btn-danger btn-sm" onclick="clearSpSkills()">Rensa alla</button></div>`;
+    const clearBarSkills = `<div class="list-clear-bar"><span>${skills.length} ${skills.length !== 1 ? t('sp.skill_plural') : t('sp.skill_singular')}</span><button class="btn btn-danger btn-sm" onclick="clearSpSkills()">${t('sp.clear_all')}</button></div>`;
     const sortedEntries = Object.entries(byCategory).sort(([a], [b]) => a.localeCompare(b, currentLang));
     container.innerHTML = clearBarSkills + sortedEntries.map(([cat, items]) => { items = items.slice().sort((a, b) => a.skill_name.localeCompare(b.skill_name, currentLang)); return `
         <div style="margin-bottom:1rem">
@@ -236,16 +236,16 @@ function renderSpSkills(skills) {
                 ${items.map(s => {
                     if (s.id === spEditingSkillId) {
                         return `<div class="skill-edit-row">
-                            <input class="form-input" id="sp-edit-skill-name" value="${esc(s.skill_name)}" placeholder="Kompetensnamn" style="flex:1;min-width:120px">
-                            <input class="form-input" id="sp-edit-skill-cat"  value="${esc(s.category)}"   placeholder="Kategori"      style="flex:1;min-width:100px" data-cat-combo>
+                            <input class="form-input" id="sp-edit-skill-name" value="${esc(s.skill_name)}" placeholder="${t('bank.label_skill')}" style="flex:1;min-width:120px">
+                            <input class="form-input" id="sp-edit-skill-cat"  value="${esc(s.category)}"   placeholder="${t('bank.label_category')}" style="flex:1;min-width:100px" data-cat-combo>
                             <select class="form-input" id="sp-edit-skill-level" style="min-width:130px">
-                                <option value=""               ${!s.skill_level                    ?'selected':''}>— Nivå —</option>
-                                <option value="Känner till"    ${s.skill_level==='Känner till'    ?'selected':''}>Känner till</option>
-                                <option value="Erfaren"        ${s.skill_level==='Erfaren'        ?'selected':''}>Erfaren</option>
-                                <option value="Mycket erfaren" ${s.skill_level==='Mycket erfaren' ?'selected':''}>Mycket erfaren</option>
+                                <option value=""               ${!s.skill_level                    ?'selected':''}>${t('skill.level_ph')}</option>
+                                <option value="Känner till"    ${s.skill_level==='Känner till'    ?'selected':''}>${t('skill.level_1')}</option>
+                                <option value="Erfaren"        ${s.skill_level==='Erfaren'        ?'selected':''}>${t('skill.level_2')}</option>
+                                <option value="Mycket erfaren" ${s.skill_level==='Mycket erfaren' ?'selected':''}>${t('skill.level_3')}</option>
                             </select>
-                            <button class="btn btn-primary btn-small" onclick="saveSpSkill(${s.id})">Spara</button>
-                            <button class="btn btn-secondary btn-small" onclick="spEditingSkillId=null;renderSpSkills(cachedSpSkills)">Avbryt</button>
+                            <button class="btn btn-primary btn-small" onclick="saveSpSkill(${s.id})">${t('common.save')}</button>
+                            <button class="btn btn-secondary btn-small" onclick="spEditingSkillId=null;renderSpSkills(cachedSpSkills)">${t('common.cancel')}</button>
                         </div>`;
                     }
                     return `<span class="bank-skill-chip ${skillLevelClass(s.skill_level)}">
@@ -265,7 +265,7 @@ async function saveSpSkill(id) {
         category:   document.getElementById('sp-edit-skill-cat').value.trim()  || 'Övrigt',
         skill_level: document.getElementById('sp-edit-skill-level').value || null,
     };
-    if (!body.skill_name) { alert('Kompetensnamn krävs'); return; }
+    if (!body.skill_name) { alert(t('sp.skill_name_required2')); return; }
     try {
         const res = await apiFetch(`${API_BASE_URL}/competence/skills/${id}`, {
             method: 'PUT', headers: {'Content-Type':'application/json'}, body: JSON.stringify(body),
@@ -277,7 +277,7 @@ async function saveSpSkill(id) {
 }
 
 async function deleteSpSkill(id) {
-    if (!confirm('Ta bort kompetensen?')) return;
+    if (!confirm(t('sp.confirm_delete_skill'))) return;
     try {
         const res = await apiFetch(`${API_BASE_URL}/competence/skills/${id}`, { method:'DELETE' });
         if (!res.ok) throw new Error('Kunde inte ta bort');
@@ -286,7 +286,7 @@ async function deleteSpSkill(id) {
 }
 
 async function clearSpSkills() {
-    if (!confirm('Radera alla kompetenser? Detta kan inte ångras.')) return;
+    if (!confirm(t('sp.confirm_clear_skills'))) return;
     try {
         const res = await apiFetch(`${API_BASE_URL}/competence/skills`, { method: 'DELETE' });
         if (!res.ok) { const e = await res.json(); throw new Error(e.detail || 'Fel'); }
@@ -313,7 +313,7 @@ function renderSpExperiences(experiences) {
     const container = document.getElementById('sp-experiences-list');
     if (!container) return;
     if (!experiences || !experiences.length) {
-        container.innerHTML = '<div class="empty-hint">Inga erfarenheter i banken ännu. Ladda upp ett CV under CV-fliken.</div>';
+        container.innerHTML = `<div class="empty-hint">${t('sp.no_exps')}</div>`;
         return;
     }
     experiences = experiences.slice().sort((a, b) => {
@@ -323,16 +323,16 @@ function renderSpExperiences(experiences) {
         const eb = b.is_current ? '9999-99' : (normDate(b.end_date) || '');
         return eb.localeCompare(ea);
     });
-    const typeLabel = { work: 'Arbete', education: 'Utbildning', certification: 'Certifiering', project: 'Projekt' };
+    const typeLabel = { work: t('sp.type_work'), education: t('bank.type_opt_edu'), certification: t('bank.type_opt_cert'), project: t('sp.type_project') };
     const sel = (val, opt) => opt === val ? 'selected' : '';
     const mergeBar = `
         <div class="bank-merge-bar ${spSelectedExpIds.size >= 2 ? 'visible' : ''}" id="sp-merge-bar">
-            <span>${spSelectedExpIds.size} valda</span>
+            <span>${spSelectedExpIds.size} ${t('bank.selected')}</span>
             <button class="btn btn-primary btn-small" onclick="mergeSpExperiences()"
-                    ${spSelectedExpIds.size < 2 ? 'disabled' : ''}>Slå ihop valda</button>
-            <button class="btn btn-ghost btn-small" onclick="spSelectedExpIds.clear();renderSpExperiences(cachedSpExps)">Avmarkera</button>
+                    ${spSelectedExpIds.size < 2 ? 'disabled' : ''}>${t('bank.merge_selected')}</button>
+            <button class="btn btn-ghost btn-small" onclick="spSelectedExpIds.clear();renderSpExperiences(cachedSpExps)">${t('bank.deselect')}</button>
         </div>`;
-    const clearBarExp = `<div class="list-clear-bar"><span>${experiences.length} erfarenhet${experiences.length !== 1 ? 'er' : ''}</span><button class="btn btn-danger btn-sm" onclick="clearSpExperiences()">Rensa alla</button></div>`;
+    const clearBarExp = `<div class="list-clear-bar"><span>${experiences.length} ${experiences.length !== 1 ? t('sp.exp_plural') : t('sp.exp_singular')}</span><button class="btn btn-danger btn-sm" onclick="clearSpExperiences()">${t('sp.clear_all')}</button></div>`;
     container.innerHTML = mergeBar + clearBarExp + experiences.map(e => {
         if (e.id === spEditingExpId) {
             const achText = (e.achievements || []).join('\n');
@@ -341,21 +341,21 @@ function renderSpExperiences(experiences) {
                     <input class="form-input" id="sp-edit-exp-title" value="${esc(e.title)}" placeholder="Titel" style="grid-column:span 2">
                     <input class="form-input" id="sp-edit-exp-org"   value="${esc(e.organization)}" placeholder="Organisation">
                     <select class="form-input" id="sp-edit-exp-type">
-                        <option value="work"    ${sel(e.experience_type,'work')}   >Arbete</option>
-                        <option value="project" ${sel(e.experience_type,'project')}>Projekt</option>
+                        <option value="work"    ${sel(e.experience_type,'work')}   >${t('sp.type_work')}</option>
+                        <option value="project" ${sel(e.experience_type,'project')}>${t('sp.type_project')}</option>
                     </select>
                     <input class="form-input" id="sp-edit-exp-start" value="${esc(e.start_date)}" placeholder="Från (ÅÅÅÅ-MM)">
                     <input class="form-input" id="sp-edit-exp-end"   value="${esc(e.end_date)}"   placeholder="Till (ÅÅÅÅ-MM)">
                 </div>
                 <label style="font-size:0.8125rem;display:flex;align-items:center;gap:0.4rem;margin-bottom:0.5rem">
-                    <input type="checkbox" id="sp-edit-exp-current" ${e.is_current?'checked':''}> Pågående
+                    <input type="checkbox" id="sp-edit-exp-current" ${e.is_current?'checked':''}> ${t('sp.ongoing')}
                 </label>
-                <textarea class="form-input" id="sp-edit-exp-desc" placeholder="Beskrivning" rows="3" style="margin-bottom:0.5rem;width:100%;box-sizing:border-box">${esc(e.description)}</textarea>
-                <label style="font-size:0.8125rem;color:var(--text-muted);margin-bottom:0.25rem;display:block">Prestationer (en per rad)</label>
-                <textarea class="form-input" id="sp-edit-exp-ach" placeholder="En prestation per rad" rows="3" style="margin-bottom:0.5rem;width:100%;box-sizing:border-box">${esc(achText)}</textarea>
+                <textarea class="form-input" id="sp-edit-exp-desc" placeholder="${t('bank.label_desc')}" rows="3" style="margin-bottom:0.5rem;width:100%;box-sizing:border-box">${esc(e.description)}</textarea>
+                <label style="font-size:0.8125rem;color:var(--text-muted);margin-bottom:0.25rem;display:block">${t('sp.achievements_label')}</label>
+                <textarea class="form-input" id="sp-edit-exp-ach" placeholder="${t('bank.new_ach_ph')}" rows="3" style="margin-bottom:0.5rem;width:100%;box-sizing:border-box">${esc(achText)}</textarea>
                 <div style="display:flex;gap:0.5rem">
-                    <button class="btn btn-primary btn-small" onclick="saveSpExperience(${e.id})">Spara</button>
-                    <button class="btn btn-secondary btn-small" onclick="spEditingExpId=null;renderSpExperiences(cachedSpExps)">Avbryt</button>
+                    <button class="btn btn-primary btn-small" onclick="saveSpExperience(${e.id})">${t('common.save')}</button>
+                    <button class="btn btn-secondary btn-small" onclick="spEditingExpId=null;renderSpExperiences(cachedSpExps)">${t('common.cancel')}</button>
                 </div>
             </div>`;
         }
@@ -403,7 +403,7 @@ async function mergeSpExperiences() {
     const ids = Array.from(spSelectedExpIds);
 
     const mergeBar = document.getElementById('sp-merge-bar');
-    if (mergeBar) mergeBar.innerHTML = '<span class="spinner-small"></span> Slår ihop med AI…';
+    if (mergeBar) mergeBar.innerHTML = `<span class="spinner-small"></span> ${t('sp.merge_ai')}`;
 
     try {
         const res = await apiFetch(`${API_BASE_URL}/competence/experiences/merge`, {
@@ -413,12 +413,12 @@ async function mergeSpExperiences() {
         });
         if (!res.ok) {
             const err = await res.json();
-            throw new Error(err.detail || 'Sammanslagning misslyckades');
+            throw new Error(err.detail || t('bank.merge_exp_failed'));
         }
         const data = await res.json();
         spSelectedExpIds.clear();
         await loadSpErfarenheter();
-        alert(`✅ ${data.merged_count} erfarenheter sammanslagna till "${data.title}"`);
+        alert(`✅ ${data.merged_count} ${t('sp.exp_plural')} → "${data.title}"`);
     } catch (err) {
         alert('❌ ' + err.message);
         renderSpExperiences(cachedSpExps);
@@ -436,7 +436,7 @@ async function saveSpExperience(id) {
         description:     document.getElementById('sp-edit-exp-desc').value.trim() || null,
         achievements:    document.getElementById('sp-edit-exp-ach').value.split('\n').map(s=>s.trim()).filter(Boolean),
     };
-    if (!body.title) { alert('Titel krävs'); return; }
+    if (!body.title) { alert(t('sp.title_required')); return; }
     try {
         const res = await apiFetch(`${API_BASE_URL}/competence/experiences/${id}`, {
             method: 'PUT', headers: {'Content-Type':'application/json'}, body: JSON.stringify(body),
@@ -448,7 +448,7 @@ async function saveSpExperience(id) {
 }
 
 async function deleteSpExperience(id) {
-    if (!confirm('Ta bort erfarenheten?')) return;
+    if (!confirm(t('sp.confirm_delete_exp'))) return;
     try {
         const res = await apiFetch(`${API_BASE_URL}/competence/experiences/${id}`, { method:'DELETE' });
         if (!res.ok) throw new Error('Kunde inte ta bort');
@@ -457,7 +457,7 @@ async function deleteSpExperience(id) {
 }
 
 async function clearSpExperiences() {
-    if (!confirm('Radera alla erfarenheter? Detta kan inte ångras.')) return;
+    if (!confirm(t('sp.confirm_clear_exps'))) return;
     try {
         const res = await apiFetch(`${API_BASE_URL}/competence/experiences`, { method: 'DELETE' });
         if (!res.ok) { const e = await res.json(); throw new Error(e.detail || 'Fel'); }
@@ -467,7 +467,7 @@ async function clearSpExperiences() {
 
 async function addSpExperience() {
     const title = document.getElementById('sp-exp-title').value.trim();
-    if (!title) { showSpExpStatus('Titel krävs', 'error'); return; }
+    if (!title) { showSpExpStatus(t('sp.title_required'), 'error'); return; }
     const body = {
         title,
         organization:    document.getElementById('sp-exp-org').value.trim()   || null,
@@ -485,7 +485,7 @@ async function addSpExperience() {
         if (!res.ok) { const e = await res.json(); throw new Error(e.detail || 'Fel'); }
         ['sp-exp-title','sp-exp-org','sp-exp-start','sp-exp-end','sp-exp-desc','sp-exp-ach'].forEach(id => document.getElementById(id).value = '');
         document.getElementById('sp-exp-current').checked = false;
-        showSpExpStatus('Erfarenhet tillagd', 'success');
+        showSpExpStatus(t('sp.exp_added'), 'success');
         await loadSpErfarenheter();
     } catch (err) { showSpExpStatus(err.message, 'error'); }
 }
@@ -517,10 +517,10 @@ function renderSpEducation(items) {
     const container = document.getElementById('sp-education-list');
     if (!container) return;
     if (!items.length) {
-        container.innerHTML = '<div class="empty-hint">Inga utbildningar tillagda ännu.</div>';
+        container.innerHTML = `<div class="empty-hint">${t('sp.no_edu')}</div>`;
         return;
     }
-    const clearBarEdu = `<div class="list-clear-bar"><span>${items.length} utbildning${items.length !== 1 ? 'ar' : ''}</span><button class="btn btn-danger btn-sm" onclick="clearSpEducation()">Rensa alla</button></div>`;
+    const clearBarEdu = `<div class="list-clear-bar"><span>${items.length} ${items.length !== 1 ? t('sp.edu_plural') : t('sp.edu_singular')}</span><button class="btn btn-danger btn-sm" onclick="clearSpEducation()">${t('sp.clear_all')}</button></div>`;
     container.innerHTML = clearBarEdu + items.map(e => {
         if (e.id === spEditingEduId) {
             return `<div style="border:1px solid var(--blue);border-radius:var(--radius);padding:0.875rem 1rem;margin-bottom:0.75rem">
@@ -535,8 +535,8 @@ function renderSpEducation(items) {
                     <textarea class="form-input" id="sp-edit-edu-desc" placeholder="Beskrivning" rows="2">${esc(e.description)}</textarea>
                 </div>
                 <div style="display:flex;gap:0.5rem">
-                    <button class="btn btn-primary btn-small" onclick="saveSpEducation(${e.id})">Spara</button>
-                    <button class="btn btn-secondary btn-small" onclick="spEditingEduId=null;renderSpEducation(cachedSpEdu)">Avbryt</button>
+                    <button class="btn btn-primary btn-small" onclick="saveSpEducation(${e.id})">${t('common.save')}</button>
+                    <button class="btn btn-secondary btn-small" onclick="spEditingEduId=null;renderSpEducation(cachedSpEdu)">${t('common.cancel')}</button>
                 </div>
             </div>`;
         }
@@ -565,21 +565,21 @@ async function saveSpEducation(id) {
         end_date:       document.getElementById('sp-edit-edu-end').value.trim()         || null,
         description:    document.getElementById('sp-edit-edu-desc').value.trim()        || null,
     };
-    if (!body.degree) { showSpEduStatus('Examen / Utbildning krävs', 'error'); return; }
+    if (!body.degree) { showSpEduStatus(t('sp.degree_required'), 'error'); return; }
     try {
         const res = await apiFetch(`${API_BASE_URL}/competence/education/${id}`, {
             method: 'PUT', headers: {'Content-Type':'application/json'}, body: JSON.stringify(body),
         });
         if (!res.ok) { const e = await res.json(); throw new Error(e.detail || 'Fel'); }
         spEditingEduId = null;
-        showSpEduStatus('Utbildning sparad', 'success');
+        showSpEduStatus(t('sp.edu_saved'), 'success');
         await loadSpEducation();
     } catch (err) { showSpEduStatus(err.message, 'error'); }
 }
 
 async function addSpEducation() {
     const degree = document.getElementById('sp-edu-degree').value.trim();
-    if (!degree) { showSpEduStatus('Examen / Utbildning krävs', 'error'); return; }
+    if (!degree) { showSpEduStatus(t('sp.degree_required'), 'error'); return; }
     const body = {
         degree,
         institution:    document.getElementById('sp-edu-institution').value.trim() || null,
@@ -594,13 +594,13 @@ async function addSpEducation() {
         if (!res.ok) { const e = await res.json(); throw new Error(e.detail || 'Fel'); }
         ['sp-edu-degree','sp-edu-institution','sp-edu-field','sp-edu-start','sp-edu-end']
             .forEach(id => document.getElementById(id).value = '');
-        showSpEduStatus('Utbildning tillagd', 'success');
+        showSpEduStatus(t('sp.edu_added'), 'success');
         await loadSpEducation();
     } catch (err) { showSpEduStatus(err.message, 'error'); }
 }
 
 async function deleteSpEducation(id) {
-    if (!confirm('Ta bort utbildningen?')) return;
+    if (!confirm(t('sp.confirm_delete_edu'))) return;
     try {
         const res = await apiFetch(`${API_BASE_URL}/competence/education/${id}`, { method:'DELETE' });
         if (!res.ok) throw new Error('Kunde inte ta bort');
@@ -617,7 +617,7 @@ function showSpEduStatus(msg, type) {
 }
 
 async function clearSpEducation() {
-    if (!confirm('Radera all utbildning? Detta kan inte ångras.')) return;
+    if (!confirm(t('sp.confirm_clear_edu'))) return;
     try {
         const res = await apiFetch(`${API_BASE_URL}/competence/education`, { method: 'DELETE' });
         if (!res.ok) { const e = await res.json(); throw new Error(e.detail || 'Fel'); }
@@ -644,10 +644,10 @@ function renderSpCertifications(items) {
     const container = document.getElementById('sp-certifications-list');
     if (!container) return;
     if (!items.length) {
-        container.innerHTML = '<div class="empty-hint">Inga kurser eller certifikat tillagda ännu.</div>';
+        container.innerHTML = `<div class="empty-hint">${t('sp.no_cert')}</div>`;
         return;
     }
-    const clearBarCert = `<div class="list-clear-bar"><span>${items.length} certifikat</span><button class="btn btn-danger btn-sm" onclick="clearSpCertifications()">Rensa alla</button></div>`;
+    const clearBarCert = `<div class="list-clear-bar"><span>${items.length} ${t('sp.cert_word')}</span><button class="btn btn-danger btn-sm" onclick="clearSpCertifications()">${t('sp.clear_all')}</button></div>`;
     container.innerHTML = clearBarCert + items.map(c => {
         if (c.id === spEditingCertId) {
             return `<div style="border:1px solid var(--blue);border-radius:var(--radius);padding:0.875rem 1rem;margin-bottom:0.75rem">
@@ -658,8 +658,8 @@ function renderSpCertifications(items) {
                     <textarea class="form-input" id="sp-edit-cert-desc" placeholder="Beskrivning" rows="2">${esc(c.description)}</textarea>
                 </div>
                 <div style="display:flex;gap:0.5rem">
-                    <button class="btn btn-primary btn-small" onclick="saveSpCertification(${c.id})">Spara</button>
-                    <button class="btn btn-secondary btn-small" onclick="spEditingCertId=null;renderSpCertifications(cachedSpCerts)">Avbryt</button>
+                    <button class="btn btn-primary btn-small" onclick="saveSpCertification(${c.id})">${t('common.save')}</button>
+                    <button class="btn btn-secondary btn-small" onclick="spEditingCertId=null;renderSpCertifications(cachedSpCerts)">${t('common.cancel')}</button>
                 </div>
             </div>`;
         }
@@ -684,21 +684,21 @@ async function saveSpCertification(id) {
         date:        document.getElementById('sp-edit-cert-date').value.trim()   || null,
         description: document.getElementById('sp-edit-cert-desc').value.trim()  || null,
     };
-    if (!body.name) { showSpCertStatus('Namn krävs', 'error'); return; }
+    if (!body.name) { showSpCertStatus(t('sp.cert_name_required'), 'error'); return; }
     try {
         const res = await apiFetch(`${API_BASE_URL}/competence/certifications/${id}`, {
             method: 'PUT', headers: {'Content-Type':'application/json'}, body: JSON.stringify(body),
         });
         if (!res.ok) { const e = await res.json(); throw new Error(e.detail || 'Fel'); }
         spEditingCertId = null;
-        showSpCertStatus('Certifikat sparat', 'success');
+        showSpCertStatus(t('sp.cert_saved'), 'success');
         await loadSpCertifications();
     } catch (err) { showSpCertStatus(err.message, 'error'); }
 }
 
 async function addSpCertification() {
     const name = document.getElementById('sp-cert-name').value.trim();
-    if (!name) { showSpCertStatus('Namn krävs', 'error'); return; }
+    if (!name) { showSpCertStatus(t('sp.cert_name_required'), 'error'); return; }
     const body = {
         name,
         issuer:      document.getElementById('sp-cert-issuer').value.trim() || null,
@@ -711,13 +711,13 @@ async function addSpCertification() {
         });
         if (!res.ok) { const e = await res.json(); throw new Error(e.detail || 'Fel'); }
         ['sp-cert-name','sp-cert-issuer','sp-cert-date','sp-cert-desc'].forEach(id => document.getElementById(id).value = '');
-        showSpCertStatus('Certifikat tillagt', 'success');
+        showSpCertStatus(t('sp.cert_added'), 'success');
         await loadSpCertifications();
     } catch (err) { showSpCertStatus(err.message, 'error'); }
 }
 
 async function deleteSpCertification(id) {
-    if (!confirm('Ta bort certifikatet?')) return;
+    if (!confirm(t('sp.confirm_delete_cert'))) return;
     try {
         const res = await apiFetch(`${API_BASE_URL}/competence/certifications/${id}`, { method:'DELETE' });
         if (!res.ok) throw new Error('Kunde inte ta bort');
@@ -734,7 +734,7 @@ function showSpCertStatus(msg, type) {
 }
 
 async function clearSpCertifications() {
-    if (!confirm('Radera alla certifikat? Detta kan inte ångras.')) return;
+    if (!confirm(t('sp.confirm_clear_certs'))) return;
     try {
         const res = await apiFetch(`${API_BASE_URL}/competence/certifications`, { method: 'DELETE' });
         if (!res.ok) { const e = await res.json(); throw new Error(e.detail || 'Fel'); }
@@ -764,7 +764,7 @@ function displaySpCandidateCVs(cvs) {
     const container = document.getElementById('sp-cv-list');
     if (!container) return;
     if (!cvs.length) {
-        container.innerHTML = '<div class="empty-hint">Inga CV:n uppladdade än</div>';
+        container.innerHTML = `<div class="empty-hint">${t('cv.no_cvs')}</div>`;
         return;
     }
     container.innerHTML = cvs.map(cv => {
@@ -772,8 +772,8 @@ function displaySpCandidateCVs(cvs) {
             ? new Date(cv.upload_date).toLocaleDateString('sv-SE', { year:'numeric', month:'short', day:'numeric' })
             : '—';
         const processedBadge = cv.is_processed
-            ? '<span class="cv-badge cv-badge--green">✓ Behandlad</span>'
-            : '<span class="cv-badge cv-badge--blue">Ej behandlad</span>';
+            ? `<span class="cv-badge cv-badge--green">${t('cv.badge_processed')}</span>`
+            : `<span class="cv-badge cv-badge--blue">${t('cv.badge_unprocessed')}</span>`;
         const safeName = cv.filename.replace(/'/g, "\\'");
         return `
             <div class="cv-item">
@@ -785,18 +785,18 @@ function displaySpCandidateCVs(cvs) {
                         </div>
                     </div>
                     <div style="display:flex;gap:0.5rem;align-items:center;flex-shrink:0">
-                        <button class="btn btn-secondary btn-sm" onclick="downloadCVFile(${cv.id})">⬇ Ladda ner</button>
-                        <button class="btn btn-icon btn-danger btn-sm" title="Ta bort" onclick="deleteSpCV(${cv.id}, '${safeName}')">
+                        <button class="btn btn-secondary btn-sm" onclick="downloadCVFile(${cv.id})">${t('cv.download')}</button>
+                        <button class="btn btn-icon btn-danger btn-sm" title="${t('cv.btn_delete')}" onclick="deleteSpCV(${cv.id}, '${safeName}')">
                             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14H6L5 6"/><path d="M10 11v6M14 11v6"/><path d="M9 6V4h6v2"/></svg>
                         </button>
                     </div>
                 </div>
                 <div class="cv-item-details">
                     <div class="cv-item-detail">📅 ${date}</div>
-                    <div class="cv-item-detail">🎯 ${cv.skill_count} kompetenser</div>
-                    <div class="cv-item-detail">💼 ${cv.experience_count} erfarenheter</div>
-                    <div class="cv-item-detail">🎓 ${cv.education_count} utbildningar</div>
-                    <div class="cv-item-detail">📜 ${cv.certification_count} certifikat</div>
+                    <div class="cv-item-detail">🎯 ${cv.skill_count} ${t('cv.section_skills').toLowerCase()}</div>
+                    <div class="cv-item-detail">💼 ${cv.experience_count} ${t('cv.section_experience').toLowerCase()}</div>
+                    <div class="cv-item-detail">🎓 ${cv.education_count} ${t('cv.section_education').toLowerCase()}</div>
+                    <div class="cv-item-detail">📜 ${cv.certification_count} ${t('cv.section_certifications').toLowerCase()}</div>
                 </div>
             </div>`;
     }).join('');
@@ -805,7 +805,7 @@ function displaySpCandidateCVs(cvs) {
 
 
 async function deleteSpCV(cvId, filename) {
-    if (!confirm(`Ta bort "${filename}"? Kompetenser och utbildningar kopplade enbart till detta CV tas också bort.`)) return;
+    if (!confirm(t('sp.confirm_delete_cv').replace('%n', filename))) return;
     try {
         const res = await apiFetch(`${API_BASE_URL}/competence/cvs/${cvId}`, { method:'DELETE' });
         if (!res.ok) { const e = await res.json(); throw new Error(e.detail || 'Fel'); }

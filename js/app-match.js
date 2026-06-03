@@ -63,12 +63,12 @@ async function handleOptimize() {
     loadingEl.classList.remove('hidden');
     optimizeResult.classList.add('hidden');
 
-    if (loadingTextEl) loadingTextEl.textContent = ' Analyserar annons…';
+    if (loadingTextEl) loadingTextEl.textContent = t('match.loading_ad');
 
     try {
         // Step 1: analyze the job posting (result is cached for the match call)
         await _getStructuredJob('', jobDescription.value.trim());
-        if (loadingTextEl) loadingTextEl.textContent = ' Matchar kompetenser…';
+        if (loadingTextEl) loadingTextEl.textContent = t('match.loading_skills');
 
         const response = await apiFetch(`${API_BASE_URL}/competence/match-job`, {
             method: 'POST',
@@ -178,40 +178,40 @@ function displayLHCV(data) {
     document.getElementById('lh-cv-body').innerHTML = `
         <div class="lh-cv-page">
             <div class="lh-cv-section">
-                <h3 class="lh-cv-section-title">Profil</h3>
+                <h3 class="lh-cv-section-title">${t('lhcv.profile')}</h3>
                 ${ingressHtml}
             </div>
             ${kompHtml ? `
             <div class="lh-cv-section">
-                <h3 class="lh-cv-section-title lh-cv-accent">Kompetenser</h3>
+                <h3 class="lh-cv-section-title lh-cv-accent">${t('lhcv.skills')}</h3>
                 <table class="lh-cv-komp-table">${kompHtml}</table>
             </div>` : ''}
         </div>
 
         <div class="lh-cv-page lh-cv-page--2">
-            ${p2.branscher ? `<div class="lh-cv-branscher"><strong>Branscher:</strong> ${p2.branscher}</div>` : ''}
+            ${p2.branscher ? `<div class="lh-cv-branscher"><strong>${t('lhcv.industries')}</strong> ${p2.branscher}</div>` : ''}
 
             ${summHtml ? `
             <div class="lh-cv-section">
-                <h3 class="lh-cv-section-title lh-cv-accent">Sammanfattning</h3>
+                <h3 class="lh-cv-section-title lh-cv-accent">${t('lhcv.summary')}</h3>
                 ${summHtml}
             </div>` : ''}
 
             ${verktygHtml ? `
             <div class="lh-cv-section">
-                <h3 class="lh-cv-section-title lh-cv-accent">Verktyg o dyl.</h3>
+                <h3 class="lh-cv-section-title lh-cv-accent">${t('lhcv.tools')}</h3>
                 ${verktygHtml}
             </div>` : ''}
 
             ${uppdragHtml ? `
             <div class="lh-cv-section">
-                <h3 class="lh-cv-section-title lh-cv-accent">Beskrivning av uppdragen</h3>
+                <h3 class="lh-cv-section-title lh-cv-accent">${t('lhcv.assignments')}</h3>
                 ${uppdragHtml}
             </div>` : ''}
 
             ${eduHtml ? `
             <div class="lh-cv-section">
-                <h3 class="lh-cv-section-title lh-cv-accent">Utbildning</h3>
+                <h3 class="lh-cv-section-title lh-cv-accent">${t('lhcv.education')}</h3>
                 <table class="lh-cv-edu-table">${eduHtml}</table>
             </div>` : ''}
         </div>
@@ -277,7 +277,7 @@ function downloadLHCVAsMarkdown() {
 async function handleTips() {
     const tipsBtn = document.getElementById('tips-btn');
     tipsBtn.disabled = true;
-    tipsBtn.innerHTML = '<span class="spinner-small"></span> Analyserar...';
+    tipsBtn.innerHTML = `<span class="spinner-small"></span> ${t('match.analysing')}`;
 
     const currentSkills  = (lastMatchResult.skills ?? []).filter(s => s.score > 0).map(s => s.skill_name);
     const missingSkills  = lastMatchResult.missing_skills ?? [];
@@ -321,8 +321,9 @@ function displayTips(data, overallScore) {
     const tips               = data.tips ?? [];
     const missingQualities   = lastMatchResult?.missing_personal_qualities ?? [];
 
-    const impactLabel = { high: 'Hög effekt', medium: 'Medel', low: 'Lägre' };
+    const impactLabel = { high: t('match.impact_high'), medium: t('match.impact_medium'), low: t('match.impact_low') };
     const impactClass = { high: 'tip-impact--high', medium: 'tip-impact--medium', low: 'tip-impact--low' };
+    const possessive  = lastMatchKandidatId ? t('match.possessive_kand') : t('match.possessive_own');
 
     const qualitiesRowHtml = missingQualities.map((q, i) => `
         <div class="tip-skill-row" id="tip-quality-${i}">
@@ -330,7 +331,7 @@ function displayTips(data, overallScore) {
                 <span class="tip-skill-name">${esc(q)}</span>
             </div>
             <button class="btn btn-secondary btn-sm" onclick="addSuggestedQuality('${q.replace(/'/g, "\\'")}', ${i})">
-                + Lägg till
+                ${t('match.add_btn')}
             </button>
         </div>
     `).join('');
@@ -343,47 +344,47 @@ function displayTips(data, overallScore) {
                 <span class="tip-skill-reason">${s.reason}</span>
             </div>
             <button class="btn btn-secondary btn-sm" onclick="addSuggestedSkill('${s.skill_name.replace(/'/g, "\\'")}', '${(s.category || '').replace(/'/g, "\\'")}', ${i})">
-                + Lägg till
+                ${t('match.add_btn')}
             </button>
         </div>
     `).join('');
 
-    const tipsHtml = tips.map(t => `
+    const tipsHtml = tips.map(tip => `
         <li class="tip-item">
-            <span class="tip-impact ${impactClass[t.impact] || ''}">${impactLabel[t.impact] || ''}</span>
-            ${t.tip}
+            <span class="tip-impact ${impactClass[tip.impact] || ''}">${impactLabel[tip.impact] || ''}</span>
+            ${tip.tip}
         </li>
     `).join('');
 
     body.innerHTML = `
         ${pitch ? `
         <div class="tips-section tips-section--pitch">
-            <h3 class="tips-section-title">Pitch</h3>
+            <h3 class="tips-section-title">${t('match.pitch')}</h3>
             <p class="tips-pitch-text">${esc(pitch)}</p>
         </div>` : ''}
 
         <div class="tips-score-row">
-            <span class="tips-score-label">Nuvarande matchning</span>
+            <span class="tips-score-label">${t('match.current_score')}</span>
             <span class="tips-score-value ${scoreColor(overallScore)}">${overallScore} / 100</span>
         </div>
 
         ${suggestedSkills.length ? `
         <div class="tips-section">
-            <h3 class="tips-section-title">Skills att lägga till</h3>
-            <p class="tips-section-desc">Dessa kompetenser nämns i annonsen och saknas i ${lastMatchKandidatId ? 'kandidatens' : 'din'} bank. Klicka "+ Lägg till" för att direkt lägga till dem.</p>
+            <h3 class="tips-section-title">${t('match.skills_to_add')}</h3>
+            <p class="tips-section-desc">${t('match.skills_desc').replace('{possessive}', possessive)}</p>
             <div class="tip-skills-list">${skillsHtml}</div>
         </div>` : ''}
 
         ${missingQualities.length ? `
         <div class="tips-section">
-            <h3 class="tips-section-title">Personliga egenskaper att lägga till</h3>
-            <p class="tips-section-desc">Dessa egenskaper efterfrågas i annonsen. Klicka "+ Lägg till" för att spara dem i ${lastMatchKandidatId ? 'kandidatens' : 'din'} profil.</p>
+            <h3 class="tips-section-title">${t('match.qualities_to_add')}</h3>
+            <p class="tips-section-desc">${t('match.qualities_desc').replace('{possessive}', possessive)}</p>
             <div class="tip-skills-list">${qualitiesRowHtml}</div>
         </div>` : ''}
 
         ${tipsHtml ? `
         <div class="tips-section">
-            <h3 class="tips-section-title">Förbättringstips</h3>
+            <h3 class="tips-section-title">${t('match.improvement_tips')}</h3>
             <ul class="tips-list">${tipsHtml}</ul>
         </div>` : ''}
     `;
@@ -413,12 +414,12 @@ async function addSuggestedSkill(skillName, category, rowIndex) {
         }
 
         row.classList.add('tip-skill-row--added');
-        btn.textContent = '✓ Tillagd';
+        btn.textContent = t('match.added_btn');
 
     } catch (err) {
         btn.disabled = false;
-        btn.textContent = '+ Lägg till';
-        alert('Fel: ' + err.message);
+        btn.textContent = t('match.add_btn');
+        alert(err.message);
     }
 }
 
@@ -446,11 +447,11 @@ async function addSuggestedQuality(qualityName, rowIndex) {
             await addSpQuality(qualityName);
         }
         row.classList.add('tip-skill-row--added');
-        btn.textContent = '✓ Tillagd';
+        btn.textContent = t('match.added_btn');
     } catch (err) {
         btn.disabled = false;
-        btn.textContent = '+ Lägg till';
-        alert('Fel: ' + err.message);
+        btn.textContent = t('match.add_btn');
+        alert(err.message);
     }
 }
 

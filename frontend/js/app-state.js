@@ -304,7 +304,10 @@ function showCVReviewModal(text, filename, onConfirm) {
                 <button class="modal-close" onclick="closeCVReviewModal()">&times;</button>
             </div>
             <div class="modal-body" style="display:flex;flex-direction:column;gap:1rem">
-                <div class="cv-review-info">${t('cv.review_info')}</div>
+                <div class="cv-review-info">
+                    <span class="material-icons cv-review-icon">warning_amber</span>
+                    <span>${t('cv.review_info')}</span>
+                </div>
                 <textarea id="cv-review-text" class="form-input cv-review-textarea"></textarea>
                 <div style="display:flex;gap:0.75rem;justify-content:flex-end">
                     <button class="btn btn-secondary" onclick="closeCVReviewModal()">${t('common.cancel')}</button>

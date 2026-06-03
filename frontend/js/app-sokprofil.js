@@ -5,6 +5,36 @@
 let spSelectedExpIds = new Set();
 let _spQualities     = [];
 
+// ── Timestamps (own profile) ──────────────────────────────────────────────────
+
+function _showSpTimestamps(kandidat) {
+    const el = document.getElementById('sp-timestamps');
+    if (!el) return;
+    if (!kandidat) { el.classList.add('hidden'); return; }
+    el.innerHTML =
+        `<span>${t('kand.created_at')} ${_fmtSpDateTime(kandidat.created_at)}</span>` +
+        `<span>${t('kand.updated_at')} ${_fmtSpDateTime(kandidat.updated_at)}</span>`;
+    el.classList.remove('hidden');
+}
+
+function _fmtSpDateTime(iso) {
+    if (!iso) return '–';
+    return new Date(iso).toLocaleString(undefined, {
+        year: 'numeric', month: '2-digit', day: '2-digit',
+        hour: '2-digit', minute: '2-digit',
+    });
+}
+
+async function touchOwnKandidat() {
+    try {
+        const own = await cvDb.kandidater.getOwn();
+        if (!own) return;
+        await cvDb.kandidater.update(own.id, {});
+        const fresh = await cvDb.kandidater.get(own.id);
+        _showSpTimestamps(fresh);
+    } catch { /* silent */ }
+}
+
 async function loadSokprofil() {
     try {
         const res  = await apiFetch(`${API_BASE_URL}/sokprofil/`);
@@ -39,6 +69,8 @@ async function loadSokprofil() {
         document.getElementById('sp-searchable').checked   = data.searchable;
         document.getElementById('sp-available-from').value = data.available_from || '';
         document.getElementById('sp-profile-uuid').value   = data.profile_uuid   || '';
+        const own = await cvDb.kandidater.getOwn();
+        _showSpTimestamps(own || null);
     } catch (err) {
         if (err.message !== 'Inte inloggad') console.error(err);
     }
@@ -82,6 +114,7 @@ async function saveSokprofil() {
         const saved = await res.json();
         if (saved.profile_uuid) document.getElementById('sp-profile-uuid').value = saved.profile_uuid;
         showSokprofilStatus(t('sp.saved'), 'success');
+        touchOwnKandidat();
     } catch (err) {
         showSokprofilStatus(err.message, 'error');
     }
@@ -200,6 +233,7 @@ async function addSpSkill() {
         document.getElementById('sp-skill-level').value = '';
         showSpSkillStatus(t('sp.skill_added'), 'success');
         await loadSpKompetenser();
+        touchOwnKandidat();
     } catch (err) {
         showSpSkillStatus(err.message, 'error');
     }
@@ -273,6 +307,7 @@ async function saveSpSkill(id) {
         if (!res.ok) { const e = await res.json(); throw new Error(e.detail || 'Fel'); }
         spEditingSkillId = null;
         await loadSpKompetenser();
+        touchOwnKandidat();
     } catch (err) { alert(err.message); }
 }
 
@@ -282,6 +317,7 @@ async function deleteSpSkill(id) {
         const res = await apiFetch(`${API_BASE_URL}/competence/skills/${id}`, { method:'DELETE' });
         if (!res.ok) throw new Error('Kunde inte ta bort');
         await loadSpKompetenser();
+        touchOwnKandidat();
     } catch (err) { alert(err.message); }
 }
 
@@ -291,6 +327,7 @@ async function clearSpSkills() {
         const res = await apiFetch(`${API_BASE_URL}/competence/skills`, { method: 'DELETE' });
         if (!res.ok) { const e = await res.json(); throw new Error(e.detail || 'Fel'); }
         await loadSpKompetenser();
+        touchOwnKandidat();
     } catch (err) { alert(err.message); }
 }
 
@@ -444,6 +481,7 @@ async function saveSpExperience(id) {
         if (!res.ok) { const e = await res.json(); throw new Error(e.detail || 'Fel'); }
         spEditingExpId = null;
         await loadSpErfarenheter();
+        touchOwnKandidat();
     } catch (err) { alert(err.message); }
 }
 
@@ -453,6 +491,7 @@ async function deleteSpExperience(id) {
         const res = await apiFetch(`${API_BASE_URL}/competence/experiences/${id}`, { method:'DELETE' });
         if (!res.ok) throw new Error('Kunde inte ta bort');
         await loadSpErfarenheter();
+        touchOwnKandidat();
     } catch (err) { alert(err.message); }
 }
 
@@ -462,6 +501,7 @@ async function clearSpExperiences() {
         const res = await apiFetch(`${API_BASE_URL}/competence/experiences`, { method: 'DELETE' });
         if (!res.ok) { const e = await res.json(); throw new Error(e.detail || 'Fel'); }
         await loadSpErfarenheter();
+        touchOwnKandidat();
     } catch (err) { alert(err.message); }
 }
 
@@ -487,6 +527,7 @@ async function addSpExperience() {
         document.getElementById('sp-exp-current').checked = false;
         showSpExpStatus(t('sp.exp_added'), 'success');
         await loadSpErfarenheter();
+        touchOwnKandidat();
     } catch (err) { showSpExpStatus(err.message, 'error'); }
 }
 
@@ -574,6 +615,7 @@ async function saveSpEducation(id) {
         spEditingEduId = null;
         showSpEduStatus(t('sp.edu_saved'), 'success');
         await loadSpEducation();
+        touchOwnKandidat();
     } catch (err) { showSpEduStatus(err.message, 'error'); }
 }
 
@@ -596,6 +638,7 @@ async function addSpEducation() {
             .forEach(id => document.getElementById(id).value = '');
         showSpEduStatus(t('sp.edu_added'), 'success');
         await loadSpEducation();
+        touchOwnKandidat();
     } catch (err) { showSpEduStatus(err.message, 'error'); }
 }
 
@@ -605,6 +648,7 @@ async function deleteSpEducation(id) {
         const res = await apiFetch(`${API_BASE_URL}/competence/education/${id}`, { method:'DELETE' });
         if (!res.ok) throw new Error('Kunde inte ta bort');
         await loadSpEducation();
+        touchOwnKandidat();
     } catch (err) { alert(err.message); }
 }
 
@@ -622,6 +666,7 @@ async function clearSpEducation() {
         const res = await apiFetch(`${API_BASE_URL}/competence/education`, { method: 'DELETE' });
         if (!res.ok) { const e = await res.json(); throw new Error(e.detail || 'Fel'); }
         await loadSpEducation();
+        touchOwnKandidat();
     } catch (err) { alert(err.message); }
 }
 
@@ -693,6 +738,7 @@ async function saveSpCertification(id) {
         spEditingCertId = null;
         showSpCertStatus(t('sp.cert_saved'), 'success');
         await loadSpCertifications();
+        touchOwnKandidat();
     } catch (err) { showSpCertStatus(err.message, 'error'); }
 }
 
@@ -713,6 +759,7 @@ async function addSpCertification() {
         ['sp-cert-name','sp-cert-issuer','sp-cert-date','sp-cert-desc'].forEach(id => document.getElementById(id).value = '');
         showSpCertStatus(t('sp.cert_added'), 'success');
         await loadSpCertifications();
+        touchOwnKandidat();
     } catch (err) { showSpCertStatus(err.message, 'error'); }
 }
 
@@ -722,6 +769,7 @@ async function deleteSpCertification(id) {
         const res = await apiFetch(`${API_BASE_URL}/competence/certifications/${id}`, { method:'DELETE' });
         if (!res.ok) throw new Error('Kunde inte ta bort');
         await loadSpCertifications();
+        touchOwnKandidat();
     } catch (err) { alert(err.message); }
 }
 
@@ -739,6 +787,7 @@ async function clearSpCertifications() {
         const res = await apiFetch(`${API_BASE_URL}/competence/certifications`, { method: 'DELETE' });
         if (!res.ok) { const e = await res.json(); throw new Error(e.detail || 'Fel'); }
         await loadSpCertifications();
+        touchOwnKandidat();
     } catch (err) { alert(err.message); }
 }
 
@@ -810,6 +859,7 @@ async function deleteSpCV(cvId, filename) {
         const res = await apiFetch(`${API_BASE_URL}/competence/cvs/${cvId}`, { method:'DELETE' });
         if (!res.ok) { const e = await res.json(); throw new Error(e.detail || 'Fel'); }
         await loadSpCandidateCVs();
+        touchOwnKandidat();
     } catch (err) {
         alert(`❌ ${err.message}`);
     }

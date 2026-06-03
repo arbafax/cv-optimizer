@@ -493,6 +493,7 @@ const kandidater = {
         is_own_profile:     data.is_own_profile     ?? false,
         profile_uuid:       data.profile_uuid       ?? crypto.randomUUID(),
         created_at:         new Date().toISOString(),
+        updated_at:         new Date().toISOString(),
       }));
       return _req(store.get(id));
     });
@@ -511,7 +512,7 @@ const kandidater = {
       const store = tx.objectStore('kandidater');
       const existing = await _req(store.get(id));
       if (!existing) throw new Error(`Kandidat ${id} not found`);
-      const updated = { ...existing, ...data, id };
+      const updated = { ...existing, ...data, id, updated_at: new Date().toISOString() };
       await _req(store.put(updated));
       return updated;
     });

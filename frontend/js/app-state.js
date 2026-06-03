@@ -1719,13 +1719,42 @@ async function showApp() {
     _showAppShell();
 }
 
+let _localVersion = null;
+
 function _loadSidebarVersion() {
     const el = document.getElementById('sidebar-version');
     if (!el) return;
     fetch('version.json?_=' + Date.now())
         .then(r => r.ok ? r.json() : null)
-        .then(d => { if (d?.version) el.textContent = `v${d.version}`; })
+        .then(d => { if (d?.version) { _localVersion = d.version; el.textContent = `v${d.version}`; } })
         .catch(() => {});
+}
+
+async function checkForUpdates() {
+    try {
+        const res = await fetch('https://arbafax.github.io/cv-optimizer/version.json?_=' + Date.now());
+        if (!res.ok) throw new Error('no response');
+        const remote = await res.json();
+        if (!remote?.version) throw new Error('no version');
+        if (remote.version === _localVersion) {
+            alert(`Du kör redan den senaste versionen (v${_localVersion}).`);
+            return;
+        }
+        document.getElementById('update-modal-text').textContent =
+            `Du kör v${_localVersion || '?'} men v${remote.version} är tillgänglig. Vill du ladda om sidan för att hämta den senaste versionen?`;
+        document.getElementById('update-modal').classList.remove('hidden');
+    } catch {
+        alert('Kunde inte kontrollera versionen. Kontrollera din internetanslutning.');
+    }
+}
+
+function closeUpdateModal() {
+    document.getElementById('update-modal').classList.add('hidden');
+}
+
+function doUpdate() {
+    closeUpdateModal();
+    location.reload(true);
 }
 
 function _showAppShell(firstTime = false) {

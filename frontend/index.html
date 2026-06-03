@@ -108,8 +108,28 @@
             </select>
         </div>
         <div id="sidebar-version" style="font-size:0.7rem;color:var(--sidebar-text);text-align:center;padding-top:0.5rem;opacity:0.7"></div>
+        <div style="text-align:center;padding-top:0.25rem">
+            <button onclick="checkForUpdates()" style="background:none;border:none;color:var(--sidebar-text);font-size:0.65rem;opacity:0.55;cursor:pointer;padding:0;text-decoration:underline" onmouseover="this.style.opacity='0.9'" onmouseout="this.style.opacity='0.55'">Uppdatera?</button>
+        </div>
     </div>
 </aside>
+
+<!-- ── Update dialog ── -->
+<div id="update-modal" class="modal hidden">
+    <div class="modal-overlay" onclick="closeUpdateModal()"></div>
+    <div class="modal-content" style="max-width:400px">
+        <div class="modal-header">
+            <h2>Ny version tillgänglig</h2>
+        </div>
+        <div class="modal-body">
+            <p id="update-modal-text" style="margin:0;line-height:1.5"></p>
+        </div>
+        <div class="modal-footer">
+            <button class="btn btn-secondary" onclick="closeUpdateModal()">Avstår uppdatering</button>
+            <button class="btn btn-primary" onclick="doUpdate()">Uppdatera</button>
+        </div>
+    </div>
+</div>
 
 <!-- ════════════════════════════════ MAIN ════════════════════════════════ -->
 <main class="main hidden" id="main-content">

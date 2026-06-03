@@ -261,6 +261,96 @@ Svara i exakt detta JSON-format:
 }
 
 /**
+ * Analysera ett CVs visuella struktur och format för att skapa en CV-mall.
+ */
+async function analyzeCVTemplate(cvText) {
+  const system = `Du är expert på CV-design, dokumentstruktur och typografi.
+Din uppgift är att noggrant analysera en extraherad CV-text och rekonstruera dess visuella och strukturella egenskaper.
+Texten är maskinextraherad ur ett PDF eller dokument – visuell layout kan delvis ha gått förlorad men strukturella ledtrådar finns kvar (radbrytningar, ordning, märken, skiljelinjer etc.).
+
+Analysera NOGGRANT och svara ENDAST med JSON i exakt detta format:
+
+{
+  "language": "<sv|en|no|de|fr|annat>",
+  "estimated_pages": <1|2|3|4>,
+  "style": "<klassisk|modern|kreativ|minimalistisk|corporate|skandinavisk>",
+  "density": "<kompakt|balanserad|luftig>",
+
+  "layout": {
+    "columns": "<en-kolumn|sidebar-vänster|sidebar-höger|två-kolumner>",
+    "has_sidebar": <true|false>,
+    "sidebar_sections": ["<sektionsnamn som troligtvis finns i sidofältet, om sidebar, annars tom array>"],
+    "has_colored_header_block": <true|false>,
+    "has_dividers_between_sections": <true|false>,
+    "contact_placement": "<header|footer|sidebar|inbäddad-i-text>"
+  },
+
+  "color_hints": {
+    "likely_accent_color": "<beskriv trolig accentfärg baserat på struktur, t.ex. 'mörkblå' om rubriker verkar kontrastrika, 'grön', 'grå', 'ingen synlig accentfärg'>",
+    "colored_elements": ["<element som troligtvis har accentfärg, t.ex. 'sektionsrubriker', 'kandidatnamnet', 'tidslinjemarkör', 'sidhuvudsbakgrund'>"],
+    "header_background": "<mörk|ljus|okänd>",
+    "text_color_variation": "<ja – rubriker och brödtext verkar ha olika färger|nej – enhetlig textfärg>"
+  },
+
+  "typography": {
+    "name_presentation": "<t.ex. 'stor centrerad rubrik', 'versaler vänsterjusterad', 'normal storlek med titel nedanför'>",
+    "section_header_style": "<t.ex. 'VERSALER fetstil med understrykning', 'mixed case med horisontell linje', 'fetstil utan extra formatering'>",
+    "job_title_format": "<hur varje yrkestitel/roll-rubrik är formaterad, t.ex. 'FETSTIL FÖRETAG / Titel – Period', 'Titel (Period) \\n Företag, Ort'>",
+    "date_format": "<t.ex. 'ÅÅÅÅ–ÅÅÅÅ', 'mån ÅÅÅÅ – mån ÅÅÅÅ', 'ÅÅÅÅ-MM – ÅÅÅÅ-MM'>",
+    "body_text_characteristics": "<t.ex. 'kort löptext per erfarenhet', 'inga meningar – bara nyckelord', 'detaljerade stycken'>"
+  },
+
+  "profile_section": {
+    "present": <true|false>,
+    "heading": "<rubriken för profilsektionen, t.ex. 'Profil', 'Om mig', 'Sammanfattning', null om ej finns>",
+    "format": "<löptext|punktlista|citat|blandat|ej tillämpligt>",
+    "approximate_word_count": <uppskattat antal ord, 0 om saknas>,
+    "paragraph_count": <antal stycken eller punkter, 0 om saknas>
+  },
+
+  "experience_format": {
+    "heading_pattern": "<beskriv hur varje erfarenhets-rubrikrad ser ut, t.ex. 'FÖRETAGSNAMN (versaler) följt av Titel och period på nästa rad', 'Titel | Företag | Ort | Period på en rad'>",
+    "entry_structure": "<beskrivning|punktlista|både-beskrivning-och-punktlista|bara-rubrik-ingen-text>",
+    "bullet_marker": "<•|–|->|-|→|siffra|inget|blandat>",
+    "typical_entry_length": "<mycket-kort (1-2 rader)|kort (3-5 rader)|medel (6-10 rader)|lång (>10 rader)>",
+    "shows_achievements_separately": <true|false>,
+    "approximate_entry_count": <uppskattat antal erfarenhetsposter>
+  },
+
+  "skills_section": {
+    "present": <true|false>,
+    "presentation_style": "<löplista|kommaseparerad|kolumner|tabell|chips-taggar|med-nivå-indikator|ej tillämpligt>",
+    "grouped_by_category": <true|false>,
+    "approximate_skill_count": <uppskattat antal kompetenser, 0 om saknas>
+  },
+
+  "education_format": {
+    "present": <true|false>,
+    "entry_style": "<en-rad-per-post|multi-rad-per-post>",
+    "typical_fields_shown": ["<t.ex. 'institution', 'examen', 'period', 'ort', 'betyg'>"]
+  },
+
+  "sections_ordered": ["<sektionsnamn i den ordning de förekommer i CV:t>"],
+  "has_photo_placeholder": <true|false>,
+
+  "notable_features": [
+    "<specifikt och märkbart designval eller strukturell egenskap, t.ex. 'Tidslinjedesign med vertikalt streck', 'Kompetenser visas som stapelgrafer', 'Kontaktikoner (telefon, e-post) i sidhuvudet', 'Två tydliga kolumner med mörk vänsterkolumn'>"
+  ],
+
+  "reconstruction_instructions": "<3-5 meningar med konkreta instruktioner för hur en AI ska strukturera och formatera ett nytt CV i samma stil. Beskriv kolumner, rubrikformat, hur erfarenheter ska struktureras, vilka sektioner som ska inkluderas och i vilken ordning, samt eventuella distinkta formateringsdrag.>"
+}
+
+Viktigt:
+- Basera analysen ENBART på vad som faktiskt kan härledas ur texten
+- Ange "okänd" eller null om information verkligen inte går att utläsa
+- color_hints är alltid uppskattningar – markera det tydligt i beskrivningarna om det är osäkert
+- Fokusera extra noga på experience_format – det är det mest kritiska för återgivning`;
+
+  const user = `CV-text att analysera:\n\n${cvText}`;
+  return _chatJSON(system, user, { temperature: 0.1 });
+}
+
+/**
  * Matcha kompetensbank mot strukturerad jobbannons.
  */
 async function matchJobStructured(skills, experiences, structuredJob, seekerProfile = null) {
@@ -848,6 +938,7 @@ window.cvAI = {
   structureCV,
   analyzeJob,
   explainRequiredSkill,
+  analyzeCVTemplate,
   matchJob,
   matchJobStructured,
   generateCV,

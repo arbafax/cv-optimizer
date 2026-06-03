@@ -316,6 +316,83 @@ function showCVReviewModal(text, filename, onConfirm) {
     document.getElementById('cv-review-text').value = text;
 }
 
+// ── CV Upload Staging Panel ───────────────────────────────────────────────────
+// Shows a confirmation step between file drop and actual CV processing.
+// onConfirm(file, templateName|null) is called when user clicks "Analysera CV".
+
+function showCVStagingPanel(file, onConfirm, uploadAreaId) {
+    const uploadArea = document.getElementById(uploadAreaId);
+    if (!uploadArea) { onConfirm(file, null); return; }
+
+    const existing = uploadArea.parentElement.querySelector('.cv-staging-panel');
+    if (existing) existing.remove();
+
+    const panel = document.createElement('div');
+    panel.className = 'cv-staging-panel';
+    panel.innerHTML = `
+        <div class="cv-staging-file">
+            <span class="material-icons" style="color:var(--blue)">description</span>
+            <span class="cv-staging-filename">${esc(file.name)}</span>
+        </div>
+        <label class="cv-staging-format-row">
+            <input type="checkbox" id="cv-staging-save-format"> Spara formatet (CV-mall)
+        </label>
+        <div id="cv-staging-name-row" class="cv-staging-name-row hidden">
+            <input type="text" id="cv-staging-template-name" class="form-input" placeholder="Namn på CV-mallen…" style="max-width:280px">
+        </div>
+        <div class="cv-staging-actions">
+            <button class="btn btn-primary" id="cv-staging-confirm-btn">
+                Analysera CV <span class="material-icons" style="font-size:16px;vertical-align:middle">arrow_forward</span>
+            </button>
+            <button class="btn btn-ghost" id="cv-staging-cancel-btn">Avbryt</button>
+        </div>
+        <div id="cv-staging-status" class="cv-staging-status"></div>`;
+
+    uploadArea.insertAdjacentElement('afterend', panel);
+
+    const checkbox    = panel.querySelector('#cv-staging-save-format');
+    const nameRow     = panel.querySelector('#cv-staging-name-row');
+    const nameInput   = panel.querySelector('#cv-staging-template-name');
+    const confirmBtn  = panel.querySelector('#cv-staging-confirm-btn');
+    const cancelBtn   = panel.querySelector('#cv-staging-cancel-btn');
+    const statusEl    = panel.querySelector('#cv-staging-status');
+
+    checkbox.addEventListener('change', () => nameRow.classList.toggle('hidden', !checkbox.checked));
+
+    cancelBtn.addEventListener('click', () => panel.remove());
+
+    confirmBtn.addEventListener('click', async () => {
+        confirmBtn.disabled = true;
+        cancelBtn.disabled  = true;
+
+        const saveTemplate = checkbox.checked;
+        const templateName = nameInput.value.trim();
+
+        if (saveTemplate && !templateName) {
+            nameInput.focus();
+            nameInput.style.borderColor = 'var(--danger)';
+            confirmBtn.disabled = false;
+            cancelBtn.disabled  = false;
+            return;
+        }
+
+        if (saveTemplate) {
+            statusEl.textContent = '⏳ Analyserar CV-format…';
+            try {
+                const raw      = await cvPdf.extractText(file);
+                const template = await cvAI.analyzeCVTemplate(raw);
+                await cvDb.cvTemplates.add({ name: templateName, template_data: template });
+                statusEl.textContent = `✓ CV-mallen "${templateName}" sparad. Analyserar kompetenser…`;
+            } catch (err) {
+                statusEl.textContent = `⚠️ Format-analys misslyckades: ${err.message}. Fortsätter med CV-analys…`;
+            }
+        }
+
+        panel.remove();
+        onConfirm(file, saveTemplate ? templateName : null);
+    });
+}
+
 function closeCVReviewModal() {
     const modal = document.getElementById('cv-review-modal');
     if (modal) modal.remove();

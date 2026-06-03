@@ -4,7 +4,7 @@
  */
 
 const DB_NAME = 'cv-optimizer';
-const DB_VERSION = 2;
+const DB_VERSION = 3;
 
 let _db = null;
 
@@ -87,6 +87,10 @@ function _openDB() {
       if (!db.objectStoreNames.contains('kand_cvs')) {
         const kcv = db.createObjectStore('kand_cvs', { keyPath: 'id', autoIncrement: true });
         kcv.createIndex('kandidat_id', 'kandidat_id', { unique: false });
+      }
+
+      if (!db.objectStoreNames.contains('cv_templates')) {
+        db.createObjectStore('cv_templates', { keyPath: 'id', autoIncrement: true });
       }
     };
 
@@ -873,6 +877,41 @@ const settings = {
   },
 };
 
+// ─── cv_templates ────────────────────────────────────────────────────────────
+
+const cvTemplates = {
+  async list() {
+    return _tx('cv_templates', 'readonly', (tx) =>
+      _req(tx.objectStore('cv_templates').getAll())
+    );
+  },
+  async get(id) {
+    return _tx('cv_templates', 'readonly', (tx) =>
+      _req(tx.objectStore('cv_templates').get(id))
+    );
+  },
+  async add(data) {
+    const rec = { ...data, created_at: new Date().toISOString() };
+    const id  = await _tx('cv_templates', 'readwrite', (tx) =>
+      _req(tx.objectStore('cv_templates').add(rec))
+    );
+    return { ...rec, id };
+  },
+  async update(id, data) {
+    const existing = await this.get(id);
+    const updated  = { ...existing, ...data, id };
+    await _tx('cv_templates', 'readwrite', (tx) =>
+      _req(tx.objectStore('cv_templates').put(updated))
+    );
+    return updated;
+  },
+  async delete(id) {
+    return _tx('cv_templates', 'readwrite', (tx) =>
+      _req(tx.objectStore('cv_templates').delete(id))
+    );
+  },
+};
+
 // ─── Public API ───────────────────────────────────────────────────────────────
 
 const cvDb = {
@@ -894,6 +933,7 @@ const cvDb = {
   kandCvs,
   searchProfiles,
   settings,
+  cvTemplates,
 };
 
 window.cvDb = cvDb;

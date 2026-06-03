@@ -310,7 +310,8 @@ async function _importPayload(payload) {
     const stores = ['profile', 'skills', 'experiences', 'cvs', 'education',
                     'certifications', 'search_profiles', 'settings',
                     'kandidater', 'kand_skills', 'kand_experiences',
-                    'kand_education', 'kand_certifications', 'kand_cvs'];
+                    'kand_education', 'kand_certifications', 'kand_cvs',
+                    'cv_templates'];
 
     // Preserve AI settings across import
     const savedAI = await cvDb.settings.getAll();
@@ -386,6 +387,14 @@ async function _importPayload(payload) {
             })
         );
     }
+    for (const tmpl of (payload.cv_templates || [])) {
+        await cvDb._tx('cv_templates', 'readwrite', (tx) =>
+            new Promise((res, rej) => {
+                const req = tx.objectStore('cv_templates').add(strip(tmpl));
+                req.onsuccess = () => res(); req.onerror = () => rej(req.error);
+            })
+        );
+    }
 
     // Import kandidater with nested data (need to remap old kandidat id → new id)
     for (const k of (payload.kandidater || [])) {
@@ -446,13 +455,16 @@ async function exportAccountData() {
             if (allSettings[key] != null) userSettings[key] = allSettings[key];
         }
 
+        const cvTemplatesList = await cvDb.cvTemplates.list();
+
         const payload = {
-            export_version:  '2.0',
+            export_version:  '2.1',
             exported_at:     new Date().toISOString(),
             profile,
             search_profiles: searchProfilesList,
             kandidater:      kandidaterWithData,
             user_settings:   userSettings,
+            cv_templates:    cvTemplatesList,
         };
 
         const json = JSON.stringify(payload, null, 2);
@@ -483,7 +495,8 @@ async function handleResetAllData() {
     const stores = ['profile', 'skills', 'experiences', 'cvs', 'education',
                     'certifications', 'search_profiles', 'settings',
                     'kandidater', 'kand_skills', 'kand_experiences',
-                    'kand_education', 'kand_certifications', 'kand_cvs'];
+                    'kand_education', 'kand_certifications', 'kand_cvs',
+                    'cv_templates'];
     for (const store of stores) {
         await cvDb._tx(store, 'readwrite', (tx) =>
             new Promise((res, rej) => {

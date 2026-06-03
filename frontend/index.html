@@ -48,7 +48,6 @@
             <select id="auth-language" class="form-input" onchange="setLanguage(this.value)" style="max-width:220px">
                 <option value="sv">🇸🇪 Svenska (SV)</option>
                 <option value="en">🇬🇧 English (EN)</option>
-                <option value="no">🇳🇴 Norsk (NO)</option>
             </select>
         </div>
     </div>
@@ -104,7 +103,6 @@
             <select id="sidebar-language" class="form-input" onchange="setLanguage(this.value)" style="max-width:100%">
                 <option value="sv">🇸🇪 Svenska (SV)</option>
                 <option value="en">🇬🇧 English (EN)</option>
-                <option value="no">🇳🇴 Norsk (NO)</option>
             </select>
         </div>
         <div id="sidebar-version" style="font-size:0.7rem;color:var(--sidebar-text);text-align:center;padding-top:0.5rem;opacity:0.7"></div>
@@ -686,7 +684,6 @@
                 <select id="account-language" class="form-input" style="max-width:220px" onchange="saveAccountLanguage()">
                     <option value="sv">🇸🇪 Svenska (SV)</option>
                     <option value="en">🇬🇧 English (EN)</option>
-                    <option value="no">🇳🇴 Norsk (NO)</option>
                 </select>
             </div>
 
@@ -860,7 +857,7 @@
                 <input type="text" id="sp-public-name" class="form-input" placeholder="Ditt namn som visas för arbetsgivare" data-i18n-ph="sp.ph_name" onblur="saveSokprofil()">
             </div>
             <div class="form-group">
-                <label for="sp-email" data-i18n="common.label_email">E-postadress</label>
+                <label for="sp-email" data-i18n="sp.label_email">Publik e-postadress</label>
                 <p class="field-desc" data-i18n="sp.desc_email">Den e-postadress som visas för rekryterare och arbetsgivare. Behöver inte vara samma som ditt kontos e-postadress.</p>
                 <input type="email" id="sp-email" class="form-input" placeholder="din@epost.se" data-i18n-ph="sp.ph_email" onblur="saveSokprofil()">
             </div>

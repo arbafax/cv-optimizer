@@ -2730,6 +2730,17 @@ body {
     color: var(--text-secondary);
 }
 
+.mk-select-all-item {
+    color: var(--text-secondary);
+    font-size: 13px;
+}
+
+.mk-kandidat-divider {
+    margin: 2px 8px;
+    border: none;
+    border-top: 1px solid var(--border);
+}
+
 /* Matcha mot kandidater – rank button divider */
 .mk-btn-divider {
     text-align: center;

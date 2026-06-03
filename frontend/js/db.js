@@ -877,41 +877,6 @@ const settings = {
   },
 };
 
-// ─── cv_templates ────────────────────────────────────────────────────────────
-
-const cvTemplates = {
-  async list() {
-    return _tx('cv_templates', 'readonly', (tx) =>
-      _req(tx.objectStore('cv_templates').getAll())
-    );
-  },
-  async get(id) {
-    return _tx('cv_templates', 'readonly', (tx) =>
-      _req(tx.objectStore('cv_templates').get(id))
-    );
-  },
-  async add(data) {
-    const rec = { ...data, created_at: new Date().toISOString() };
-    const id  = await _tx('cv_templates', 'readwrite', (tx) =>
-      _req(tx.objectStore('cv_templates').add(rec))
-    );
-    return { ...rec, id };
-  },
-  async update(id, data) {
-    const existing = await this.get(id);
-    const updated  = { ...existing, ...data, id };
-    await _tx('cv_templates', 'readwrite', (tx) =>
-      _req(tx.objectStore('cv_templates').put(updated))
-    );
-    return updated;
-  },
-  async delete(id) {
-    return _tx('cv_templates', 'readwrite', (tx) =>
-      _req(tx.objectStore('cv_templates').delete(id))
-    );
-  },
-};
-
 // ─── Public API ───────────────────────────────────────────────────────────────
 
 const cvDb = {
@@ -933,7 +898,6 @@ const cvDb = {
   kandCvs,
   searchProfiles,
   settings,
-  cvTemplates,
 };
 
 window.cvDb = cvDb;

@@ -662,7 +662,7 @@ function setupKandidatUpload() {
     setupUploadZone({
         areaId:   'kand-upload-area',
         inputId:  'kand-cv-upload',
-        onFile:   (file) => showCVStagingPanel(file, handleKandidatCVUpload, 'kand-upload-area'),
+        onFile:   handleKandidatCVUpload,
         statusFn: showKandidatUploadStatus,
     });
 }

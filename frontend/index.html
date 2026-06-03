@@ -119,14 +119,14 @@
     <div class="modal-overlay" onclick="closeUpdateModal()"></div>
     <div class="modal-content" style="max-width:400px">
         <div class="modal-header">
-            <h2>Ny version tillgänglig</h2>
+            <h2 data-i18n="update.title">Ny version tillgänglig</h2>
         </div>
         <div class="modal-body">
             <p id="update-modal-text" style="margin:0;line-height:1.5"></p>
         </div>
         <div class="modal-footer">
-            <button class="btn btn-secondary" onclick="closeUpdateModal()">Avstår uppdatering</button>
-            <button class="btn btn-primary" onclick="doUpdate()">Uppdatera</button>
+            <button class="btn btn-secondary" onclick="closeUpdateModal()" data-i18n="update.dismiss">Avstår uppdatering</button>
+            <button class="btn btn-primary" onclick="doUpdate()" data-i18n="update.update">Uppdatera</button>
         </div>
     </div>
 </div>
@@ -145,7 +145,7 @@
     <div id="view-dashboard" class="view active">
         <div class="view-header">
             <div>
-                <h1>Välkommen </h1>
+                <h1 data-i18n="dash.welcome">Välkommen</h1>
                 <p class="view-subtitle" data-i18n="dash.subtitle">Här är en översikt av dina CV:n och matchningar.</p>
             </div>
         </div>
@@ -280,91 +280,91 @@
                     <h1 id="kandidat-form-title">Lägg till kandidat</h1>
                     <p class="view-subtitle" id="kandidat-form-subtitle">Fyll i kandidatens profil och preferenser.</p>
                 </div>
-                <button class="btn btn-secondary" onclick="showKandidatListPanel()">← Tillbaka</button>
+                <button class="btn btn-secondary" onclick="showKandidatListPanel()" data-i18n="kand.back">← Tillbaka</button>
             </div>
 
             <!-- Tab navigation -->
             <div class="kand-tabs">
-                <button id="kand-tab-btn-basinfo" class="kand-tab-btn active" onclick="switchKandidatTab('basinfo')">Basinfo</button>
-                <button id="kand-tab-btn-kompetenser" class="kand-tab-btn" onclick="switchKandidatTab('kompetenser')" disabled>Kompetenser</button>
-                <button id="kand-tab-btn-erfarenheter" class="kand-tab-btn" onclick="switchKandidatTab('erfarenheter')" disabled>Erfarenheter</button>
-                <button id="kand-tab-btn-utbildning" class="kand-tab-btn" onclick="switchKandidatTab('utbildning')" disabled>Utbildning</button>
-                <button id="kand-tab-btn-certifikat" class="kand-tab-btn" onclick="switchKandidatTab('certifikat')" disabled>Kurser &amp; Cert</button>
-                <button id="kand-tab-btn-cv" class="kand-tab-btn" onclick="switchKandidatTab('cv')" disabled>CV</button>
+                <button id="kand-tab-btn-basinfo" class="kand-tab-btn active" onclick="switchKandidatTab('basinfo')" data-i18n="tab.basinfo">Basinfo</button>
+                <button id="kand-tab-btn-kompetenser" class="kand-tab-btn" onclick="switchKandidatTab('kompetenser')" disabled data-i18n="tab.kompetenser">Kompetenser</button>
+                <button id="kand-tab-btn-erfarenheter" class="kand-tab-btn" onclick="switchKandidatTab('erfarenheter')" disabled data-i18n="tab.erfarenheter">Erfarenheter</button>
+                <button id="kand-tab-btn-utbildning" class="kand-tab-btn" onclick="switchKandidatTab('utbildning')" disabled data-i18n="tab.utbildning">Utbildning</button>
+                <button id="kand-tab-btn-certifikat" class="kand-tab-btn" onclick="switchKandidatTab('certifikat')" disabled data-i18n="tab.certifikat">Kurser &amp; Cert</button>
+                <button id="kand-tab-btn-cv" class="kand-tab-btn" onclick="switchKandidatTab('cv')" disabled data-i18n="tab.cv">CV</button>
             </div>
 
             <!-- ── TAB: Basinfo ── -->
             <div id="kand-tab-basinfo">
                 <div class="card sokprofil-card">
                     <div class="form-group">
-                        <label for="kand-public-name">Namn <span style="color:var(--danger)">*</span></label>
-                        <p class="field-desc">Kandidatens namn som visas för uppdragsgivare.</p>
-                        <input type="text" id="kand-public-name" class="form-input" placeholder="Kandidatens namn" onblur="autoSaveKandidat()">
+                        <label for="kand-public-name"><span data-i18n="kand.label_name">Namn</span> <span style="color:var(--danger)">*</span></label>
+                        <p class="field-desc" data-i18n="kand.desc_name">Kandidatens namn som visas för uppdragsgivare.</p>
+                        <input type="text" id="kand-public-name" class="form-input" placeholder="Kandidatens namn" data-i18n-ph="kand.ph_name" onblur="autoSaveKandidat()">
                     </div>
                     <div class="form-group">
-                        <label for="kand-email">E-postadress</label>
-                        <p class="field-desc">Kandidatens e-postadress. Används för framtida inbjudan att koppla ett konto.</p>
-                        <input type="email" id="kand-email" class="form-input" placeholder="kandidat@epost.se" onblur="autoSaveKandidat()">
+                        <label for="kand-email" data-i18n="common.label_email">E-postadress</label>
+                        <p class="field-desc" data-i18n="kand.desc_email">Kandidatens e-postadress. Används för framtida inbjudan att koppla ett konto.</p>
+                        <input type="email" id="kand-email" class="form-input" placeholder="kandidat@epost.se" data-i18n-ph="kand.ph_email" onblur="autoSaveKandidat()">
                     </div>
                     <div class="form-group">
-                        <label for="kand-public-phone">Telefonnummer</label>
-                        <p class="field-desc">Kandidatens telefonnummer.</p>
-                        <input type="tel" id="kand-public-phone" class="form-input" placeholder="+46 70 000 00 00" onblur="autoSaveKandidat()">
+                        <label for="kand-public-phone" data-i18n="kand.label_phone">Telefonnummer</label>
+                        <p class="field-desc" data-i18n="kand.desc_phone">Kandidatens telefonnummer.</p>
+                        <input type="tel" id="kand-public-phone" class="form-input" placeholder="+46 70 000 00 00" data-i18n-ph="sp.ph_phone" onblur="autoSaveKandidat()">
                     </div>
                     <div class="form-group">
-                        <label for="kand-roles">Roller</label>
-                        <p class="field-desc">Vilka typer av roller kandidaten kan tänka sig att jobba i.</p>
-                        <input type="text" id="kand-roles" class="form-input" placeholder="t.ex. Frontend-utvecklare, UX-designer" onblur="autoSaveKandidat()">
-                        <span class="form-hint">Separera med kommatecken</span>
+                        <label for="kand-roles" data-i18n="common.label_roles">Roller</label>
+                        <p class="field-desc" data-i18n="kand.desc_roles">Vilka typer av roller kandidaten kan tänka sig att jobba i.</p>
+                        <input type="text" id="kand-roles" class="form-input" placeholder="t.ex. Frontend-utvecklare, UX-designer" data-i18n-ph="kand.ph_roles" onblur="autoSaveKandidat()">
+                        <span class="form-hint" data-i18n="sp.hint_roles">Separera med kommatecken</span>
                     </div>
                     <div class="form-group">
-                        <label for="kand-city">Önskad ort</label>
-                        <p class="field-desc">Den ort eller region där kandidaten i första hand vill arbeta.</p>
-                        <input type="text" id="kand-city" class="form-input" placeholder="t.ex. Stockholm, Göteborg" onblur="autoSaveKandidat()">
+                        <label for="kand-city" data-i18n="common.label_city">Önskad ort</label>
+                        <p class="field-desc" data-i18n="kand.desc_city">Den ort eller region där kandidaten i första hand vill arbeta.</p>
+                        <input type="text" id="kand-city" class="form-input" placeholder="t.ex. Stockholm, Göteborg" data-i18n-ph="kand.ph_city" onblur="autoSaveKandidat()">
                     </div>
 
                     <div class="form-group">
-                        <label>Önskad anställningsform</label>
-                        <p class="field-desc">Vilken eller vilka anställningsformer kandidaten är öppen för.</p>
+                        <label data-i18n="common.label_emp_type">Önskad anställningsform</label>
+                        <p class="field-desc" data-i18n="kand.desc_emp_type">Vilken eller vilka anställningsformer kandidaten är öppen för.</p>
                         <div class="checkbox-group">
                             <label class="checkbox-label">
                                 <input type="checkbox" id="kand-emp-heltid" value="Heltid" onchange="autoSaveKandidat()">
-                                <span>Heltid</span>
+                                <span data-i18n="common.emp_full">Heltid</span>
                             </label>
                             <label class="checkbox-label">
                                 <input type="checkbox" id="kand-emp-deltid" value="Deltid" onchange="autoSaveKandidat()">
-                                <span>Deltid</span>
+                                <span data-i18n="common.emp_part">Deltid</span>
                             </label>
                             <label class="checkbox-label">
                                 <input type="checkbox" id="kand-emp-timmar" value="Timmar" onchange="autoSaveKandidat()">
-                                <span>Timmar</span>
+                                <span data-i18n="common.emp_hourly">Timmar</span>
                             </label>
                             <label class="checkbox-label">
                                 <input type="checkbox" id="kand-emp-fast" value="Fast anställning" onchange="autoSaveKandidat()">
-                                <span>Fast anställning</span>
+                                <span data-i18n="common.emp_permanent">Fast anställning</span>
                             </label>
                             <label class="checkbox-label">
                                 <input type="checkbox" id="kand-emp-konsult" value="Konsult" onchange="autoSaveKandidat()">
-                                <span>Konsult</span>
+                                <span data-i18n="common.emp_consultant">Konsult</span>
                             </label>
                         </div>
                     </div>
 
                     <div class="form-group">
-                        <label>Önskad arbetsplats</label>
-                        <p class="field-desc">Var kandidaten föredrar att arbeta.</p>
+                        <label data-i18n="common.label_workplace">Önskad arbetsplats</label>
+                        <p class="field-desc" data-i18n="sp.desc_workplace">Var kandidaten föredrar att arbeta.</p>
                         <div class="checkbox-group">
                             <label class="checkbox-label">
                                 <input type="checkbox" id="kand-wp-plats" value="På plats" onchange="autoSaveKandidat()">
-                                <span>På plats</span>
+                                <span data-i18n="common.wp_onsite">På plats</span>
                             </label>
                             <label class="checkbox-label">
                                 <input type="checkbox" id="kand-wp-hybrid" value="Hybrid" onchange="autoSaveKandidat()">
-                                <span>Hybrid</span>
+                                <span data-i18n="common.wp_hybrid">Hybrid</span>
                             </label>
                             <label class="checkbox-label">
                                 <input type="checkbox" id="kand-wp-distans" value="Distans" onchange="autoSaveKandidat()">
-                                <span>Distans</span>
+                                <span data-i18n="common.wp_remote">Distans</span>
                             </label>
                         </div>
                     </div>
@@ -372,8 +372,8 @@
                     <div class="form-group">
                         <div class="toggle-row">
                             <div>
-                                <span class="toggle-label">Resbar</span>
-                                <p class="field-desc">Kandidaten är villig att pendla eller resa som en del av tjänsten.</p>
+                                <span class="toggle-label" data-i18n="common.label_commute">Resbar</span>
+                                <p class="field-desc" data-i18n="kand.desc_commute">Kandidaten är villig att pendla eller resa som en del av tjänsten.</p>
                             </div>
                             <label class="toggle-switch">
                                 <input type="checkbox" id="kand-commute" onchange="autoSaveKandidat()">
@@ -385,8 +385,8 @@
                     <div class="form-group">
                         <div class="toggle-row">
                             <div>
-                                <span class="toggle-label">Sökbar</span>
-                                <p class="field-desc">Kandidaten kan hittas och kontaktas av rekryterare.</p>
+                                <span class="toggle-label" data-i18n="common.label_searchable">Sökbar</span>
+                                <p class="field-desc" data-i18n="kand.desc_searchable">Kandidaten kan hittas och kontaktas av rekryterare.</p>
                             </div>
                             <label class="toggle-switch">
                                 <input type="checkbox" id="kand-searchable" onchange="autoSaveKandidat()">
@@ -396,8 +396,8 @@
                     </div>
 
                     <div class="form-group">
-                        <label for="kand-available-from">Tillgänglig från</label>
-                        <p class="field-desc">Det datum kandidaten tidigast kan börja ett nytt uppdrag. Lämna tomt om omedelbart tillgänglig.</p>
+                        <label for="kand-available-from" data-i18n="common.label_available">Tillgänglig från</label>
+                        <p class="field-desc" data-i18n="kand.desc_available">Det datum kandidaten tidigast kan börja ett nytt uppdrag. Lämna tomt om omedelbart tillgänglig.</p>
                         <input type="date" id="kand-available-from" class="form-input" onchange="autoSaveKandidat()">
                     </div>
 
@@ -409,7 +409,7 @@
                     </div>
 
                     <div id="kand-status"></div>
-                    <button id="kand-delete-btn" class="btn btn-danger" onclick="deleteKandidat()" style="display:none">Ta bort kandidat</button>
+                    <button id="kand-delete-btn" class="btn btn-danger" onclick="deleteKandidat()" style="display:none" data-i18n="kand.delete">Ta bort kandidat</button>
                 </div>
             </div>
 
@@ -418,26 +418,26 @@
 
                 <!-- Lägg till skill manuellt -->
                 <div class="card" style="margin-bottom:1.25rem">
-                    <h3 style="margin:0 0 0.75rem">Lägg till kompetens manuellt</h3>
+                    <h3 style="margin:0 0 0.75rem" data-i18n="bank.add_skill_title">Lägg till kompetens manuellt</h3>
                     <div style="display:flex; gap:0.5rem; flex-wrap:wrap; align-items:flex-end">
                         <div style="flex:1; min-width:160px">
-                            <label for="kand-skill-name" style="display:block;font-size:0.8125rem;color:var(--text-muted);margin-bottom:2px">Kompetens</label>
-                            <input type="text" id="kand-skill-name" class="form-input" placeholder="t.ex. Python, Projektledning">
+                            <label for="kand-skill-name" style="display:block;font-size:0.8125rem;color:var(--text-muted);margin-bottom:2px" data-i18n="bank.label_skill">Kompetens</label>
+                            <input type="text" id="kand-skill-name" class="form-input" placeholder="t.ex. Python, Projektledning" data-i18n-ph="bank.ph_skill">
                         </div>
                         <div style="min-width:140px">
-                            <label for="kand-skill-category" style="display:block;font-size:0.8125rem;color:var(--text-muted);margin-bottom:2px">Kategori</label>
-                            <input type="text" id="kand-skill-category" class="form-input" placeholder="t.ex. Övrigt" data-cat-combo>
+                            <label for="kand-skill-category" style="display:block;font-size:0.8125rem;color:var(--text-muted);margin-bottom:2px" data-i18n="bank.label_category">Kategori</label>
+                            <input type="text" id="kand-skill-category" class="form-input" placeholder="t.ex. Övrigt" data-i18n-ph="bank.ph_category" data-cat-combo>
                         </div>
                         <div style="min-width:130px">
-                            <label for="kand-skill-level" style="display:block;font-size:0.8125rem;color:var(--text-muted);margin-bottom:2px">Nivå</label>
+                            <label for="kand-skill-level" style="display:block;font-size:0.8125rem;color:var(--text-muted);margin-bottom:2px" data-i18n="bank.label_level">Nivå</label>
                             <select id="kand-skill-level" class="form-input">
-                                <option value="">— Nivå —</option>
-                                <option value="Känner till">Känner till</option>
-                                <option value="Erfaren">Erfaren</option>
-                                <option value="Mycket erfaren">Mycket erfaren</option>
+                                <option value="" data-i18n="skill.level_ph">— Nivå —</option>
+                                <option value="Känner till" data-i18n="skill.level_1">Känner till</option>
+                                <option value="Erfaren" data-i18n="skill.level_2">Erfaren</option>
+                                <option value="Mycket erfaren" data-i18n="skill.level_3">Mycket erfaren</option>
                             </select>
                         </div>
-                        <button class="btn btn-primary" onclick="addKandidatSkill()" style="white-space:nowrap">+ Lägg till</button>
+                        <button class="btn btn-primary" onclick="addKandidatSkill()" style="white-space:nowrap" data-i18n="common.add">+ Lägg till</button>
                     </div>
                     <div id="kand-bank-status"></div>
                 </div>
@@ -445,7 +445,7 @@
                 <!-- Kompetenser -->
                 <div class="card">
                     <div id="kand-skills-list">
-                        <div class="empty-hint">Inga kompetenser tillagda ännu.</div>
+                        <div class="empty-hint" data-i18n="kand.no_skills">Inga kompetenser tillagda ännu.</div>
                     </div>
                 </div>
 
@@ -466,52 +466,52 @@
             <div id="kand-tab-erfarenheter" style="display:none">
 
                 <div class="card" style="margin-bottom:1.25rem">
-                    <h3 style="margin:0 0 0.75rem">Lägg till erfarenhet</h3>
+                    <h3 style="margin:0 0 0.75rem" data-i18n="bank.add_exp_title">Lägg till erfarenhet</h3>
                     <div style="display:grid; grid-template-columns:1fr 1fr; gap:0.5rem">
                         <div style="grid-column:1/-1">
-                            <label style="display:block;font-size:0.8125rem;color:var(--text-muted);margin-bottom:2px">Titel <span style="color:var(--danger)">*</span></label>
-                            <input type="text" id="kand-exp-title" class="form-input" placeholder="t.ex. Systemutvecklare, Backend-projekt">
+                            <label style="display:block;font-size:0.8125rem;color:var(--text-muted);margin-bottom:2px"><span data-i18n="bank.label_title_text">Titel</span> <span style="color:var(--danger)">*</span></label>
+                            <input type="text" id="kand-exp-title" class="form-input" placeholder="t.ex. Systemutvecklare, Backend-projekt" data-i18n-ph="bank.ph_exp_title">
                         </div>
                         <div>
-                            <label style="display:block;font-size:0.8125rem;color:var(--text-muted);margin-bottom:2px">Organisation</label>
-                            <input type="text" id="kand-exp-org" class="form-input" placeholder="t.ex. Företaget AB">
+                            <label style="display:block;font-size:0.8125rem;color:var(--text-muted);margin-bottom:2px" data-i18n="bank.label_org">Organisation</label>
+                            <input type="text" id="kand-exp-org" class="form-input" placeholder="t.ex. Företaget AB" data-i18n-ph="bank.ph_org">
                         </div>
                         <div>
-                            <label style="display:block;font-size:0.8125rem;color:var(--text-muted);margin-bottom:2px">Typ</label>
+                            <label style="display:block;font-size:0.8125rem;color:var(--text-muted);margin-bottom:2px" data-i18n="bank.label_type">Typ</label>
                             <select id="kand-exp-type" class="form-input">
-                                <option value="work">Arbete</option>
-                                <option value="project">Projekt</option>
+                                <option value="work" data-i18n="kand.type_work">Arbete</option>
+                                <option value="project" data-i18n="kand.type_project">Projekt</option>
                             </select>
                         </div>
                         <div>
-                            <label style="display:block;font-size:0.8125rem;color:var(--text-muted);margin-bottom:2px">Från (ÅÅÅÅ-MM)</label>
+                            <label style="display:block;font-size:0.8125rem;color:var(--text-muted);margin-bottom:2px" data-i18n="bank.label_from_ym">Från (ÅÅÅÅ-MM)</label>
                             <input type="text" id="kand-exp-start" class="form-input" placeholder="2020-01">
                         </div>
                         <div>
-                            <label style="display:block;font-size:0.8125rem;color:var(--text-muted);margin-bottom:2px">Till (ÅÅÅÅ-MM)</label>
+                            <label style="display:block;font-size:0.8125rem;color:var(--text-muted);margin-bottom:2px" data-i18n="bank.label_to_ym">Till (ÅÅÅÅ-MM)</label>
                             <input type="text" id="kand-exp-end" class="form-input" placeholder="2023-06">
                         </div>
                         <div style="grid-column:1/-1">
                             <label style="font-size:0.8125rem;display:flex;align-items:center;gap:0.4rem">
-                                <input type="checkbox" id="kand-exp-current"> Pågående
+                                <input type="checkbox" id="kand-exp-current"> <span data-i18n="kand.ongoing">Pågående</span>
                             </label>
                         </div>
                         <div style="grid-column:1/-1">
-                            <label style="display:block;font-size:0.8125rem;color:var(--text-muted);margin-bottom:2px">Beskrivning</label>
-                            <textarea id="kand-exp-desc" class="form-input" rows="3" placeholder="Beskriv rollen eller projektet" style="width:100%;box-sizing:border-box"></textarea>
+                            <label style="display:block;font-size:0.8125rem;color:var(--text-muted);margin-bottom:2px" data-i18n="bank.label_desc">Beskrivning</label>
+                            <textarea id="kand-exp-desc" class="form-input" rows="3" placeholder="Beskriv rollen eller projektet" data-i18n-ph="bank.ph_role_desc" style="width:100%;box-sizing:border-box"></textarea>
                         </div>
                         <div style="grid-column:1/-1">
-                            <label style="display:block;font-size:0.8125rem;color:var(--text-muted);margin-bottom:2px">Prestationer (en per rad)</label>
-                            <textarea id="kand-exp-ach" class="form-input" rows="3" placeholder="En prestation per rad" style="width:100%;box-sizing:border-box"></textarea>
+                            <label style="display:block;font-size:0.8125rem;color:var(--text-muted);margin-bottom:2px" data-i18n="kand.achievements_label">Prestationer (en per rad)</label>
+                            <textarea id="kand-exp-ach" class="form-input" rows="3" placeholder="En prestation per rad" data-i18n-ph="bank.ph_ach" style="width:100%;box-sizing:border-box"></textarea>
                         </div>
                     </div>
                     <div id="kand-exp-status" style="margin-top:0.5rem"></div>
-                    <button class="btn btn-primary" onclick="addKandidatExperience()" style="margin-top:0.75rem">+ Lägg till erfarenhet</button>
+                    <button class="btn btn-primary" onclick="addKandidatExperience()" style="margin-top:0.75rem" data-i18n="bank.add_exp_btn">+ Lägg till erfarenhet</button>
                 </div>
 
                 <div class="card">
                     <div id="kand-experiences-list">
-                        <div class="empty-hint">Inga erfarenheter tillagda ännu.</div>
+                        <div class="empty-hint" data-i18n="kand.no_exps">Inga erfarenheter tillagda ännu.</div>
                     </div>
                 </div>
 
@@ -520,37 +520,37 @@
             <!-- ── TAB: Utbildning ── -->
             <div id="kand-tab-utbildning" style="display:none">
                 <div class="card" style="margin-bottom:1.25rem">
-                    <h3 style="margin:0 0 0.75rem">Lägg till utbildning</h3>
+                    <h3 style="margin:0 0 0.75rem" data-i18n="bank.add_edu_title">Lägg till utbildning</h3>
                     <div style="display:grid; grid-template-columns:1fr 1fr; gap:0.5rem">
                         <div>
-                            <label style="display:block;font-size:0.8125rem;color:var(--text-muted);margin-bottom:2px">Examen / Utbildning <span style="color:var(--danger)">*</span></label>
-                            <input type="text" id="kand-edu-degree" class="form-input" placeholder="t.ex. Civilingenjör, Kandidatexamen">
+                            <label style="display:block;font-size:0.8125rem;color:var(--text-muted);margin-bottom:2px"><span data-i18n="bank.label_degree">Examen / Utbildning</span> <span style="color:var(--danger)">*</span></label>
+                            <input type="text" id="kand-edu-degree" class="form-input" placeholder="t.ex. Civilingenjör, Kandidatexamen" data-i18n-ph="bank.ph_degree">
                         </div>
                         <div>
-                            <label style="display:block;font-size:0.8125rem;color:var(--text-muted);margin-bottom:2px">Lärosäte</label>
-                            <input type="text" id="kand-edu-institution" class="form-input" placeholder="t.ex. KTH, Stockholms Universitet">
+                            <label style="display:block;font-size:0.8125rem;color:var(--text-muted);margin-bottom:2px" data-i18n="bank.label_institution">Lärosäte</label>
+                            <input type="text" id="kand-edu-institution" class="form-input" placeholder="t.ex. KTH, Stockholms Universitet" data-i18n-ph="bank.ph_institution">
                         </div>
                         <div>
-                            <label style="display:block;font-size:0.8125rem;color:var(--text-muted);margin-bottom:2px">Inriktning</label>
-                            <input type="text" id="kand-edu-field" class="form-input" placeholder="t.ex. Datavetenskap">
+                            <label style="display:block;font-size:0.8125rem;color:var(--text-muted);margin-bottom:2px" data-i18n="bank.label_field">Inriktning</label>
+                            <input type="text" id="kand-edu-field" class="form-input" placeholder="t.ex. Datavetenskap" data-i18n-ph="bank.ph_field">
                         </div>
                         <div style="display:flex; gap:0.5rem">
                             <div style="flex:1">
-                                <label style="display:block;font-size:0.8125rem;color:var(--text-muted);margin-bottom:2px">Från</label>
+                                <label style="display:block;font-size:0.8125rem;color:var(--text-muted);margin-bottom:2px" data-i18n="bank.label_from">Från</label>
                                 <input type="text" id="kand-edu-start" class="form-input" placeholder="2018">
                             </div>
                             <div style="flex:1">
-                                <label style="display:block;font-size:0.8125rem;color:var(--text-muted);margin-bottom:2px">Till</label>
+                                <label style="display:block;font-size:0.8125rem;color:var(--text-muted);margin-bottom:2px" data-i18n="bank.label_to">Till</label>
                                 <input type="text" id="kand-edu-end" class="form-input" placeholder="2022">
                             </div>
                         </div>
                     </div>
                     <div id="kand-edu-status" style="margin-top:0.5rem"></div>
-                    <button class="btn btn-primary" onclick="addKandidatEducation()" style="margin-top:0.75rem">+ Lägg till utbildning</button>
+                    <button class="btn btn-primary" onclick="addKandidatEducation()" style="margin-top:0.75rem" data-i18n="bank.add_edu_btn">+ Lägg till utbildning</button>
                 </div>
                 <div class="card">
                     <div id="kand-education-list">
-                        <div class="empty-hint">Inga utbildningar tillagda ännu.</div>
+                        <div class="empty-hint" data-i18n="kand.no_edu">Inga utbildningar tillagda ännu.</div>
                     </div>
                 </div>
             </div>
@@ -558,31 +558,31 @@
             <!-- ── TAB: Kurser & Cert ── -->
             <div id="kand-tab-certifikat" style="display:none">
                 <div class="card" style="margin-bottom:1.25rem">
-                    <h3 style="margin:0 0 0.75rem">Lägg till kurs eller certifikat</h3>
+                    <h3 style="margin:0 0 0.75rem" data-i18n="bank.add_cert_title">Lägg till kurs eller certifikat</h3>
                     <div style="display:grid; grid-template-columns:1fr 1fr; gap:0.5rem">
                         <div>
-                            <label style="display:block;font-size:0.8125rem;color:var(--text-muted);margin-bottom:2px">Namn <span style="color:var(--danger)">*</span></label>
-                            <input type="text" id="kand-cert-name" class="form-input" placeholder="t.ex. AWS Solutions Architect">
+                            <label style="display:block;font-size:0.8125rem;color:var(--text-muted);margin-bottom:2px"><span data-i18n="common.label_name">Namn</span> <span style="color:var(--danger)">*</span></label>
+                            <input type="text" id="kand-cert-name" class="form-input" placeholder="t.ex. AWS Solutions Architect" data-i18n-ph="bank.ph_cert_name">
                         </div>
                         <div>
-                            <label style="display:block;font-size:0.8125rem;color:var(--text-muted);margin-bottom:2px">Utfärdare</label>
-                            <input type="text" id="kand-cert-issuer" class="form-input" placeholder="t.ex. Amazon, Coursera">
+                            <label style="display:block;font-size:0.8125rem;color:var(--text-muted);margin-bottom:2px" data-i18n="bank.label_issuer">Utfärdare</label>
+                            <input type="text" id="kand-cert-issuer" class="form-input" placeholder="t.ex. Amazon, Coursera" data-i18n-ph="bank.ph_issuer">
                         </div>
                         <div>
-                            <label style="display:block;font-size:0.8125rem;color:var(--text-muted);margin-bottom:2px">Datum</label>
-                            <input type="text" id="kand-cert-date" class="form-input" placeholder="t.ex. 2023-05">
+                            <label style="display:block;font-size:0.8125rem;color:var(--text-muted);margin-bottom:2px" data-i18n="bank.label_cert_date">Datum</label>
+                            <input type="text" id="kand-cert-date" class="form-input" placeholder="t.ex. 2023-05" data-i18n-ph="bank.ph_cert_date">
                         </div>
                         <div style="grid-column:1/-1">
-                            <label style="display:block;font-size:0.8125rem;color:var(--text-muted);margin-bottom:2px">Beskrivning</label>
-                            <textarea id="kand-cert-desc" class="form-input" rows="2" placeholder="Kort beskrivning (valfritt)"></textarea>
+                            <label style="display:block;font-size:0.8125rem;color:var(--text-muted);margin-bottom:2px" data-i18n="bank.label_desc">Beskrivning</label>
+                            <textarea id="kand-cert-desc" class="form-input" rows="2" placeholder="Kort beskrivning (valfritt)" data-i18n-ph="bank.ph_cert_desc"></textarea>
                         </div>
                     </div>
                     <div id="kand-cert-status" style="margin-top:0.5rem"></div>
-                    <button class="btn btn-primary" onclick="addKandidatCertification()" style="margin-top:0.75rem">+ Lägg till certifikat</button>
+                    <button class="btn btn-primary" onclick="addKandidatCertification()" style="margin-top:0.75rem" data-i18n="bank.add_cert_btn">+ Lägg till certifikat</button>
                 </div>
                 <div class="card">
                     <div id="kand-certifications-list">
-                        <div class="empty-hint">Inga kurser eller certifikat tillagda ännu.</div>
+                        <div class="empty-hint" data-i18n="kand.no_cert">Inga kurser eller certifikat tillagda ännu.</div>
                     </div>
                 </div>
             </div>
@@ -597,15 +597,15 @@
                             <div class="upload-icon-wrap">
                                 <span class="material-icons">upload_file</span>
                             </div>
-                            <p class="upload-main">Dra och släpp ett CV här</p>
-                            <p class="upload-sub">PDF, DOCX, TXT, MD &nbsp;·&nbsp; AI extraherar kompetenser automatiskt &nbsp;·&nbsp; Max 10 MB</p>
+                            <p class="upload-main" data-i18n="kand.upload_main">Dra och släpp ett CV här</p>
+                            <p class="upload-sub" data-i18n="kand.upload_sub">PDF, DOCX, TXT, MD &nbsp;·&nbsp; AI extraherar kompetenser automatiskt &nbsp;·&nbsp; Max 10 MB</p>
                         </label>
                     </div>
                     <div id="kand-upload-status"></div>
                 </div>
 
                 <div id="kand-cv-list" class="cv-grid" style="margin-top:1.25rem">
-                    <div class="empty-hint">Inga CV:n uppladdade än</div>
+                    <div class="empty-hint" data-i18n="kand.no_cv">Inga CV:n uppladdade än</div>
                 </div>
 
             </div>
@@ -855,81 +855,81 @@
         <div id="sp-tab-basinfo">
         <div class="card sokprofil-card">
             <div class="form-group">
-                <label for="sp-public-name">Publikt namn</label>
-                <p class="field-desc">Det namn som visas för arbetsgivare och rekryterare. Kan skilja sig från ditt kontonamn om du föredrar ett kortare eller mer professionellt namn.</p>
-                <input type="text" id="sp-public-name" class="form-input" placeholder="Ditt namn som visas för arbetsgivare" onblur="saveSokprofil()">
+                <label for="sp-public-name" data-i18n="sp.label_public_name">Publikt namn</label>
+                <p class="field-desc" data-i18n="sp.desc_public_name">Det namn som visas för arbetsgivare och rekryterare. Kan skilja sig från ditt kontonamn.</p>
+                <input type="text" id="sp-public-name" class="form-input" placeholder="Ditt namn som visas för arbetsgivare" data-i18n-ph="sp.ph_name" onblur="saveSokprofil()">
             </div>
             <div class="form-group">
-                <label for="sp-email">E-postadress</label>
-                <p class="field-desc">Den e-postadress som visas för rekryterare och arbetsgivare. Behöver inte vara samma som ditt kontos e-postadress.</p>
-                <input type="email" id="sp-email" class="form-input" placeholder="din@epost.se" onblur="saveSokprofil()">
+                <label for="sp-email" data-i18n="common.label_email">E-postadress</label>
+                <p class="field-desc" data-i18n="sp.desc_email">Den e-postadress som visas för rekryterare och arbetsgivare. Behöver inte vara samma som ditt kontos e-postadress.</p>
+                <input type="email" id="sp-email" class="form-input" placeholder="din@epost.se" data-i18n-ph="sp.ph_email" onblur="saveSokprofil()">
             </div>
             <div class="form-group">
-                <label for="sp-public-phone">Publikt telefonnummer</label>
-                <p class="field-desc">Det telefonnummer du vill bli kontaktad på av rekryterare. Visas enbart om du är sökbar.</p>
-                <input type="tel" id="sp-public-phone" class="form-input" placeholder="+46 70 000 00 00" onblur="saveSokprofil()">
+                <label for="sp-public-phone" data-i18n="sp.label_public_phone">Publikt telefonnummer</label>
+                <p class="field-desc" data-i18n="sp.desc_phone">Det telefonnummer du vill bli kontaktad på av rekryterare. Visas enbart om du är sökbar.</p>
+                <input type="tel" id="sp-public-phone" class="form-input" placeholder="+46 70 000 00 00" data-i18n-ph="sp.ph_phone" onblur="saveSokprofil()">
             </div>
             <div class="form-group">
-                <label for="sp-roles">Roller</label>
-                <p class="field-desc">Vilka typer av roller du kan tänka dig att jobba i. Används för att matcha dig mot relevanta jobb.</p>
-                <input type="text" id="sp-roles" class="form-input" placeholder="t.ex. Frontend-utvecklare, UX-designer" onblur="saveSokprofil()">
-                <span class="form-hint">Separera med kommatecken</span>
+                <label for="sp-roles" data-i18n="common.label_roles">Roller</label>
+                <p class="field-desc" data-i18n="sp.desc_roles">Vilka typer av roller du kan tänka dig att jobba i. Används för att matcha dig mot relevanta jobb.</p>
+                <input type="text" id="sp-roles" class="form-input" placeholder="t.ex. Frontend-utvecklare, UX-designer" data-i18n-ph="sp.ph_roles" onblur="saveSokprofil()">
+                <span class="form-hint" data-i18n="sp.hint_roles">Separera med kommatecken</span>
             </div>
             <div class="form-group">
-                <label for="sp-city">Önskad ort</label>
-                <p class="field-desc">Den ort eller region där du i första hand vill arbeta.</p>
-                <input type="text" id="sp-city" class="form-input" placeholder="t.ex. Stockholm, Göteborg" onblur="saveSokprofil()">
+                <label for="sp-city" data-i18n="common.label_city">Önskad ort</label>
+                <p class="field-desc" data-i18n="sp.desc_city">Den ort eller region där du i första hand vill arbeta.</p>
+                <input type="text" id="sp-city" class="form-input" placeholder="t.ex. Stockholm, Göteborg" data-i18n-ph="sp.ph_city" onblur="saveSokprofil()">
             </div>
 
             <div class="form-group">
-                <label>Önskad anställningsform</label>
-                <p class="field-desc">Vilken eller vilka anställningsformer du är öppen för. Du kan välja flera.</p>
+                <label data-i18n="common.label_emp_type">Önskad anställningsform</label>
+                <p class="field-desc" data-i18n="sp.desc_emp_type">Vilken eller vilka anställningsformer du är öppen för. Du kan välja flera.</p>
                 <div class="checkbox-group">
                     <label class="checkbox-label">
                         <input type="checkbox" id="sp-emp-heltid" value="Heltid" onchange="saveSokprofil()">
-                        <span>Heltid</span>
+                        <span data-i18n="common.emp_full">Heltid</span>
                     </label>
                     <label class="checkbox-label">
                         <input type="checkbox" id="sp-emp-deltid" value="Deltid" onchange="saveSokprofil()">
-                        <span>Deltid</span>
+                        <span data-i18n="common.emp_part">Deltid</span>
                     </label>
                     <label class="checkbox-label">
                         <input type="checkbox" id="sp-emp-timmar" value="Timmar" onchange="saveSokprofil()">
-                        <span>Timmar</span>
+                        <span data-i18n="common.emp_hourly">Timmar</span>
                     </label>
                     <label class="checkbox-label">
                         <input type="checkbox" id="sp-emp-fast" value="Fast anställning" onchange="saveSokprofil()">
-                        <span>Fast anställning</span>
+                        <span data-i18n="common.emp_permanent">Fast anställning</span>
                     </label>
                     <label class="checkbox-label">
                         <input type="checkbox" id="sp-emp-konsult" value="Konsult" onchange="saveSokprofil()">
-                        <span>Konsult</span>
+                        <span data-i18n="common.emp_consultant">Konsult</span>
                     </label>
                 </div>
             </div>
 
             <div class="form-group">
-                <label>Önskad arbetsplats</label>
-                <p class="field-desc">Var du föredrar att arbeta. Välj ett eller flera alternativ.</p>
+                <label data-i18n="common.label_workplace">Önskad arbetsplats</label>
+                <p class="field-desc" data-i18n="sp.desc_workplace">Var du föredrar att arbeta. Välj ett eller flera alternativ.</p>
                 <div class="checkbox-group">
                     <label class="checkbox-label">
                         <input type="checkbox" id="sp-wp-plats" value="På plats" onchange="saveSokprofil()">
-                        <span>På plats</span>
+                        <span data-i18n="common.wp_onsite">På plats</span>
                     </label>
                     <label class="checkbox-label">
                         <input type="checkbox" id="sp-wp-hybrid" value="Hybrid" onchange="saveSokprofil()">
-                        <span>Hybrid</span>
+                        <span data-i18n="common.wp_hybrid">Hybrid</span>
                     </label>
                     <label class="checkbox-label">
                         <input type="checkbox" id="sp-wp-distans" value="Distans" onchange="saveSokprofil()">
-                        <span>Distans</span>
+                        <span data-i18n="common.wp_remote">Distans</span>
                     </label>
                 </div>
             </div>
 
             <div class="form-group">
-                <label>Önskade domäner</label>
-                <p class="field-desc">Branscher eller sektorer du helst vill arbeta inom. Påverkar matchningspoängen positivt.</p>
+                <label data-i18n="match.label_desired_domains">Önskade domäner</label>
+                <p class="field-desc" data-i18n="sp.desc_desired_domains">Branscher eller sektorer du helst vill arbeta inom. Påverkar matchningspoängen positivt.</p>
                 <div class="domain-scroll-list">
                     <label class="checkbox-label"><input type="checkbox" class="sp-domain-desired" onchange="saveSokprofil()" value="Bygg & fastighet"><span>Bygg & fastighet</span></label>
                     <label class="checkbox-label"><input type="checkbox" class="sp-domain-desired" onchange="saveSokprofil()" value="Energi & miljö"><span>Energi & miljö</span></label>
@@ -950,8 +950,8 @@
             </div>
 
             <div class="form-group">
-                <label>Icke-önskade domäner</label>
-                <p class="field-desc">Branscher du vill undvika. Matchningspoängen sänks om jobbet tillhör dessa.</p>
+                <label data-i18n="match.label_unwanted_domains">Icke-önskade domäner</label>
+                <p class="field-desc" data-i18n="sp.desc_unwanted_domains">Branscher du vill undvika. Matchningspoängen sänks om jobbet tillhör dessa.</p>
                 <div class="domain-scroll-list">
                     <label class="checkbox-label"><input type="checkbox" class="sp-domain-unwanted" onchange="saveSokprofil()" value="Bygg & fastighet"><span>Bygg & fastighet</span></label>
                     <label class="checkbox-label"><input type="checkbox" class="sp-domain-unwanted" onchange="saveSokprofil()" value="Energi & miljö"><span>Energi & miljö</span></label>
@@ -974,8 +974,8 @@
             <div class="form-group">
                 <div class="toggle-row">
                     <div>
-                        <span class="toggle-label">Resbar</span>
-                        <p class="field-desc">Markera om du är villig att pendla eller resa som en del av tjänsten.</p>
+                        <span class="toggle-label" data-i18n="common.label_commute">Resbar</span>
+                        <p class="field-desc" data-i18n="sp.desc_commute">Markera om du är villig att pendla eller resa som en del av tjänsten.</p>
                     </div>
                     <label class="toggle-switch">
                         <input type="checkbox" id="sp-commute" onchange="saveSokprofil()">
@@ -987,8 +987,8 @@
             <div class="form-group">
                 <div class="toggle-row">
                     <div>
-                        <span class="toggle-label">Sökbar</span>
-                        <p class="field-desc">Om du aktiverar detta kan rekryterare hitta och kontakta dig baserat på din profil.</p>
+                        <span class="toggle-label" data-i18n="common.label_searchable">Sökbar</span>
+                        <p class="field-desc" data-i18n="sp.desc_searchable">Om du aktiverar detta kan rekryterare hitta och kontakta dig baserat på din profil.</p>
                     </div>
                     <label class="toggle-switch">
                         <input type="checkbox" id="sp-searchable" onchange="saveSokprofil()">
@@ -998,8 +998,8 @@
             </div>
 
             <div class="form-group">
-                <label for="sp-available-from">Tillgänglig från</label>
-                <p class="field-desc">Det datum du tidigast kan börja ett nytt uppdrag. Lämna tomt om du är omedelbart tillgänglig eller inte vill ange.</p>
+                <label for="sp-available-from" data-i18n="common.label_available">Tillgänglig från</label>
+                <p class="field-desc" data-i18n="sp.desc_available">Det datum du tidigast kan börja ett nytt uppdrag. Lämna tomt om du är omedelbart tillgänglig eller inte vill ange.</p>
                 <input type="date" id="sp-available-from" class="form-input" onchange="saveSokprofil()">
             </div>
 
@@ -1019,26 +1019,26 @@
 
             <!-- Lägg till skill manuellt -->
             <div class="card" style="margin-bottom:1.25rem">
-                <h3 style="margin:0 0 0.75rem">Lägg till kompetens manuellt</h3>
+                <h3 style="margin:0 0 0.75rem" data-i18n="bank.add_skill_title">Lägg till kompetens manuellt</h3>
                 <div style="display:flex; gap:0.5rem; flex-wrap:wrap; align-items:flex-end">
                     <div style="flex:1; min-width:160px">
-                        <label for="sp-skill-name" style="display:block;font-size:0.8125rem;color:var(--text-muted);margin-bottom:2px">Kompetens</label>
-                        <input type="text" id="sp-skill-name" class="form-input" placeholder="t.ex. Python, Projektledning">
+                        <label for="sp-skill-name" style="display:block;font-size:0.8125rem;color:var(--text-muted);margin-bottom:2px" data-i18n="bank.label_skill">Kompetens</label>
+                        <input type="text" id="sp-skill-name" class="form-input" placeholder="t.ex. Python, Projektledning" data-i18n-ph="bank.ph_skill">
                     </div>
                     <div style="min-width:140px">
-                        <label for="sp-skill-category" style="display:block;font-size:0.8125rem;color:var(--text-muted);margin-bottom:2px">Kategori</label>
-                        <input type="text" id="sp-skill-category" class="form-input" placeholder="t.ex. Övrigt" data-cat-combo>
+                        <label for="sp-skill-category" style="display:block;font-size:0.8125rem;color:var(--text-muted);margin-bottom:2px" data-i18n="bank.label_category">Kategori</label>
+                        <input type="text" id="sp-skill-category" class="form-input" placeholder="t.ex. Övrigt" data-i18n-ph="bank.ph_category" data-cat-combo>
                     </div>
                     <div style="min-width:130px">
-                        <label for="sp-skill-level" style="display:block;font-size:0.8125rem;color:var(--text-muted);margin-bottom:2px">Nivå</label>
+                        <label for="sp-skill-level" style="display:block;font-size:0.8125rem;color:var(--text-muted);margin-bottom:2px" data-i18n="bank.label_level">Nivå</label>
                         <select id="sp-skill-level" class="form-input">
-                            <option value="">— Nivå —</option>
-                            <option value="Känner till">Känner till</option>
-                            <option value="Erfaren">Erfaren</option>
-                            <option value="Mycket erfaren">Mycket erfaren</option>
+                            <option value="" data-i18n="skill.level_ph">— Nivå —</option>
+                            <option value="Känner till" data-i18n="skill.level_1">Känner till</option>
+                            <option value="Erfaren" data-i18n="skill.level_2">Erfaren</option>
+                            <option value="Mycket erfaren" data-i18n="skill.level_3">Mycket erfaren</option>
                         </select>
                     </div>
-                    <button class="btn btn-primary" onclick="addSpSkill()" style="white-space:nowrap">+ Lägg till</button>
+                    <button class="btn btn-primary" onclick="addSpSkill()" style="white-space:nowrap" data-i18n="common.add">+ Lägg till</button>
                 </div>
                 <div id="sp-skill-status"></div>
             </div>
@@ -1065,47 +1065,47 @@
         <!-- ── TAB: Erfarenheter ── -->
         <div id="sp-tab-erfarenheter" style="display:none">
             <div class="card" style="margin-bottom:1.25rem">
-                <h3 style="margin:0 0 0.75rem">Lägg till erfarenhet</h3>
+                <h3 style="margin:0 0 0.75rem" data-i18n="bank.add_exp_title">Lägg till erfarenhet</h3>
                 <div style="display:grid; grid-template-columns:1fr 1fr; gap:0.5rem">
                     <div style="grid-column:1/-1">
-                        <label style="display:block;font-size:0.8125rem;color:var(--text-muted);margin-bottom:2px">Titel <span style="color:var(--danger)">*</span></label>
-                        <input type="text" id="sp-exp-title" class="form-input" placeholder="t.ex. Systemutvecklare, Backend-projekt">
+                        <label style="display:block;font-size:0.8125rem;color:var(--text-muted);margin-bottom:2px"><span data-i18n="bank.label_title_text">Titel</span> <span style="color:var(--danger)">*</span></label>
+                        <input type="text" id="sp-exp-title" class="form-input" placeholder="t.ex. Systemutvecklare, Backend-projekt" data-i18n-ph="bank.ph_exp_title">
                     </div>
                     <div>
-                        <label style="display:block;font-size:0.8125rem;color:var(--text-muted);margin-bottom:2px">Organisation</label>
-                        <input type="text" id="sp-exp-org" class="form-input" placeholder="t.ex. Företaget AB">
+                        <label style="display:block;font-size:0.8125rem;color:var(--text-muted);margin-bottom:2px" data-i18n="bank.label_org">Organisation</label>
+                        <input type="text" id="sp-exp-org" class="form-input" placeholder="t.ex. Företaget AB" data-i18n-ph="bank.ph_org">
                     </div>
                     <div>
-                        <label style="display:block;font-size:0.8125rem;color:var(--text-muted);margin-bottom:2px">Typ</label>
+                        <label style="display:block;font-size:0.8125rem;color:var(--text-muted);margin-bottom:2px" data-i18n="bank.label_type">Typ</label>
                         <select id="sp-exp-type" class="form-input">
-                            <option value="work">Arbete</option>
-                            <option value="project">Projekt</option>
+                            <option value="work" data-i18n="kand.type_work">Arbete</option>
+                            <option value="project" data-i18n="kand.type_project">Projekt</option>
                         </select>
                     </div>
                     <div>
-                        <label style="display:block;font-size:0.8125rem;color:var(--text-muted);margin-bottom:2px">Från (ÅÅÅÅ-MM)</label>
+                        <label style="display:block;font-size:0.8125rem;color:var(--text-muted);margin-bottom:2px" data-i18n="bank.label_from_ym">Från (ÅÅÅÅ-MM)</label>
                         <input type="text" id="sp-exp-start" class="form-input" placeholder="2020-01">
                     </div>
                     <div>
-                        <label style="display:block;font-size:0.8125rem;color:var(--text-muted);margin-bottom:2px">Till (ÅÅÅÅ-MM)</label>
+                        <label style="display:block;font-size:0.8125rem;color:var(--text-muted);margin-bottom:2px" data-i18n="bank.label_to_ym">Till (ÅÅÅÅ-MM)</label>
                         <input type="text" id="sp-exp-end" class="form-input" placeholder="2023-06">
                     </div>
                     <div style="grid-column:1/-1">
                         <label style="font-size:0.8125rem;display:flex;align-items:center;gap:0.4rem">
-                            <input type="checkbox" id="sp-exp-current"> Pågående
+                            <input type="checkbox" id="sp-exp-current"> <span data-i18n="kand.ongoing">Pågående</span>
                         </label>
                     </div>
                     <div style="grid-column:1/-1">
-                        <label style="display:block;font-size:0.8125rem;color:var(--text-muted);margin-bottom:2px">Beskrivning</label>
-                        <textarea id="sp-exp-desc" class="form-input" rows="3" placeholder="Beskriv rollen eller projektet" style="width:100%;box-sizing:border-box"></textarea>
+                        <label style="display:block;font-size:0.8125rem;color:var(--text-muted);margin-bottom:2px" data-i18n="bank.label_desc">Beskrivning</label>
+                        <textarea id="sp-exp-desc" class="form-input" rows="3" placeholder="Beskriv rollen eller projektet" data-i18n-ph="bank.ph_role_desc" style="width:100%;box-sizing:border-box"></textarea>
                     </div>
                     <div style="grid-column:1/-1">
-                        <label style="display:block;font-size:0.8125rem;color:var(--text-muted);margin-bottom:2px">Prestationer (en per rad)</label>
-                        <textarea id="sp-exp-ach" class="form-input" rows="3" placeholder="En prestation per rad" style="width:100%;box-sizing:border-box"></textarea>
+                        <label style="display:block;font-size:0.8125rem;color:var(--text-muted);margin-bottom:2px" data-i18n="sp.achievements_label">Prestationer (en per rad)</label>
+                        <textarea id="sp-exp-ach" class="form-input" rows="3" placeholder="En prestation per rad" data-i18n-ph="bank.ph_ach" style="width:100%;box-sizing:border-box"></textarea>
                     </div>
                 </div>
                 <div id="sp-exp-status" style="margin-top:0.5rem"></div>
-                <button class="btn btn-primary" onclick="addSpExperience()" style="margin-top:0.75rem">+ Lägg till erfarenhet</button>
+                <button class="btn btn-primary" onclick="addSpExperience()" style="margin-top:0.75rem" data-i18n="bank.add_exp_btn">+ Lägg till erfarenhet</button>
             </div>
             <div class="card">
                 <div id="sp-experiences-list">
@@ -1117,37 +1117,37 @@
         <!-- ── TAB: Utbildning ── -->
         <div id="sp-tab-utbildning" style="display:none">
             <div class="card" style="margin-bottom:1.25rem">
-                <h3 style="margin:0 0 0.75rem">Lägg till utbildning</h3>
+                <h3 style="margin:0 0 0.75rem" data-i18n="bank.add_edu_title">Lägg till utbildning</h3>
                 <div style="display:grid; grid-template-columns:1fr 1fr; gap:0.5rem">
                     <div>
-                        <label style="display:block;font-size:0.8125rem;color:var(--text-muted);margin-bottom:2px">Examen / Utbildning <span style="color:var(--danger)">*</span></label>
-                        <input type="text" id="sp-edu-degree" class="form-input" placeholder="t.ex. Civilingenjör, Kandidatexamen">
+                        <label style="display:block;font-size:0.8125rem;color:var(--text-muted);margin-bottom:2px"><span data-i18n="bank.label_degree">Examen / Utbildning</span> <span style="color:var(--danger)">*</span></label>
+                        <input type="text" id="sp-edu-degree" class="form-input" placeholder="t.ex. Civilingenjör, Kandidatexamen" data-i18n-ph="bank.ph_degree">
                     </div>
                     <div>
-                        <label style="display:block;font-size:0.8125rem;color:var(--text-muted);margin-bottom:2px">Lärosäte</label>
-                        <input type="text" id="sp-edu-institution" class="form-input" placeholder="t.ex. KTH, Stockholms Universitet">
+                        <label style="display:block;font-size:0.8125rem;color:var(--text-muted);margin-bottom:2px" data-i18n="bank.label_institution">Lärosäte</label>
+                        <input type="text" id="sp-edu-institution" class="form-input" placeholder="t.ex. KTH, Stockholms Universitet" data-i18n-ph="bank.ph_institution">
                     </div>
                     <div>
-                        <label style="display:block;font-size:0.8125rem;color:var(--text-muted);margin-bottom:2px">Inriktning</label>
-                        <input type="text" id="sp-edu-field" class="form-input" placeholder="t.ex. Datavetenskap">
+                        <label style="display:block;font-size:0.8125rem;color:var(--text-muted);margin-bottom:2px" data-i18n="bank.label_field">Inriktning</label>
+                        <input type="text" id="sp-edu-field" class="form-input" placeholder="t.ex. Datavetenskap" data-i18n-ph="bank.ph_field">
                     </div>
                     <div style="display:flex; gap:0.5rem">
                         <div style="flex:1">
-                            <label style="display:block;font-size:0.8125rem;color:var(--text-muted);margin-bottom:2px">Från</label>
+                            <label style="display:block;font-size:0.8125rem;color:var(--text-muted);margin-bottom:2px" data-i18n="bank.label_from">Från</label>
                             <input type="text" id="sp-edu-start" class="form-input" placeholder="2018">
                         </div>
                         <div style="flex:1">
-                            <label style="display:block;font-size:0.8125rem;color:var(--text-muted);margin-bottom:2px">Till</label>
+                            <label style="display:block;font-size:0.8125rem;color:var(--text-muted);margin-bottom:2px" data-i18n="bank.label_to">Till</label>
                             <input type="text" id="sp-edu-end" class="form-input" placeholder="2022">
                         </div>
                     </div>
                 </div>
                 <div id="sp-edu-status" style="margin-top:0.5rem"></div>
-                <button class="btn btn-primary" onclick="addSpEducation()" style="margin-top:0.75rem">+ Lägg till utbildning</button>
+                <button class="btn btn-primary" onclick="addSpEducation()" style="margin-top:0.75rem" data-i18n="bank.add_edu_btn">+ Lägg till utbildning</button>
             </div>
             <div class="card">
                 <div id="sp-education-list">
-                    <div class="empty-hint">Inga utbildningar tillagda ännu.</div>
+                    <div class="empty-hint" data-i18n="kand.no_edu">Inga utbildningar tillagda ännu.</div>
                 </div>
             </div>
         </div>
@@ -1155,31 +1155,31 @@
         <!-- ── TAB: Kurser & Cert ── -->
         <div id="sp-tab-certifikat" style="display:none">
             <div class="card" style="margin-bottom:1.25rem">
-                <h3 style="margin:0 0 0.75rem">Lägg till kurs eller certifikat</h3>
+                <h3 style="margin:0 0 0.75rem" data-i18n="bank.add_cert_title">Lägg till kurs eller certifikat</h3>
                 <div style="display:grid; grid-template-columns:1fr 1fr; gap:0.5rem">
                     <div>
-                        <label style="display:block;font-size:0.8125rem;color:var(--text-muted);margin-bottom:2px">Namn <span style="color:var(--danger)">*</span></label>
-                        <input type="text" id="sp-cert-name" class="form-input" placeholder="t.ex. AWS Solutions Architect">
+                        <label style="display:block;font-size:0.8125rem;color:var(--text-muted);margin-bottom:2px"><span data-i18n="common.label_name">Namn</span> <span style="color:var(--danger)">*</span></label>
+                        <input type="text" id="sp-cert-name" class="form-input" placeholder="t.ex. AWS Solutions Architect" data-i18n-ph="bank.ph_cert_name">
                     </div>
                     <div>
-                        <label style="display:block;font-size:0.8125rem;color:var(--text-muted);margin-bottom:2px">Utfärdare</label>
-                        <input type="text" id="sp-cert-issuer" class="form-input" placeholder="t.ex. Amazon, Coursera">
+                        <label style="display:block;font-size:0.8125rem;color:var(--text-muted);margin-bottom:2px" data-i18n="bank.label_issuer">Utfärdare</label>
+                        <input type="text" id="sp-cert-issuer" class="form-input" placeholder="t.ex. Amazon, Coursera" data-i18n-ph="bank.ph_issuer">
                     </div>
                     <div>
-                        <label style="display:block;font-size:0.8125rem;color:var(--text-muted);margin-bottom:2px">Datum</label>
-                        <input type="text" id="sp-cert-date" class="form-input" placeholder="t.ex. 2023-05">
+                        <label style="display:block;font-size:0.8125rem;color:var(--text-muted);margin-bottom:2px" data-i18n="bank.label_cert_date">Datum</label>
+                        <input type="text" id="sp-cert-date" class="form-input" placeholder="t.ex. 2023-05" data-i18n-ph="bank.ph_cert_date">
                     </div>
                     <div style="grid-column:1/-1">
-                        <label style="display:block;font-size:0.8125rem;color:var(--text-muted);margin-bottom:2px">Beskrivning</label>
-                        <textarea id="sp-cert-desc" class="form-input" rows="2" placeholder="Kort beskrivning (valfritt)"></textarea>
+                        <label style="display:block;font-size:0.8125rem;color:var(--text-muted);margin-bottom:2px" data-i18n="bank.label_desc">Beskrivning</label>
+                        <textarea id="sp-cert-desc" class="form-input" rows="2" placeholder="Kort beskrivning (valfritt)" data-i18n-ph="bank.ph_cert_desc"></textarea>
                     </div>
                 </div>
                 <div id="sp-cert-status" style="margin-top:0.5rem"></div>
-                <button class="btn btn-primary" onclick="addSpCertification()" style="margin-top:0.75rem">+ Lägg till certifikat</button>
+                <button class="btn btn-primary" onclick="addSpCertification()" style="margin-top:0.75rem" data-i18n="bank.add_cert_btn">+ Lägg till certifikat</button>
             </div>
             <div class="card">
                 <div id="sp-certifications-list">
-                    <div class="empty-hint">Inga kurser eller certifikat tillagda ännu.</div>
+                    <div class="empty-hint" data-i18n="kand.no_cert">Inga kurser eller certifikat tillagda ännu.</div>
                 </div>
             </div>
         </div>
@@ -1193,14 +1193,14 @@
                         <div class="upload-icon-wrap">
                             <span class="material-icons">upload_file</span>
                         </div>
-                        <p class="upload-main">Dra och släpp ditt CV här</p>
-                        <p class="upload-sub">PDF, DOCX, TXT, MD &nbsp;·&nbsp; eller klicka för att välja fil &nbsp;·&nbsp; Max 10 MB</p>
+                        <p class="upload-main" data-i18n="sp.upload_main">Dra och släpp ditt CV här</p>
+                        <p class="upload-sub" data-i18n="sp.upload_sub">PDF, DOCX, TXT, MD &nbsp;·&nbsp; eller klicka för att välja fil &nbsp;·&nbsp; Max 10 MB</p>
                     </label>
                 </div>
                 <div id="sp-cv-upload-status"></div>
             </div>
             <div id="sp-cv-list" class="cv-grid">
-                <div class="empty-hint">Inga CV:n uppladdade än</div>
+                <div class="empty-hint" data-i18n="cv.no_cvs">Inga CV:n uppladdade än</div>
             </div>
         </div>
 
@@ -1217,15 +1217,15 @@
     <div class="modal-overlay" onclick="closeLHCVModal()"></div>
     <div class="modal-content modal-content--wide">
         <div class="modal-header">
-            <h2>CV (utkast)</h2>
+            <h2 data-i18n="match.cv_draft">CV (utkast)</h2>
             <div class="modal-header-actions">
                 <button class="btn btn-secondary btn-sm" onclick="downloadLHCVAsMarkdown()">
                     <span class="material-icons" style="font-size:15px;vertical-align:middle">download</span>
-                    Spara som markdown
+                    <span data-i18n="match.save_md">Spara som markdown</span>
                 </button>
                 <button class="btn btn-secondary btn-sm" onclick="window.print()">
                     <span class="material-icons" style="font-size:15px;vertical-align:middle">print</span>
-                    Skriv ut / Spara PDF
+                    <span data-i18n="match.print_pdf">Skriv ut / Spara PDF</span>
                 </button>
                 <button class="modal-close" onclick="closeLHCVModal()">&times;</button>
             </div>
@@ -1241,7 +1241,7 @@
     <div class="modal-overlay" onclick="closeTipsModal()"></div>
     <div class="modal-content modal-content--wide">
         <div class="modal-header">
-            <h2>Förbättringstips</h2>
+            <h2 data-i18n="match.tips_title">Förbättringstips</h2>
             <button class="modal-close" onclick="closeTipsModal()">&times;</button>
         </div>
         <div class="modal-body" id="tips-body"></div>

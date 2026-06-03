@@ -99,9 +99,9 @@ async function _showContextModal({ name, addLabel, addFnName, showLevel = false 
     const escapedName = name.replace(/'/g, "\\'");
     const levelSelect = showLevel ? `
         <select id="skill-add-level" class="form-input" style="max-width:160px;font-size:13px">
-            <option value="Känner till">Känner till</option>
-            <option value="Erfaren">Erfaren</option>
-            <option value="Mycket erfaren">Mycket erfaren</option>
+            <option value="Känner till">${t('skill.level_1')}</option>
+            <option value="Erfaren">${t('skill.level_2')}</option>
+            <option value="Mycket erfaren">${t('skill.level_3')}</option>
         </select>` : '';
 
     const modal = document.createElement('div');
@@ -115,7 +115,7 @@ async function _showContextModal({ name, addLabel, addFnName, showLevel = false 
             </div>
             <div class="modal-body" id="skill-context-body">
                 <div style="display:flex;align-items:center;gap:10px;color:var(--text-muted)">
-                    <span class="spinner-small"></span> Hämtar kontext ur annonsen…
+                    <span class="spinner-small"></span>${t('modal.fetching_context')}
                 </div>
             </div>
             <div class="modal-footer">
@@ -141,14 +141,14 @@ async function _showContextModal({ name, addLabel, addFnName, showLevel = false 
             ${data.summary ? `<p style="margin:12px 0 0;font-size:0.875rem;color:var(--text-secondary)">${esc(data.summary)}</p>` : ''}`;
     } catch (err) {
         document.getElementById('skill-context-body').innerHTML =
-            `<p style="color:var(--danger)">Kunde inte hämta kontext: ${esc(err.message)}</p>`;
+            `<p style="color:var(--danger)">${t('modal.context_error')} ${esc(err.message)}</p>`;
     }
 }
 
 function showSkillContextModal(skillName) {
     return _showContextModal({
         name: skillName,
-        addLabel: '+ Lägg till kompetensen i profilen',
+        addLabel: t('modal.add_skill'),
         addFnName: 'addSkillFromContextModal',
         showLevel: true,
     });
@@ -157,7 +157,7 @@ function showSkillContextModal(skillName) {
 function showQualityContextModal(qualityName, canAdd = true) {
     return _showContextModal({
         name: qualityName,
-        addLabel: canAdd ? '+ Lägg till egenskapen i profilen' : null,
+        addLabel: canAdd ? t('modal.add_quality') : null,
         addFnName: 'addQualityFromContextModal',
     });
 }
@@ -178,15 +178,15 @@ async function addSkillFromContextModal(skillName) {
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ skill_name: skillName, category: '', skill_level: level }),
         });
-        if (!res.ok) { const err = await res.json(); throw new Error(err.detail || 'Kunde inte lägga till'); }
+        if (!res.ok) { const err = await res.json(); throw new Error(err.detail || t('modal.cannot_add')); }
         btn.remove();
         document.getElementById('skill-add-level')?.remove();
-        feedback.textContent = '✓ Tillagd i profilen';
+        feedback.textContent = t('modal.added_to_profile');
         feedback.style.color = 'var(--green)';
     } catch (err) {
         btn.disabled = false;
-        btn.textContent = '+ Lägg till kompetensen i profilen';
-        feedback.textContent = 'Fel: ' + err.message;
+        btn.textContent = t('modal.add_skill');
+        feedback.textContent = t('modal.error_prefix') + ' ' + err.message;
         feedback.style.color = 'var(--danger)';
     }
 }
@@ -200,7 +200,7 @@ async function addQualityFromContextModal(qualityName) {
     try {
         if (lastMatchKandidatId) {
             const res = await apiFetch(`${API_BASE_URL}/kandidater/${lastMatchKandidatId}`);
-            if (!res.ok) throw new Error('Kunde inte hämta kandidat');
+            if (!res.ok) throw new Error(t('modal.cannot_fetch_candidate'));
             const kand = await res.json();
             const existing = kand.personal_qualities || [];
             if (!existing.includes(qualityName)) {
@@ -209,18 +209,18 @@ async function addQualityFromContextModal(qualityName) {
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ personal_qualities: [...existing, qualityName] }),
                 });
-                if (!putRes.ok) throw new Error('Kunde inte spara');
+                if (!putRes.ok) throw new Error(t('modal.cannot_save'));
             }
         } else {
             await addSpQuality(qualityName);
         }
         btn.remove();
-        feedback.textContent = '✓ Tillagd i profilen';
+        feedback.textContent = t('modal.added_to_profile');
         feedback.style.color = 'var(--green)';
     } catch (err) {
         btn.disabled = false;
-        btn.textContent = '+ Lägg till egenskapen i profilen';
-        feedback.textContent = 'Fel: ' + err.message;
+        btn.textContent = t('modal.add_quality');
+        feedback.textContent = t('modal.error_prefix') + ' ' + err.message;
         feedback.style.color = 'var(--danger)';
     }
 }
@@ -307,7 +307,7 @@ function showCVReviewModal(text, filename, onConfirm) {
                 <div class="cv-review-info">${t('cv.review_info')}</div>
                 <textarea id="cv-review-text" class="form-input cv-review-textarea"></textarea>
                 <div style="display:flex;gap:0.75rem;justify-content:flex-end">
-                    <button class="btn btn-secondary" onclick="closeCVReviewModal()">Avbryt</button>
+                    <button class="btn btn-secondary" onclick="closeCVReviewModal()">${t('common.cancel')}</button>
                     <button class="btn btn-primary" onclick="confirmCVReview()">${t('cv.review_confirm')}</button>
                 </div>
             </div>
@@ -349,7 +349,7 @@ function setupUploadZone({ areaId, inputId, onFile, statusFn }) {
             return false;
         }
         if (file.size > CV_MAX_SIZE) {
-            statusFn?.('Filen är för stor (max 10 MB)', 'error');
+            statusFn?.(t('upload.file_size_error'), 'error');
             return false;
         }
         return true;
@@ -375,13 +375,13 @@ function setupUploadZone({ areaId, inputId, onFile, statusFn }) {
     toggle.innerHTML = `
         <button class="paste-toggle-btn" type="button">
             <span class="material-icons" style="font-size:16px;vertical-align:middle">content_paste</span>
-            Klistra in text istället
+            ${t('upload.paste_btn')}
         </button>
         <div class="paste-toggle-body">
-            <textarea class="paste-textarea" placeholder="Klistra in CV-texten här (Ctrl+V)…" rows="8"></textarea>
+            <textarea class="paste-textarea" placeholder="${t('upload.paste_ph')}" rows="8"></textarea>
             <div class="paste-toggle-actions">
-                <button class="btn btn-primary btn-sm paste-submit-btn" type="button">Bearbeta text</button>
-                <button class="btn btn-ghost btn-sm paste-cancel-btn" type="button">Avbryt</button>
+                <button class="btn btn-primary btn-sm paste-submit-btn" type="button">${t('upload.paste_submit')}</button>
+                <button class="btn btn-ghost btn-sm paste-cancel-btn" type="button">${t('common.cancel')}</button>
             </div>
         </div>`;
     area.insertAdjacentElement('afterend', toggle);

@@ -33,7 +33,7 @@ async function saveAccount() {
     const phone   = document.getElementById('account-phone').value.trim();
     const address = document.getElementById('account-address').value.trim();
 
-    if (!name) { showAccountStatus('account-status', 'Namn krävs', 'error'); return; }
+    if (!name) { showAccountStatus('account-status', t('account.name_required'), 'error'); return; }
 
     // Generate UUID on first save
     const profile = await cvDb.profile.get() || {};
@@ -58,7 +58,7 @@ async function saveAccount() {
         renderSidebarUser();
         const h1 = document.querySelector('#view-dashboard .view-header h1');
         if (h1) h1.textContent = `${t('dash.welcome')}, ${currentUser.name.split(' ')[0]}!`;
-        showAccountStatus('account-status', 'Uppgifterna sparades', 'success');
+        showAccountStatus('account-status', t('account.saved'), 'success');
     } catch (err) {
         showAccountStatus('account-status', err.message, 'error');
     }
@@ -89,10 +89,10 @@ async function saveAccountPassword() {
     const newPw  = document.getElementById('account-new-pw').value;
 
     if (!currPw || !newPw) {
-        showAccountStatus('account-pw-status', 'Fyll i båda fälten', 'error'); return;
+        showAccountStatus('account-pw-status', t('account.pw_fill_both'), 'error'); return;
     }
     if (newPw.length < 8) {
-        showAccountStatus('account-pw-status', 'Nytt lösenord måste vara minst 8 tecken', 'error'); return;
+        showAccountStatus('account-pw-status', t('account.pw_min_length'), 'error'); return;
     }
     try {
         const res = await apiFetch(`${API_BASE_URL}/auth/me/password`, {
@@ -106,7 +106,7 @@ async function saveAccountPassword() {
         }
         document.getElementById('account-curr-pw').value = '';
         document.getElementById('account-new-pw').value  = '';
-        showAccountStatus('account-pw-status', 'Lösenordet ändrades', 'success');
+        showAccountStatus('account-pw-status', t('account.pw_changed'), 'success');
     } catch (err) {
         showAccountStatus('account-pw-status', err.message, 'error');
     }
@@ -131,7 +131,7 @@ async function saveAccountRoles() {
         }
         currentUser = await res.json();
         updateRoleBasedNav();
-        showAccountStatus('account-roles-status', 'Roller sparade', 'success');
+        showAccountStatus('account-roles-status', t('account.roles_saved'), 'success');
     } catch (err) {
         showAccountStatus('account-roles-status', err.message, 'error');
     }
@@ -463,7 +463,7 @@ async function exportAccountData() {
         a.click();
         URL.revokeObjectURL(url);
     } catch (err) {
-        alert('Export misslyckades: ' + err.message);
+        alert(t('account.export_error') + ' ' + err.message);
     }
 }
 

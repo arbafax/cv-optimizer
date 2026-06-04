@@ -1573,11 +1573,11 @@ function displayMatchResult(result, container) {
         <div class="match-sections">
             <div class="match-section">
                 <h4 class="match-section-title">${t('match.section_skills')} (${skills.length})</h4>
-                <div class="match-list">${skillsHtml || `<p class="match-empty">${t('match.no_missing')}</p>`}</div>
+                <div class="match-list">${skillsHtml || `<p class="match-empty">${t('match.no_skills_match')}</p>`}</div>
             </div>
             <div class="match-section">
                 <h4 class="match-section-title">${t('match.section_exp')} (${experiences.length})</h4>
-                <div class="match-list">${expHtml || `<p class="match-empty">${t('match.no_missing')}</p>`}</div>
+                <div class="match-list">${expHtml || `<p class="match-empty">${t('match.no_exp_match')}</p>`}</div>
             </div>
         </div>
 

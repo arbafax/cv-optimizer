@@ -1114,12 +1114,20 @@ async function browserRoute(path, options = {}) {
             // GET /kandidater/
             if (method === 'GET' && parts.length === 1) {
                 const all = await cvDb.kandidater.list();
-                const filtered = await Promise.all(
-                    all.filter(k => !k.is_own_profile).map(async k =>
-                        k.profile_uuid ? k : cvDb.kandidater.update(k.id, { profile_uuid: crypto.randomUUID() })
-                    )
+                const enriched = await Promise.all(
+                    all.filter(k => !k.is_own_profile).map(async k => {
+                        const base = k.profile_uuid ? k : await cvDb.kandidater.update(k.id, { profile_uuid: crypto.randomUUID() });
+                        const [skills, exps, edu, certs, cvs] = await Promise.all([
+                            cvDb.kandSkills.listFor(k.id),
+                            cvDb.kandExperiences.listFor(k.id),
+                            cvDb.kandEducation.listFor(k.id),
+                            cvDb.kandCertifications.listFor(k.id),
+                            cvDb.kandCvs.listFor(k.id),
+                        ]);
+                        return { ...base, _counts: { skills: skills.length, experiences: exps.length, education: edu.length, certifications: certs.length, cvs: cvs.length } };
+                    })
                 );
-                return new LocalResponse({ kandidater: filtered });
+                return new LocalResponse({ kandidater: enriched });
             }
 
             // GET /kandidater/{id}

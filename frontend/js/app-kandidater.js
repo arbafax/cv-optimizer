@@ -86,11 +86,21 @@ function renderKandidatList(kandidater) {
         ].filter(Boolean).join(' · ');
         const safeName = esc(k.public_name || t('kand.no_name'));
 
+        const c = k._counts || {};
+        const statsHtml = `<div class="kand-card-stats">
+            <span class="kand-card-stat"><span class="material-icons">description</span>${c.cvs ?? 0}</span>
+            <span class="kand-card-stat"><span class="material-icons">psychology</span>${c.skills ?? 0}</span>
+            <span class="kand-card-stat"><span class="material-icons">work_history</span>${c.experiences ?? 0}</span>
+            <span class="kand-card-stat"><span class="material-icons">school</span>${c.education ?? 0}</span>
+            <span class="kand-card-stat"><span class="material-icons">workspace_premium</span>${c.certifications ?? 0}</span>
+        </div>`;
+
         return `
         <div class="cv-item" onclick="editKandidatById(${k.id})" style="cursor:pointer">
             <div class="cv-item-info">
                 <div class="cv-item-name">${safeName}</div>
                 ${meta ? `<div class="cv-item-meta">${meta}</div>` : ''}
+                ${statsHtml}
             </div>
             <div class="cv-item-actions">
                 ${k.searchable ? `<span class="cv-item-badge" style="background:var(--success-bg);color:var(--success)">${t('kand.searchable_badge')}</span>` : ''}

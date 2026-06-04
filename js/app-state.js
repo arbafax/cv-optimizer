@@ -1384,9 +1384,12 @@ async function browserRoute(path, options = {}) {
                 return new LocalResponse(result);
             }
 
-            // multi-match: rank all kandidater against a job
+            // multi-match: rank selected kandidater against a job
             if (parts[1] === 'multi-match' && method === 'POST') {
-                const allKand = (await cvDb.kandidater.list()).filter(k => !k.is_own_profile);
+                const { kandidat_ids = [] } = body;
+                const allKand = (await cvDb.kandidater.list()).filter(k =>
+                    !k.is_own_profile && (kandidat_ids.length === 0 || kandidat_ids.includes(k.id))
+                );
                 // Analyze the job once — reused for all candidates
                 const structuredJob = await _getStructuredJob(body.job_title || '', body.job_description || '');
                 const results = await Promise.all(allKand.map(async (k) => {

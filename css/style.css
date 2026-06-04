@@ -734,6 +734,10 @@ body {
 }
 
 .bank-skills-wrap { display: flex; flex-wrap: wrap; gap: 6px; }
+.skill-drop-zone { min-height: 32px; border-radius: var(--r-sm); padding: 4px; transition: background 0.15s, outline 0.15s; }
+.skill-drop-zone.drag-over { background: color-mix(in srgb, var(--blue) 8%, transparent); outline: 2px dashed var(--blue); }
+.bank-skill-chip[draggable="true"] { cursor: grab; }
+.bank-skill-chip.dragging { opacity: 0.35; }
 
 .bank-skill-chip {
     display: inline-block;

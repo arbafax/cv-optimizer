@@ -624,7 +624,7 @@ function renderKandidatSkills(skills) {
         <div style="margin-bottom:1rem">
             <div style="font-size:0.8125rem;font-weight:600;color:var(--text-muted);text-transform:uppercase;
                         letter-spacing:0.05em;margin-bottom:0.5rem">${cat}</div>
-            <div class="bank-skills-wrap">
+            <div class="bank-skills-wrap skill-drop-zone" data-cat-drop-zone="${esc(cat)}">
                 ${items.map(s => {
                     if (s.id === kandEditingSkillId) {
                         return `<div class="skill-edit-row">
@@ -640,7 +640,7 @@ function renderKandidatSkills(skills) {
                             <button class="btn btn-secondary btn-small" onclick="kandEditingSkillId=null;renderKandidatSkills(cachedKandSkills)">${t('common.cancel')}</button>
                         </div>`;
                     }
-                    return `<span class="bank-skill-chip ${skillLevelClass(s.skill_level)}">
+                    return `<span class="bank-skill-chip ${skillLevelClass(s.skill_level)}" draggable="true" data-skill-id="${s.id}" data-skill-cat="${esc(cat)}">
                         ${esc(s.skill_name)}
                         <button class="chip-delete" style="font-size:0.85em;padding:0 1px 0 3px" onclick="kandEditingSkillId=${s.id};renderKandidatSkills(cachedKandSkills)" title="${t('action.edit')}">✎</button>
                         <button class="chip-delete" onclick="deleteKandidatSkill(${s.id})" title="${t('action.delete')}">×</button>
@@ -649,6 +649,15 @@ function renderKandidatSkills(skills) {
             </div>
         </div>
     `; }).join('');
+    setupSkillDragDrop(container, async (skillId, newCat) => {
+        const skill = cachedKandSkills.find(s => s.id === skillId);
+        if (!skill) return;
+        await apiFetch(`${API_BASE_URL}/kandidater/${currentKandidatId}/skills/${skillId}`, {
+            method: 'PUT', headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ skill_name: skill.skill_name, category: newCat, skill_level: skill.skill_level }),
+        });
+        await loadKandidatBank(currentKandidatId);
+    });
 }
 
 async function saveKandSkill(id) {

@@ -100,6 +100,15 @@ function renderActiveBankTab() {
 
     if (activeBankTab === 'skills') {
         body.innerHTML = renderSkillsTab();
+        setupSkillDragDrop(body, async (skillId, newCat) => {
+            const skill = bankSkills.find(s => s.id === skillId);
+            if (!skill) return;
+            await apiFetch(`${API_BASE_URL}/competence/skills/${skillId}`, {
+                method: 'PUT', headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ skill_name: skill.skill_name, category: newCat, skill_level: skill.skill_level }),
+            });
+            await loadBankData();
+        });
     } else {
         body.innerHTML = renderExperiencesTab();
     }
@@ -138,9 +147,9 @@ function renderSkillsTab() {
                 ${categoryIcon(cat)} ${cat}
                 <span class="bank-category-count">${groups[cat].length}</span>
             </div>
-            <div class="bank-skills-wrap">
+            <div class="bank-skills-wrap skill-drop-zone" data-cat-drop-zone="${esc(cat)}">
                 ${groups[cat].slice().sort((a, b) => a.skill_name.localeCompare(b.skill_name, currentLang)).map(s => `
-                    <span class="bank-skill-chip ${skillLevelClass(s.skill_level)}">
+                    <span class="bank-skill-chip ${skillLevelClass(s.skill_level)}" draggable="true" data-skill-id="${s.id}" data-skill-cat="${esc(cat)}">
                         ${s.skill_name}
                         <button class="chip-delete" onclick="event.stopPropagation(); deleteSkill(${s.id}, '${s.skill_name.replace(/'/g, "\\'")}')" title="${t('action.delete')}">&times;</button>
                     </span>

@@ -413,6 +413,52 @@ function setupUploadZone({ areaId, inputId, onFile, statusFn }) {
     });
 }
 
+// ── Skill drag-and-drop (shared utility) ─────────────────────────────────────
+function setupSkillDragDrop(container, onCategoryChange) {
+    let dragId = null;
+    let dragOrigCat = null;
+
+    container.addEventListener('dragstart', e => {
+        const chip = e.target.closest('[data-skill-id]');
+        if (!chip) { e.preventDefault(); return; }
+        dragId = Number(chip.dataset.skillId);
+        dragOrigCat = chip.dataset.skillCat;
+        chip.classList.add('dragging');
+        e.dataTransfer.effectAllowed = 'move';
+    });
+
+    container.addEventListener('dragend', () => {
+        container.querySelectorAll('.dragging').forEach(el => el.classList.remove('dragging'));
+        container.querySelectorAll('.drag-over').forEach(el => el.classList.remove('drag-over'));
+    });
+
+    container.addEventListener('dragover', e => {
+        const zone = e.target.closest('.skill-drop-zone');
+        if (!zone) return;
+        e.preventDefault();
+        e.dataTransfer.dropEffect = 'move';
+        container.querySelectorAll('.drag-over').forEach(el => el.classList.remove('drag-over'));
+        zone.classList.add('drag-over');
+    });
+
+    container.addEventListener('dragleave', e => {
+        const zone = e.target.closest('.skill-drop-zone');
+        if (zone && !zone.contains(e.relatedTarget)) zone.classList.remove('drag-over');
+    });
+
+    container.addEventListener('drop', async e => {
+        e.preventDefault();
+        const zone = e.target.closest('.skill-drop-zone');
+        if (!zone || dragId === null) return;
+        const newCat = zone.dataset.catDropZone;
+        zone.classList.remove('drag-over');
+        if (newCat === dragOrigCat) return;
+        const id = dragId;
+        dragId = null; dragOrigCat = null;
+        await onCategoryChange(id, newCat);
+    });
+}
+
 // ── Category combo box ────────────────────────────────────────────────────────
 (function () {
     const CATS = [
@@ -450,10 +496,29 @@ function setupUploadZone({ areaId, inputId, onFile, statusFn }) {
         return dd;
     }
 
-    function render(input) {
-        const dd = getDD(input);
-        const f  = (input.value || '').toLowerCase();
-        const hits = CATS.filter(c => !f || c.toLowerCase().includes(f));
+    async function getAllCats() {
+        const userCats = [];
+        try {
+            const own = await cvDb.kandidater.getOwn();
+            if (own) {
+                const ownSkills = await cvDb.kandSkills.listFor(own.id);
+                ownSkills.forEach(s => s.category && userCats.push(s.category));
+            }
+            const all = await cvDb.kandidater.list();
+            for (const k of all.filter(k => !k.is_own_profile)) {
+                const ks = await cvDb.kandSkills.listFor(k.id);
+                ks.forEach(s => s.category && userCats.push(s.category));
+            }
+        } catch { /* silent */ }
+        return [...new Set([...CATS, ...userCats])].sort((a, b) => a.localeCompare(b, 'sv'));
+    }
+
+    async function render(input) {
+        const dd   = getDD(input);
+        const f    = (input.value || '').toLowerCase();
+        const cats = await getAllCats();
+        if (activeInput !== input) return; // blurred while loading — don't show
+        const hits = cats.filter(c => !f || c.toLowerCase().includes(f));
         if (!hits.length) { dd.classList.remove('cat-combo-dd--open'); return; }
         dd.innerHTML = hits.map(c => `<div class="cat-combo-opt">${c}</div>`).join('');
         dd.classList.add('cat-combo-dd--open');

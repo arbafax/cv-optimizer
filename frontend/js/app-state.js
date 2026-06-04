@@ -643,8 +643,10 @@ async function browserRoute(path, options = {}) {
                 const own  = await cvDb.kandidater.getOwn();
                 return new LocalResponse({
                     id: 1,
-                    name:     own?.public_name || p?.public_name || 'Användare',
-                    email:    p?.email         || own?.email     || '',
+                    name:     p?.public_name   || own?.public_name || 'Användare',
+                    email:    p?.email         || own?.email       || '',
+                    phone:    p?.public_phone  || '',
+                    address:  p?.address       || '',
                     language: lang             || currentLang,
                     roles: [],
                 });
@@ -653,25 +655,22 @@ async function browserRoute(path, options = {}) {
                 const profile = await cvDb.profile.get() || {};
                 const profileUpdates = {};
                 if (body?.language) await cvDb.settings.set('language', body.language);
-                if (body?.name) {
-                    // Only pre-fill public name if it hasn't been set yet
-                    if (!profile.public_name) profileUpdates.public_name = body.name;
-                    const own = await cvDb.kandidater.getOwn();
-                    if (own && !own.public_name) {
-                        await cvDb.kandidater.update(own.id, { public_name: body.name });
-                    }
-                }
-                if (body?.email)    profileUpdates.email = body.email;
-                if (body?.roles)    await cvDb.settings.set('user_roles', JSON.stringify(body.roles));
+                if (body?.name !== undefined)    profileUpdates.public_name  = body.name;
+                if (body?.email !== undefined)   profileUpdates.email        = body.email;
+                if (body?.phone !== undefined)   profileUpdates.public_phone = body.phone;
+                if (body?.address !== undefined) profileUpdates.address      = body.address;
+                if (body?.roles) await cvDb.settings.set('user_roles', JSON.stringify(body.roles));
                 if (Object.keys(profileUpdates).length) {
                     await cvDb.profile.save({ ...profile, ...profileUpdates });
                 }
                 const roles = body?.roles ?? currentUser?.roles ?? [];
                 const user = {
                     id: 1,
-                    name: body?.name || currentUser?.name || 'Användare',
-                    email: body?.email || currentUser?.email || '',
-                    language: body?.language || currentUser?.language || 'sv',
+                    name:     body?.name     ?? currentUser?.name    ?? 'Användare',
+                    email:    body?.email    ?? currentUser?.email   ?? '',
+                    phone:    body?.phone    ?? currentUser?.phone   ?? '',
+                    address:  body?.address  ?? currentUser?.address ?? '',
+                    language: body?.language ?? currentUser?.language ?? 'sv',
                     roles,
                 };
                 currentUser = user;
@@ -1628,8 +1627,10 @@ async function loadCurrentUser() {
 
         currentUser = {
             id: 1,
-            name:  own?.public_name  || profile?.public_name || 'Användare',
-            email: profile?.email    || own?.email           || '',
+            name:     profile?.public_name || own?.public_name || 'Användare',
+            email:    profile?.email       || own?.email       || '',
+            phone:    profile?.public_phone || '',
+            address:  profile?.address      || '',
             language: lang || localStorage.getItem('lang') || 'sv',
             roles,
         };

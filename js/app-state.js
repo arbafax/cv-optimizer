@@ -1453,6 +1453,7 @@ function showView(viewId, navEl) {
     if (view) view.classList.add('active');
     if (navEl) navEl.classList.add('active');
     closeSidebar();
+    if (viewId === 'optimize' && typeof updateMatchWarning === 'function') updateMatchWarning();
 }
 
 // ── Match result helpers ──────────────────────────────────────────────────────

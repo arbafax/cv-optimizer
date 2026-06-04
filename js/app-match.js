@@ -128,8 +128,8 @@ async function handleGenerateLHCV() {
             const kand = await cvDb.kandidater.get(lastMatchKandidatId);
             candidateName = kand?.public_name || '';
         } else {
-            const own = await cvDb.kandidater.getOwn();
-            candidateName = own?.public_name || currentUser?.name || '';
+            const profile = await cvDb.profile.get();
+            candidateName = profile?.public_name || currentUser?.name || '';
         }
     } catch { /* silent */ }
 

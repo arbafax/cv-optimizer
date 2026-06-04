@@ -141,7 +141,7 @@ sv: {
 
     // Optimize / Match job
     'match.title':                  'Matcha jobb',
-    'match.subtitle':               'Klistra in en jobbannons – Din valda LLM matchar sedan hela din kompetensbank mot jobbet. Inga personuppgifter skickas, endast dina kompetenser och erfarenheter etc.',
+    'match.subtitle':               'Klistra in en jobbannons text. Din valda LLM använder sedan hela din kompetensbank för att analysera hur väl jobbet stämmer med dina kompetenser och önskemål. Det är ingen utfästelse om hur sannolikt det är att du får jobbet eller ens komma till intervju, utan snarare hur rimligt det är att skicka in en ansökan.<br><br>Inga personuppgifter skickas, endast dina kompetenser och erfarenheter etc.',
     'match.card_title':             'Jobbannons',
     'match.label_job':              'Klistra in jobbannonsen',
     'match.ph_job':                 'Klistra in hela jobbannonsen här...',
@@ -161,6 +161,8 @@ sv: {
     'match.section_exp':            'Erfarenheter',
     'match.section_missing':        'Saknade kompetenser',
     'match.no_missing':             'Inga saknade kompetenser – stark matchning!',
+    'match.no_skills_match':        'Inga av dina kompetenser matchade jobbet.',
+    'match.no_exp_match':           'Ingen av dina erfarenheter matchade jobbet.',
     'match.score_label':            'Övergripande matchning',
     'match.empty_bank':             'Din kompetens- och erfarenhetsdatabas är tom. Ladda upp ett CV eller lägg till kompetenser manuellt innan du matchar mot ett jobb.',
     'match.no_llm':                 'Ingen AI-tjänst är konfigurerad. Gå till Mitt konto och lägg till en API-nyckel för att kunna använda matchningsfunktionen.',
@@ -735,7 +737,7 @@ en: {
     'action.add_skill':             'Add skill',
 
     'match.title':                  'Match job',
-    'match.subtitle':               'Paste a job listing – Your chosen LLM then matches your entire skill bank against the job. No personal data is sent, only your skills and experiences etc.',
+    'match.subtitle':               'Paste the job listing text. Your chosen LLM then uses your entire skill bank to analyse how well the job matches your competences and preferences. This is not a promise of how likely you are to get the job or even an interview, but rather how reasonable it is to submit an application.<br><br>No personal data is sent, only your skills and experiences etc.',
     'match.card_title':             'Job listing',
     'match.label_job':              'Paste the job listing',
     'match.ph_job':                 'Paste the entire job listing here...',
@@ -755,6 +757,8 @@ en: {
     'match.section_exp':            'Experiences',
     'match.section_missing':        'Missing skills',
     'match.no_missing':             'No missing skills – strong match!',
+    'match.no_skills_match':        'None of your skills matched the job.',
+    'match.no_exp_match':           'None of your experiences matched the job.',
     'match.score_label':            'Overall match',
     'match.empty_bank':             'Your skills and experience database is empty. Upload a CV or add skills manually before matching against a job.',
     'match.no_llm':                 'No AI service is configured. Go to My Account and add an API key to use the matching feature.',

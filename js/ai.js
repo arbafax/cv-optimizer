@@ -472,13 +472,17 @@ Regler:
  * Generera Log House-formaterat CV.
  */
 async function generateLogHouseCV(jobDescription, experiences, skills, profile, personalityAnswers, educationList, cvTexts) {
-  const expText = experiences.map(e =>
-    `[${e.title}]`
-    + (e.organization ? ` på ${e.organization}` : '')
-    + (e.start_date ? ` (${e.start_date}–${e.end_date || 'nu'})` : '')
-    + (e.description ? `\nBeskrivning: ${e.description}` : '')
-    + (e.achievements?.length ? '\nPrestationer:\n' + e.achievements.map(a => `- ${a}`).join('\n') : '')
-  ).join('\n\n') || '(inga erfarenheter)';
+  const STRONG = 40;
+  const expText = experiences.map(e => {
+    const score = e.match_score ?? -1;
+    const strong = score < 0 || score >= STRONG;
+    const scoreLabel = score >= 0 ? ` [MATCHPOÄNG: ${score}%]` : '';
+    return `[${e.title}]${scoreLabel}`
+      + (e.organization ? ` på ${e.organization}` : '')
+      + (e.start_date ? ` (${e.start_date}–${e.end_date || 'nu'})` : '')
+      + (strong && e.description ? `\nBeskrivning: ${e.description}` : '')
+      + (strong && e.achievements?.length ? '\nPrestationer:\n' + e.achievements.map(a => `- ${a}`).join('\n') : '');
+  }).join('\n\n') || '(inga erfarenheter)';
 
   const skillsText = skills.map(s => typeof s === 'string' ? s : s.skill_name).join(', ') || '(inga)';
 
@@ -540,9 +544,9 @@ Regler:
 - Använd ALLTID "XXXXX" som platshållare för namn och pronomen — aldrig "Personen", "Kandidaten", "Hen", "Han", "Hon" eller förnamnet. Användaren ersätter XXXXX själv.
 - Anpassa innehållet till jobbannonsens krav utan att hitta på fakta
 - Max 3 kompetenser, välj de mest relevanta för jobbet
-- Uppdragslistan: nyaste uppdrag först, max 5 uppdrag
-- intro per uppdrag: 1-2 meningar som tydligt kopplar uppdraget till jobbannonsens krav
-- punkter per uppdrag: variera antalet (2-6) beroende på uppdragets relevans — fler bullets för mer relevanta uppdrag
+- Inkludera ALLA uppdrag i listan, sorterade med nyaste/mest relevanta först
+- För uppdrag med MATCHPOÄNG >= 40 (eller utan angiven poäng): inkludera intro (1-2 meningar som kopplar uppdraget till jobbannonsen) och 2-6 punkter som lyfter fram relevanta aktiviteter och prestationer
+- För uppdrag med MATCHPOÄNG < 40: sätt intro till null och punkter till [] — bara rubrik med titel, arbetsgivare och period visas
 - Alla texter på svenska`;
 
   const user = `Kandidat: ${name}\n\nJobbannons:\n${jobDescription.slice(0, 3000)}\n\n---\nErfarenheter:\n${expText}\n\nSkills: ${skillsText}\n\nUtbildning:\n${eduText}\n\nPersonlighetssvar (urval):\n${answersText.slice(0, 1500)}${cvExcerpt ? `\n\nCV-text (utdrag):\n${cvExcerpt}` : ''}`;

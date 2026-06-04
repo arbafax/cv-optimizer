@@ -1216,16 +1216,13 @@
     <div class="modal-overlay" onclick="closeLHCVModal()"></div>
     <div class="modal-content modal-content--wide">
         <div class="modal-header">
-            <h2 data-i18n="match.cv_draft">CV (utkast)</h2>
+            <h2 id="lh-cv-title">CV (utkast)</h2>
             <div class="modal-header-actions">
                 <button class="btn btn-secondary btn-sm" onclick="downloadLHCVAsMarkdown()">
                     <span class="material-icons" style="font-size:15px;vertical-align:middle">download</span>
                     <span data-i18n="match.save_md">Spara som markdown</span>
                 </button>
-                <button class="btn btn-secondary btn-sm" onclick="window.print()">
-                    <span class="material-icons" style="font-size:15px;vertical-align:middle">print</span>
-                    <span data-i18n="match.print_pdf">Skriv ut / Spara PDF</span>
-                </button>
+
                 <button class="modal-close" onclick="closeLHCVModal()">&times;</button>
             </div>
         </div>

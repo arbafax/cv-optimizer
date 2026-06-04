@@ -118,8 +118,20 @@ async function handleGenerateLHCV() {
     btn.disabled = true;
     btn.innerHTML = `<span class="spinner-small"></span> ${t('match.generating')}`;
 
-    const expIds = (lastMatchResult.experiences ?? []).filter(e => e.score > 0).map(e => e.id);
+    const experienceScores = Object.fromEntries(
+        (lastMatchResult.experiences ?? []).map(e => [e.id, e.score ?? 0])
+    );
     const skills = (lastMatchResult.skills ?? []).filter(s => s.score > 0).map(s => s.skill_name);
+    let candidateName = '';
+    try {
+        if (lastMatchKandidatId) {
+            const kand = await cvDb.kandidater.get(lastMatchKandidatId);
+            candidateName = kand?.public_name || '';
+        } else {
+            const own = await cvDb.kandidater.getOwn();
+            candidateName = own?.public_name || currentUser?.name || '';
+        }
+    } catch { /* silent */ }
 
     try {
         const response = await apiFetch(`${API_BASE_URL}/competence/generate-loghouse-cv`, {
@@ -127,8 +139,9 @@ async function handleGenerateLHCV() {
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
                 job_description: lastJobDesc,
-                matched_experience_ids: expIds,
+                experience_scores: experienceScores,
                 skills,
+                kandidat_id: lastMatchKandidatId || undefined,
             }),
         });
         if (!response.ok) {
@@ -136,7 +149,7 @@ async function handleGenerateLHCV() {
             throw new Error(err.detail || 'Kunde inte generera CV');
         }
         lastLHCV = await response.json();
-        displayLHCV(lastLHCV);
+        displayLHCV(lastLHCV, candidateName);
     } catch (err) {
         alert('Fel: ' + err.message);
     } finally {
@@ -145,9 +158,15 @@ async function handleGenerateLHCV() {
     }
 }
 
-function displayLHCV(data) {
+function displayLHCV(data, candidateName) {
     const p1 = data.page_1 || {};
     const p2 = data.page_2 || {};
+    const titleEl = document.getElementById('lh-cv-title');
+    if (titleEl) {
+        titleEl.textContent = candidateName
+            ? t('match.cv_draft_for').replace('{name}', candidateName)
+            : t('match.cv_draft');
+    }
 
     const ingressHtml = (p1.ingress || []).map(s => `<p>${s}</p>`).join('');
 
@@ -164,12 +183,20 @@ function displayLHCV(data) {
         `<div class="lh-cv-tool-row"><span class="lh-cv-tool-cat">${v.kategori}:</span> ${(v.items || []).join(', ')}</div>`
     ).join('');
 
-    const uppdragHtml = (p2.uppdrag || []).map(u => `
-        <div class="lh-cv-uppdrag">
+    const uppdragHtml = (p2.uppdrag || []).map(u => {
+        const intro = (u.intro && u.intro !== 'null') ? u.intro : null;
+        const isCompact = !intro && (!u.punkter || !u.punkter.length);
+        if (isCompact) {
+            return `<div class="lh-cv-uppdrag lh-cv-uppdrag--compact">
+                <div class="lh-cv-uppdrag-title">${u.rubrik}</div>
+            </div>`;
+        }
+        return `<div class="lh-cv-uppdrag">
             <div class="lh-cv-uppdrag-title">${u.rubrik}</div>
-            ${u.intro ? `<p class="lh-cv-uppdrag-intro">${u.intro}</p>` : ''}
+            ${intro ? `<p class="lh-cv-uppdrag-intro">${intro}</p>` : ''}
             <ul>${(u.punkter || []).map(p => `<li>${p}</li>`).join('')}</ul>
-        </div>`).join('');
+        </div>`;
+    }).join('');
 
     const eduHtml = (p2.utbildning || []).map(e =>
         `<tr><td class="lh-cv-edu-period">${e.period}</td><td>${e.utbildning}</td><td class="lh-cv-edu-org">${e.anordnare}</td></tr>`

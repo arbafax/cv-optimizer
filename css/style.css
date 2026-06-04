@@ -3626,6 +3626,10 @@ body {
 .lh-cv-uppdrag {
     margin-bottom: 14px;
 }
+.lh-cv-uppdrag--compact {
+    margin-bottom: 6px;
+    opacity: 0.65;
+}
 .lh-cv-uppdrag-title {
     font-weight: 700;
     font-size: 0.88rem;

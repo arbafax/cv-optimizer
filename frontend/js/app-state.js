@@ -1052,21 +1052,27 @@ async function browserRoute(path, options = {}) {
 
             // generate-loghouse-cv
             if (parts[1] === 'generate-loghouse-cv' && method === 'POST') {
-                const { job_description, matched_experience_ids = [], skills: reqSkills = [] } = body;
+                const { job_description, experience_scores = {}, skills: reqSkills = [], kandidat_id } = body;
+                const targetId = kandidat_id || ownId;
                 const [expList, skillList, eduList, cvList, own] = await Promise.all([
-                    cvDb.kandExperiences.listFor(ownId),
-                    cvDb.kandSkills.listFor(ownId),
-                    cvDb.kandEducation.listFor(ownId),
-                    cvDb.kandCvs.listFor(ownId),
-                    cvDb.kandidater.get(ownId),
+                    cvDb.kandExperiences.listFor(targetId),
+                    cvDb.kandSkills.listFor(targetId),
+                    cvDb.kandEducation.listFor(targetId),
+                    cvDb.kandCvs.listFor(targetId),
+                    cvDb.kandidater.get(targetId),
                 ]);
-                const matched = matched_experience_ids.length
-                    ? expList.filter(e => matched_experience_ids.includes(e.id)) : expList;
+                // Annotate every experience with its match score
+                const scoredExps = expList.map(e => ({
+                    ...e,
+                    match_score: experience_scores[e.id] ?? -1,
+                }));
+                // Sort: high-score first, then unscored, then low-score
+                scoredExps.sort((a, b) => (b.match_score ?? -1) - (a.match_score ?? -1));
                 const cvTexts = cvList.map(c => c.original_text).filter(Boolean);
                 const profile = own ? { public_name: own.public_name || '', email: own.email || '',
                     phone: own.public_phone || '', city: own.desired_city || '' } : {};
                 const result = await cvAI.generateLogHouseCV(
-                    job_description, matched, reqSkills.length ? reqSkills : skillList,
+                    job_description, scoredExps, reqSkills.length ? reqSkills : skillList,
                     profile, [], eduList, cvTexts);
                 return new LocalResponse(result);
             }

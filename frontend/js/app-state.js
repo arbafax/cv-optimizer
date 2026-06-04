@@ -717,6 +717,9 @@ async function browserRoute(path, options = {}) {
                 const own = (ownRaw && !ownRaw.profile_uuid)
                     ? await cvDb.kandidater.update(ownRaw.id, { profile_uuid: crypto.randomUUID() })
                     : ownRaw;
+                if (own && body.public_name !== undefined) {
+                    await cvDb.kandidater.update(own.id, { public_name: body.public_name });
+                }
                 return new LocalResponse({ ...body, profile_uuid: own?.profile_uuid || null });
             }
         }

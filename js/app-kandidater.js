@@ -322,7 +322,7 @@ function renderRankingList(candidates) {
                 <span class="mk-rank-nodata-label">${t('matchk.insufficient_data')}</span>
             </div>`;
         }
-        const barClass = c.score >= 60 ? 'mk-bar--green' : c.score >= 35 ? 'mk-bar--amber' : 'mk-bar--red';
+        const barClass = c.score >= 75 ? 'mk-bar--green' : c.score >= 45 ? 'mk-bar--amber' : 'mk-bar--red';
         return `<div class="mk-rank-card" onclick="matchKandidatJob(${c.id}, '${esc(c.name)}')">
             <span class="mk-rank-num">${i + 1}</span>
             <div class="mk-rank-info">
@@ -330,7 +330,6 @@ function renderRankingList(candidates) {
                 ${c.roles ? `<div class="mk-rank-roles">${esc(c.roles)}</div>` : ''}
             </div>
             <div class="mk-rank-score">
-                <div class="mk-rank-pct">${c.score}%</div>
                 <div class="mk-bar-track"><div class="mk-bar-fill ${barClass}" style="width:${c.score}%"></div></div>
             </div>
         </div>`;

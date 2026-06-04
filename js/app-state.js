@@ -1553,7 +1553,6 @@ function displayMatchResult(result, container) {
         <div class="match-item">
             <div class="match-item-header">
                 <span class="match-item-name">${s.skill_name}</span>
-                <span class="match-item-score ${scoreColor(s.score)}">${s.score}%</span>
             </div>
             ${scoreBar(s.score)}
             <div class="match-item-reason">${s.reason}</div>
@@ -1568,7 +1567,6 @@ function displayMatchResult(result, container) {
                     ${e.organization ? `<span class="match-item-org"> · ${e.organization}</span>` : ''}
                     ${e.experience_type ? `<span class="match-type-badge">${typeLabels[e.experience_type] || e.experience_type}</span>` : ''}
                 </div>
-                <span class="match-item-score ${scoreColor(e.score)}">${e.score}%</span>
             </div>
             ${scoreBar(e.score)}
             <div class="match-item-reason">${e.reason}</div>
@@ -1622,11 +1620,7 @@ function displayMatchResult(result, container) {
         </div>` : '';
 
     optimizeResult.innerHTML = `
-        <div class="match-result-header">
-            <div class="match-overall-score ${scoreColor(overall)}">
-                <span class="match-overall-number">${overall}</span>
-                <span class="match-overall-label">/ 100</span>
-            </div>
+        <div class="match-result-header ${scoreColor(overall)}">
             <div>
                 ${jobInfoHtml}
                 <p class="match-summary">${result.summary || ''}</p>

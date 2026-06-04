@@ -1994,24 +1994,14 @@ body {
     align-items: center;
     gap: 24px;
     padding: 24px 28px;
-    background: var(--surface);
     border: 1px solid var(--border);
     border-radius: var(--r);
     margin-bottom: 20px;
 }
 
-.match-overall-score {
-    display: flex;
-    align-items: baseline;
-    gap: 4px;
-    padding: 16px 22px;
-    border-radius: var(--r-sm);
-    flex-shrink: 0;
-}
-
-.match-overall-score.match-high  { background: #dcfce7; color: #166534; }
-.match-overall-score.match-mid   { background: #fef9c3; color: #854d0e; }
-.match-overall-score.match-low   { background: #fee2e2; color: #991b1b; }
+.match-result-header.match-high { background: #dcfce7; border-color: #86efac; }
+.match-result-header.match-mid  { background: #fef9c3; border-color: #fde047; }
+.match-result-header.match-low  { background: #fee2e2; border-color: #fca5a5; }
 
 .match-overall-number {
     font-size: 40px;

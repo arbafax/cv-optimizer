@@ -202,6 +202,7 @@ async function loadMatchKandidatView() {
                 `<label class="mk-kandidat-item mk-select-all-item">
                     <input type="checkbox" id="mk-select-all" onchange="toggleSelectAllKandidater(this)">
                     <strong>${t('matchk.select_all')}</strong>
+                    <span class="mk-kandidat-count">${kandidater.length}</span>
                 </label>
                 <hr class="mk-kandidat-divider">` +
                 kandidater.map(k => {
@@ -230,7 +231,6 @@ function toggleSelectAllKandidater(selectAllCheckbox) {
 function updateMatchKandidatBtn() {
     const list       = document.getElementById('mk-kandidat-list');
     const txt        = document.getElementById('mk-job-description');
-    const matchBtn   = document.getElementById('mk-match-btn');
     const rankBtn    = document.getElementById('mk-rank-btn');
     const hint       = document.getElementById('mk-match-hint');
     const hasText    = !!txt?.value.trim();
@@ -242,8 +242,7 @@ function updateMatchKandidatBtn() {
         selectAll.checked       = allChecked;
         selectAll.indeterminate = anyChecked && !allChecked;
     }
-    if (matchBtn) matchBtn.disabled = !anyChecked || !hasText;
-    if (rankBtn)  rankBtn.disabled  = !hasText;
+    if (rankBtn) rankBtn.disabled = !anyChecked || !hasText;
     if (hint) {
         if (!hasText && !anyChecked) hint.textContent = t('matchk.hint_both');
         else if (!hasText)           hint.textContent = t('matchk.hint_no_text');
@@ -268,11 +267,17 @@ async function rankAllKandidater() {
     ranking.classList.add('hidden');
     result.classList.add('hidden');
 
+    const list = document.getElementById('mk-kandidat-list');
+    const selectedIds = list
+        ? [...list.querySelectorAll('input[type="checkbox"]:not(#mk-select-all):checked')]
+            .map(cb => Number(cb.value))
+        : [];
+
     try {
         const res = await apiFetch(`${API_BASE_URL}/kandidater/multi-match`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ job_description: jobDesc }),
+            body: JSON.stringify({ job_description: jobDesc, kandidat_ids: selectedIds }),
         });
         if (!res.ok) {
             const err = await res.json();

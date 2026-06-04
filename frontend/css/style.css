@@ -2741,8 +2741,8 @@ body {
 .mk-kandidat-item {
     display: flex;
     align-items: center;
-    gap: 9px;
-    padding: 7px 10px;
+    gap: 12px;
+    padding: 2px 5px;
     border-radius: var(--r-sm);
     cursor: pointer;
     font-size: 14px;
@@ -2761,11 +2761,18 @@ body {
     accent-color: var(--blue);
     cursor: pointer;
     flex-shrink: 0;
+    margin-right: 6px;
 }
 
 .mk-kandidat-role {
     color: var(--text-secondary);
     font-size: 13px;
+}
+.mk-kandidat-count {
+    margin-left: 1em;
+    font-size: 12px;
+    font-weight: 400;
+    color: var(--text-tertiary);
 }
 
 .mk-kandidat-empty {

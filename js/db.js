@@ -4,7 +4,7 @@
  */
 
 const DB_NAME = 'cv-optimizer';
-const DB_VERSION = 3;
+const DB_VERSION = 5;
 
 let _db = null;
 
@@ -91,6 +91,10 @@ function _openDB() {
 
       if (!db.objectStoreNames.contains('cv_templates')) {
         db.createObjectStore('cv_templates', { keyPath: 'id', autoIncrement: true });
+      }
+
+      if (db.objectStoreNames.contains('kand_vectors')) {
+        db.deleteObjectStore('kand_vectors');
       }
     };
 

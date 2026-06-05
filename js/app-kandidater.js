@@ -55,17 +55,33 @@ async function loadDashKandidaterCount() {
 
 async function loadKandidaterView() {
     try {
-        const res = await apiFetch(`${API_BASE_URL}/kandidater/`);
+        const [res, allSettings] = await Promise.all([
+            apiFetch(`${API_BASE_URL}/kandidater/`),
+            cvDb.settings.getAll().catch(() => []),
+        ]);
         if (!res.ok) return;
         const data = await res.json();
         kandidaterCache = data.kandidater;
-        renderKandidatList(kandidaterCache);
+        const pubAtMap = {};
+        for (const [key, value] of Object.entries(allSettings)) {
+            if (key.startsWith('pub_at_')) pubAtMap[key.slice(7)] = value;
+        }
+        renderKandidatList(kandidaterCache, pubAtMap);
     } catch (err) {
         if (err.message !== 'Inte inloggad') console.error(err);
     }
 }
 
-function renderKandidatList(kandidater) {
+function _kandPublishDot(k, pubAtMap) {
+    if (!k.profile_uuid) return '<span class="publish-dot publish-dot--never kand-list-dot" title="' + t('publish.never') + '"></span>';
+    const pubAt = pubAtMap?.[k.profile_uuid] ?? null;
+    if (!pubAt) return '<span class="publish-dot publish-dot--never kand-list-dot" title="' + t('publish.never') + '"></span>';
+    const cls = new Date(pubAt) >= new Date(k.updated_at) ? 'synced' : 'stale';
+    const label = cls === 'synced' ? t('publish.synced') : t('publish.stale');
+    return `<span class="publish-dot publish-dot--${cls} kand-list-dot" title="${label}"></span>`;
+}
+
+function renderKandidatList(kandidater, pubAtMap) {
     const container = document.getElementById('kandidater-list');
     if (!container) return;
     const dashEl = document.getElementById('dash-kandidater-count');
@@ -98,7 +114,7 @@ function renderKandidatList(kandidater) {
         return `
         <div class="cv-item" onclick="editKandidatById(${k.id})" style="cursor:pointer">
             <div class="cv-item-info">
-                <div class="cv-item-name">${safeName}</div>
+                <div class="cv-item-name">${_kandPublishDot(k, pubAtMap)}${safeName}</div>
                 ${meta ? `<div class="cv-item-meta">${meta}</div>` : ''}
                 ${statsHtml}
             </div>
@@ -172,6 +188,87 @@ function showKandidatForm(kandidat) {
         document.getElementById(id).disabled = !kandidat;
     });
     switchKandidatTab('basinfo');
+    if (kandidat) refreshKandidatPublishStatus(kandidat.id).catch(() => {});
+    else document.getElementById('kand-publish-row')?.classList.add('hidden');
+}
+
+// ── Publish (backend sync) ────────────────────────────────────────────────────
+
+async function refreshKandidatPublishStatus(kandidatId) {
+    const row = document.getElementById('kand-publish-row');
+    if (!row || !kandidatId) { row?.classList.add('hidden'); return; }
+    const kand = await cvDb.kandidater.get(kandidatId).catch(() => null);
+    if (!kand) { row.classList.add('hidden'); return; }
+    row.classList.remove('hidden');
+
+    const uuid  = kand.profile_uuid;
+    const pubAt = uuid ? await cvDb.settings.get(`pub_at_${uuid}`).catch(() => null) : null;
+
+    if (!pubAt) {
+        _setKandPublishUi('never', t('publish.never'), true);
+        return;
+    }
+    const synced = new Date(pubAt) >= new Date(kand.updated_at);
+    if (synced) {
+        _setKandPublishUi('synced', `${t('publish.synced')} ${_fmtDateTime(pubAt)}`, false);
+    } else {
+        _setKandPublishUi('stale', t('publish.stale'), true);
+    }
+}
+
+function _setKandPublishUi(dotClass, tsText, btnEnabled) {
+    const dot    = document.getElementById('kand-publish-dot');
+    const ts     = document.getElementById('kand-publish-ts');
+    const btn    = document.getElementById('kand-publish-btn');
+    const unbtn  = document.getElementById('kand-unpublish-btn');
+    if (dot)   dot.className  = `publish-dot publish-dot--${dotClass}`;
+    if (ts)    ts.textContent = tsText;
+    if (btn)   btn.disabled   = !btnEnabled;
+    if (unbtn) unbtn.disabled = dotClass === 'never';
+}
+
+async function publishCurrentKandidat() {
+    if (!currentKandidatId) return;
+    const btn = document.getElementById('kand-publish-btn');
+    if (btn) { btn.disabled = true; btn.textContent = t('publish.publishing'); }
+    try {
+        const kand = await cvDb.kandidater.get(currentKandidatId);
+        if (!kand) throw new Error('Kandidat hittades inte');
+        const uuid = await _backendPublish(kand.profile_uuid, kand);
+        if (!kand.profile_uuid) {
+            await cvDb.kandidater.update(currentKandidatId, { profile_uuid: uuid });
+            document.getElementById('kand-profile-uuid').value = uuid;
+        }
+        await cvDb.settings.set(`pub_at_${uuid}`, new Date().toISOString());
+        showKandidatStatus(t('publish.synced'), 'success');
+    } catch (err) {
+        showKandidatStatus(err.message || t('publish.error'), 'error');
+    } finally {
+        if (btn) btn.textContent = t('publish.btn');
+        refreshKandidatPublishStatus(currentKandidatId).catch(() => {});
+    }
+}
+
+async function unpublishCurrentKandidat() {
+    if (!currentKandidatId) return;
+    const unbtn = document.getElementById('kand-unpublish-btn');
+    if (unbtn) { unbtn.disabled = true; unbtn.textContent = t('publish.unpublishing'); }
+    try {
+        const kand = await cvDb.kandidater.get(currentKandidatId);
+        if (!kand) throw new Error('Kandidat hittades inte');
+        await _backendUnpublish(kand.profile_uuid);
+        if (kand.profile_uuid) {
+            await cvDb.settings.set(`pub_at_${kand.profile_uuid}`, null);
+            await cvDb.kandidater.update(currentKandidatId, { profile_uuid: null });
+            document.getElementById('kand-profile-uuid').value = '';
+        }
+        showKandidatStatus(t('publish.never'), 'success');
+    } catch (err) {
+        showKandidatStatus(err.message || t('publish.error'), 'error');
+    } finally {
+        if (unbtn) unbtn.textContent = t('publish.unpublish');
+        refreshKandidatPublishStatus(currentKandidatId).catch(() => {});
+    }
 }
 
 function showKandidatListPanel() {
@@ -483,6 +580,7 @@ async function saveKandidat() {
         showKandidatStatus(t('kand.saved_msg'), 'success');
         const fresh = await cvDb.kandidater.get(currentKandidatId);
         _showKandTimestamps(fresh);
+        refreshKandidatPublishStatus(currentKandidatId).catch(() => {});
     } catch (err) {
         showKandidatStatus(err.message, 'error');
     }

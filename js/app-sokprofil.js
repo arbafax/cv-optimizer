@@ -35,6 +35,83 @@ async function touchOwnKandidat() {
     } catch { /* silent */ }
 }
 
+// ── Publish (backend sync) ────────────────────────────────────────────────────
+
+async function refreshSpPublishStatus() {
+    const row = document.getElementById('sp-publish-row');
+    if (!row) return;
+    const own = await cvDb.kandidater.getOwn().catch(() => null);
+    if (!own) { row.classList.add('hidden'); return; }
+    row.classList.remove('hidden');
+
+    const uuid  = own.profile_uuid;
+    const pubAt = uuid ? await cvDb.settings.get(`pub_at_${uuid}`).catch(() => null) : null;
+
+    if (!pubAt) {
+        _setSpPublishUi('never', t('publish.never'), true);
+        return;
+    }
+    const synced = new Date(pubAt) >= new Date(own.updated_at);
+    if (synced) {
+        _setSpPublishUi('synced', `${t('publish.synced')} ${_fmtSpDateTime(pubAt)}`, false);
+    } else {
+        _setSpPublishUi('stale', t('publish.stale'), true);
+    }
+}
+
+function _setSpPublishUi(dotClass, tsText, btnEnabled) {
+    const dot   = document.getElementById('sp-publish-dot');
+    const ts    = document.getElementById('sp-publish-ts');
+    const btn   = document.getElementById('sp-publish-btn');
+    const unbtn = document.getElementById('sp-unpublish-btn');
+    if (dot)   dot.className  = `publish-dot publish-dot--${dotClass}`;
+    if (ts)    ts.textContent = tsText;
+    if (btn)   btn.disabled   = !btnEnabled;
+    if (unbtn) unbtn.disabled = dotClass === 'never';
+}
+
+async function publishSokprofilToBackend() {
+    const btn = document.getElementById('sp-publish-btn');
+    if (btn) { btn.disabled = true; btn.textContent = t('publish.publishing'); }
+    try {
+        const own = await cvDb.kandidater.getOwn();
+        if (!own) throw new Error('Ingen profil hittades');
+        const uuid = await _backendPublish(own.profile_uuid, own);
+        if (!own.profile_uuid) {
+            await cvDb.kandidater.update(own.id, { profile_uuid: uuid });
+            document.getElementById('sp-profile-uuid').value = uuid;
+        }
+        await cvDb.settings.set(`pub_at_${uuid}`, new Date().toISOString());
+        showSokprofilStatus(t('publish.synced'), 'success');
+    } catch (err) {
+        showSokprofilStatus(err.message || t('publish.error'), 'error');
+    } finally {
+        if (btn) btn.textContent = t('publish.btn');
+        refreshSpPublishStatus().catch(() => {});
+    }
+}
+
+async function unpublishSokprofilFromBackend() {
+    const unbtn = document.getElementById('sp-unpublish-btn');
+    if (unbtn) { unbtn.disabled = true; unbtn.textContent = t('publish.unpublishing'); }
+    try {
+        const own = await cvDb.kandidater.getOwn();
+        if (!own) throw new Error('Ingen profil hittades');
+        await _backendUnpublish(own.profile_uuid);
+        if (own.profile_uuid) {
+            await cvDb.settings.set(`pub_at_${own.profile_uuid}`, null);
+            await cvDb.kandidater.update(own.id, { profile_uuid: null });
+            document.getElementById('sp-profile-uuid').value = '';
+        }
+        showSokprofilStatus(t('publish.never'), 'success');
+    } catch (err) {
+        showSokprofilStatus(err.message || t('publish.error'), 'error');
+    } finally {
+        if (unbtn) unbtn.textContent = t('publish.unpublish');
+        refreshSpPublishStatus().catch(() => {});
+    }
+}
+
 async function loadSokprofil() {
     try {
         const res  = await apiFetch(`${API_BASE_URL}/sokprofil/`);
@@ -71,6 +148,7 @@ async function loadSokprofil() {
         document.getElementById('sp-profile-uuid').value   = data.profile_uuid   || '';
         const own = await cvDb.kandidater.getOwn();
         _showSpTimestamps(own || null);
+        refreshSpPublishStatus().catch(() => {});
     } catch (err) {
         if (err.message !== 'Inte inloggad') console.error(err);
     }
@@ -115,6 +193,7 @@ async function saveSokprofil() {
         if (saved.profile_uuid) document.getElementById('sp-profile-uuid').value = saved.profile_uuid;
         showSokprofilStatus(t('sp.saved'), 'success');
         touchOwnKandidat();
+        refreshSpPublishStatus().catch(() => {});
     } catch (err) {
         showSokprofilStatus(err.message, 'error');
     }

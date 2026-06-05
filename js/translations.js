@@ -65,7 +65,7 @@ sv: {
     'account.label_phone':          'Telefonnummer',
     'account.label_address':        'Postadress',
     'account.label_identity':       'Identitet',
-    'account.hint_identity':        'Genereras automatiskt och kan inte ändras. Raderas vid nollställning av kontot.',
+    'account.hint_identity':        'Genereras automatiskt vid publicering och kan inte ändras. Raderas vid nollställning av kontot eller om man slutar publicera.',
     'account.ph_name':              'Ditt namn',
     'account.ph_email':             'din@epost.se',
     'account.ph_phone':             '+46 70 000 00 00',
@@ -186,6 +186,16 @@ sv: {
     'matchk.hint_no_text':          'Klistra in en jobbannons för att fortsätta.',
     'matchk.hint_no_candidate':     'Bocka för minst en kandidat för att köra detaljerad analys.',
     'matchk.select_all':            'Välj alla',
+
+    // Publicering
+    'publish.btn':                  'Publicera',
+    'publish.publishing':           'Publicerar...',
+    'publish.synced':               'Publicerad',
+    'publish.stale':                'Lokala ändringar – publicera igen',
+    'publish.never':                'Ej publicerad',
+    'publish.error':                'Publicering misslyckades',
+    'publish.unpublish':            'Sluta publicera',
+    'publish.unpublishing':         'Tar bort...',
 
     // Mina kandidater
     'kand.title':                   'Mina kandidater',
@@ -663,7 +673,7 @@ en: {
     'account.label_phone':          'Phone number',
     'account.label_address':        'Postal address',
     'account.label_identity':       'Identity',
-    'account.hint_identity':        'Generated automatically and cannot be changed. Deleted when the account is reset.',
+    'account.hint_identity':        'Generated automatically when publishing and cannot be changed. Deleted when the account is reset or when you stop publishing.',
     'account.ph_name':              'Your name',
     'account.ph_email':             'you@email.com',
     'account.ph_phone':             '+1 555 000 0000',
@@ -782,6 +792,16 @@ en: {
     'matchk.hint_no_text':          'Paste a job description to continue.',
     'matchk.hint_no_candidate':     'Check at least one candidate to run detailed analysis.',
     'matchk.select_all':            'Select all',
+
+    // Publishing
+    'publish.btn':                  'Publish',
+    'publish.publishing':           'Publishing...',
+    'publish.synced':               'Published',
+    'publish.stale':                'Local changes – publish again',
+    'publish.never':                'Not published',
+    'publish.error':                'Publishing failed',
+    'publish.unpublish':            'Stop publishing',
+    'publish.unpublishing':         'Removing...',
 
     'kand.title':                   'My candidates',
     'kand.subtitle':                'Manage your pool of candidates.',

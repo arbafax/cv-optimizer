@@ -407,6 +407,12 @@
                         <small class="form-hint" data-i18n="account.hint_identity"></small>
                     </div>
 
+                    <div id="kand-publish-row" class="publish-row hidden">
+                        <span id="kand-publish-dot" class="publish-dot publish-dot--never"></span>
+                        <span id="kand-publish-ts" class="publish-ts"></span>
+                        <button id="kand-publish-btn" class="btn btn-primary btn-sm" onclick="publishCurrentKandidat()" data-i18n="publish.btn">Publicera</button>
+                        <button id="kand-unpublish-btn" class="btn btn-secondary btn-sm" onclick="unpublishCurrentKandidat()" disabled data-i18n="publish.unpublish">Sluta publicera</button>
+                    </div>
                     <div id="kand-status"></div>
                     <button id="kand-delete-btn" class="btn btn-danger" onclick="deleteKandidat()" style="display:none" data-i18n="kand.delete">Ta bort kandidat</button>
                 </div>
@@ -1002,6 +1008,12 @@
                 <small class="form-hint" data-i18n="account.hint_identity"></small>
             </div>
 
+            <div id="sp-publish-row" class="publish-row hidden">
+                <span id="sp-publish-dot" class="publish-dot publish-dot--never"></span>
+                <span id="sp-publish-ts" class="publish-ts"></span>
+                <button id="sp-publish-btn" class="btn btn-primary btn-sm" onclick="publishSokprofilToBackend()" data-i18n="publish.btn">Publicera</button>
+                <button id="sp-unpublish-btn" class="btn btn-secondary btn-sm" onclick="unpublishSokprofilFromBackend()" disabled data-i18n="publish.unpublish">Sluta publicera</button>
+            </div>
             <div id="sp-status"></div>
         </div>
         </div><!-- /sp-tab-basinfo -->

@@ -1,6 +1,32 @@
 // ── Constants ─────────────────────────────────────────────────────────────────
 // Browser-only version: API_BASE_URL stripped in apiFetch dispatcher
-const API_BASE_URL = '';
+const API_BASE_URL  = '';
+const BACKEND_URL   = 'http://localhost:8018';
+
+async function _backendPublish(uuid, data) {
+    const url = uuid
+        ? `${BACKEND_URL}/api/v1/profiles/${uuid}`
+        : `${BACKEND_URL}/api/v1/profiles`;
+    const res = await fetch(url, {
+        method:  uuid ? 'PUT' : 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body:    JSON.stringify({ data }),
+    });
+    if (!res.ok) {
+        const err = await res.json().catch(() => ({}));
+        throw new Error(err.detail || `HTTP ${res.status}`);
+    }
+    return (await res.json()).uuid;
+}
+
+async function _backendUnpublish(uuid) {
+    if (!uuid) return;
+    const res = await fetch(`${BACKEND_URL}/api/v1/profiles/${uuid}`, { method: 'DELETE' });
+    if (!res.ok && res.status !== 404) {
+        const err = await res.json().catch(() => ({}));
+        throw new Error(err.detail || `HTTP ${res.status}`);
+    }
+}
 
 // DOM Elements (referenced across modules)
 const optimizeBtn    = document.getElementById('optimize-btn');
@@ -599,9 +625,6 @@ async function _getOwnKandidatId() {
 async function _resolveOwnKandidatId() {
     let own = await cvDb.kandidater.getOwn();
     if (own) {
-        if (!own.profile_uuid) {
-            own = await cvDb.kandidater.update(own.id, { profile_uuid: crypto.randomUUID() });
-        }
         _ownKandidatId = own.id;
         return own.id;
     }
@@ -753,10 +776,7 @@ async function browserRoute(path, options = {}) {
         // ── SOKPROFIL ────────────────────────────────────────────────────────
         if (parts[0] === 'sokprofil') {
             if (method === 'GET') {
-                const [p, ownRaw] = await Promise.all([cvDb.profile.get(), cvDb.kandidater.getOwn()]);
-                const own = (ownRaw && !ownRaw.profile_uuid)
-                    ? await cvDb.kandidater.update(ownRaw.id, { profile_uuid: crypto.randomUUID() })
-                    : ownRaw;
+                const [p, own] = await Promise.all([cvDb.profile.get(), cvDb.kandidater.getOwn()]);
                 const prof = p || {};
                 return new LocalResponse({
                     public_name: prof.public_name || null,
@@ -777,10 +797,7 @@ async function browserRoute(path, options = {}) {
             }
             if (method === 'PUT') {
                 await cvDb.profile.save({ ...(await cvDb.profile.get() || {}), ...body });
-                const ownRaw = await cvDb.kandidater.getOwn();
-                const own = (ownRaw && !ownRaw.profile_uuid)
-                    ? await cvDb.kandidater.update(ownRaw.id, { profile_uuid: crypto.randomUUID() })
-                    : ownRaw;
+                const own = await cvDb.kandidater.getOwn();
                 if (own && body.public_name !== undefined) {
                     await cvDb.kandidater.update(own.id, { public_name: body.public_name });
                 }
@@ -1181,7 +1198,6 @@ async function browserRoute(path, options = {}) {
                 const all = await cvDb.kandidater.list();
                 const enriched = await Promise.all(
                     all.filter(k => !k.is_own_profile).map(async k => {
-                        const base = k.profile_uuid ? k : await cvDb.kandidater.update(k.id, { profile_uuid: crypto.randomUUID() });
                         const [skills, exps, edu, certs, cvs] = await Promise.all([
                             cvDb.kandSkills.listFor(k.id),
                             cvDb.kandExperiences.listFor(k.id),
@@ -1189,7 +1205,7 @@ async function browserRoute(path, options = {}) {
                             cvDb.kandCertifications.listFor(k.id),
                             cvDb.kandCvs.listFor(k.id),
                         ]);
-                        return { ...base, _counts: { skills: skills.length, experiences: exps.length, education: edu.length, certifications: certs.length, cvs: cvs.length } };
+                        return { ...k, _counts: { skills: skills.length, experiences: exps.length, education: edu.length, certifications: certs.length, cvs: cvs.length } };
                     })
                 );
                 return new LocalResponse({ kandidater: enriched });
@@ -1204,7 +1220,7 @@ async function browserRoute(path, options = {}) {
 
             // POST /kandidater/
             if (method === 'POST' && parts.length === 1) {
-                const saved = await cvDb.kandidater.add({ ...body, profile_uuid: crypto.randomUUID() });
+                const saved = await cvDb.kandidater.add({ ...body });
                 return new LocalResponse(saved);
             }
 

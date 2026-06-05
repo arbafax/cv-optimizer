@@ -1,171 +1,303 @@
-# CVMatch — AI-driven karriärverktyg
+# CV Optimizer — AI-drivet karriärverktyg
 
-En AI-driven webbapplikation som hjälper användare att **ladda upp, strukturera, sammanställa och matcha CV:n mot jobbannonser**. Applikationen kombinerar PDF-parsning, AI-driven innehållsextraktion och smart matchning mot jobbannonser.
+Webbapplikation som hjälper användare att strukturera CV:n, bygga kompetensbanker och matcha mot jobbannonser med hjälp av AI.
+
+All data lagras lokalt i webbläsaren (IndexedDB). AI-anrop går direkt från webbläsaren till valfri leverantör (OpenAI, Anthropic, Gemini eller Ollama) — inga server-hemmeligheter krävs.
+
+En liten FastAPI-backend hanterar publicering av profiler (sökning och matchning mot kandidater).
+
+---
+
+## Kom igång
+
+### Frontend
+
+Kräver Python 3 (endast för den lokala utvecklingsservern).
+
+```bash
+cd frontend
+python serve.py
+```
+
+Öppna `http://localhost:5501` i webbläsaren.
+
+> `serve.py` är en SPA-medveten server som skickar alla okända sökvägar till `/`.
+
+---
+
+### Backend
+
+Kräver Python 3.11+.
+
+```bash
+cd backend
+python3 -m venv .venv
+source .venv/bin/activate
+pip install -r requirements.txt
+```
+
+Starta servern:
+
+```bash
+uvicorn main:app --reload --port 8018
+```
+
+API tillgängligt på `http://localhost:8018`. Swagger-dokumentation: `http://localhost:8018/docs`.
+
+Databasen (`cv_optimizer.db`) skapas automatiskt i `backend/`-mappen vid första start.
+
+---
 
 ## Teknikstack
 
-**Backend:**
-- Python 3.11+ / FastAPI
-- PostgreSQL med pgvector
-- SQLAlchemy 2.0
-- OpenAI API (GPT-4o för strukturering och matchning)
-- JWT-autentisering (python-jose + passlib)
+**Frontend**
+- Vanilla JS + CSS (ingen ramverk)
+- IndexedDB för lokal datalagring
+- Direkta API-anrop till OpenAI / Anthropic / Gemini / Ollama
+- PDF-parsning via pdf.js i webbläsaren
 
-**Frontend:**
-- Vanilla JavaScript (SPA)
-- HTML5 / CSS3
+**Backend**
+- Python / FastAPI
+- SQLite (WAL-läge) — ingen extern databas krävs
 
-## Funktionalitet
-
-### Huvudflöde
-
-1. **Registrering & inloggning** — Konto per användare med JWT-cookies. All data är isolerad per användare.
-
-2. **CV-uppladdning & strukturering** — Ladda upp PDF-CV:n via drag-and-drop. AI (GPT-4o) strukturerar texten till JSON med personuppgifter, erfarenheter, utbildning, skills m.m.
-
-3. **Kompetensbank** — Behandla enskilda CV:n eller alla på en gång för att bygga upp en central kompetensbank med dedupliserade färdigheter och erfarenheter, grupperade per kategori (t.ex. "Mjukvaruutveckling", "Databases", "Cloud & DevOps"). Kan redigeras manuellt med CRUD.
-
-4. **Matchning mot jobbannons** — Klistra in en jobbannons. AI matchar hela kompetensbanken mot jobbet och tar hänsyn till användarens sökprofil (önskade roller, ort, anställningsform m.m.).
-
-5. **Sökprofil** — Ange vilka roller, orter och anställningsformer du söker. Används som komplement vid AI-matchningen.
-
-### Frontend-vyer
-
-| Vy | Funktion |
-|---|---|
-| **Dashboard** | Statistik, snabbåtgärder, senaste CV:n |
-| **Mina CV:n** | Ladda upp PDF (drag-and-drop), lista, visa, redigera titel, ta bort, behandla till kompetensbank |
-| **Kompetensbank** | Samlade färdigheter och erfarenheter från alla CV:n, full CRUD |
-| **Matcha jobb** | Klistra in jobbannons — AI matchar kompetensbank och sökprofil mot jobbet |
-| **Sökprofil** | Önskade roller, ort, anställningsform, arbetsplats, pendling, sökbarhet |
-| **Mitt konto** | Namn, e-post, telefon, adress, byt lösenord |
-
-## API-endpoints
-
-### Autentisering (`/api/v1/auth`)
-
-| Metod | Endpoint | Beskrivning |
-|---|---|---|
-| `POST` | `/auth/register` | Skapa nytt konto |
-| `POST` | `/auth/login` | Logga in, sätter httpOnly JWT-cookie |
-| `POST` | `/auth/logout` | Logga ut, rensar cookie |
-| `GET` | `/auth/me` | Hämta inloggad användares profil |
-
-### CV-hantering (`/api/v1/cv`)
-
-| Metod | Endpoint | Beskrivning |
-|---|---|---|
-| `POST` | `/cv/upload` | Ladda upp och strukturera PDF-CV |
-| `GET` | `/cv/` | Lista alla CV:n |
-| `GET` | `/cv/{id}` | Hämta specifikt CV |
-| `PATCH` | `/cv/{id}/title` | Uppdatera CV-titel |
-| `DELETE` | `/cv/{id}` | Ta bort CV |
-
-### Kompetensbank (`/api/v1/competence`)
-
-| Metod | Endpoint | Beskrivning |
-|---|---|---|
-| `POST` | `/competence/merge-all` | Behandla alla CV:n till kompetensbanken |
-| `POST` | `/competence/merge/{cv_id}` | Behandla enskilt CV |
-| `GET` | `/competence/stats` | Statistik (skills, erfarenheter, källor) |
-| `GET` | `/competence/skills` | Lista alla färdigheter med kategorier |
-| `GET` | `/competence/experiences` | Lista alla erfarenheter |
-| `POST` | `/competence/skills` | Lägg till skill manuellt |
-| `DELETE` | `/competence/skills/{id}` | Ta bort skill |
-| `DELETE` | `/competence/experiences/{id}` | Ta bort erfarenhet |
-| `POST` | `/competence/experiences/{id}/achievements` | Lägg till prestation |
-| `PUT` | `/competence/experiences/{id}/achievements/{index}` | Redigera prestation |
-| `DELETE` | `/competence/experiences/{id}/achievements/{index}` | Ta bort prestation |
-| `POST` | `/competence/match-job` | Matcha kompetensbank mot jobbannons |
-| `DELETE` | `/competence/reset` | Rensa hela kompetensbanken |
-
-### Sökprofil (`/api/v1/sokprofil`)
-
-| Metod | Endpoint | Beskrivning |
-|---|---|---|
-| `GET` | `/sokprofil/` | Hämta sökprofil |
-| `PUT` | `/sokprofil/` | Spara/uppdatera sökprofil |
-
-Fullständig API-dokumentation (Swagger): `http://localhost:8001/docs`
-
-## Installation
-
-Se [QUICKSTART.md](QUICKSTART.md) för steg-för-steg-instruktioner.
-
-### Förutsättningar
-
-- Python 3.11+
-- Docker & Docker Compose
-- OpenAI API-nyckel
-
-### Snabbversion
-
-```bash
-git clone <repo-url>
-cd cv-optimizer
-docker compose up -d
-python3 -m venv venv && source venv/bin/activate
-pip install -r requirements.txt
-cp backend/.env.example backend/.env
-# Redigera backend/.env — fyll i OPENAI_API_KEY och SECRET_KEY
-./start-backend.sh
-```
-
-Frontend: öppna `frontend/index.html` direkt, eller starta med `python3 serve.py` från `frontend/`-mappen.
+---
 
 ## Projektstruktur
 
 ```
 cv-optimizer/
-├── backend/
-│   ├── app/
-│   │   ├── api/
-│   │   │   ├── auth.py               # Registrering, inloggning, JWT
-│   │   │   ├── cv.py                 # CV-uppladdning och hantering
-│   │   │   ├── competence.py         # Kompetensbank + matchning
-│   │   │   ├── optimize.py           # CV-optimering (legacy)
-│   │   │   └── job_seeker_profile.py # Sökprofil
-│   │   ├── core/
-│   │   │   ├── auth.py               # JWT-hjälpfunktioner
-│   │   │   ├── config.py             # Miljövariabler & inställningar
-│   │   │   └── database.py           # Databasanslutning (SQLAlchemy)
-│   │   ├── models/
-│   │   │   ├── cv.py                 # CV & OptimizedCV
-│   │   │   ├── competence.py         # SkillEntry & ExperienceEntry
-│   │   │   ├── user.py               # User
-│   │   │   └── job_seeker_profile.py # JobSeekerProfile
-│   │   ├── schemas/
-│   │   │   └── cv.py                 # Pydantic-valideringsscheman
-│   │   ├── services/
-│   │   │   ├── ai_service.py         # OpenAI-integration (GPT-4o)
-│   │   │   ├── pdf_parser.py         # PDF-textextraktion (pdfplumber)
-│   │   │   └── competence_service.py # Sammanslagning & deduplicering
-│   │   └── main.py                   # FastAPI-applikation
-│   ├── .env.example                  # Mallkonfiguration
-│   └── .env                          # (ignoreras av git)
 ├── frontend/
-│   ├── index.html                    # SPA (single page application)
+│   ├── index.html          # SPA-ingångspunkt
+│   ├── serve.py            # Lokal utvecklingsserver (port 5501)
 │   ├── js/
-│   │   ├── app.js                    # All frontend-logik
-│   │   └── cv-template.js            # CV-renderingsmallar
+│   │   ├── app-state.js    # Delat tillstånd och apiFetch-dispatcher
+│   │   ├── db.js           # IndexedDB-wrapper (window.cvDb)
+│   │   ├── ai.js           # AI-abstraktionslager (window.cvAI)
+│   │   ├── app.js          # Init och event listeners
+│   │   ├── app-cv.js       # CV-uppladdning och visning
+│   │   ├── app-bank.js     # Kompetensbank
+│   │   ├── app-sokprofil.js  # Sökprofil
+│   │   ├── app-kandidater.js # Kandidathantering
+│   │   ├── app-match.js    # Jobbmatchning och CV-generering
+│   │   ├── app-account.js  # Kontoinställningar och AI-konfiguration
+│   │   └── translations.js # Flerspråksstöd (sv/en)
 │   └── css/
-│       └── style.css                 # Design system
-├── database/
-│   └── init.sql                      # Initialt SQL-schema
-├── docker-compose.yml                # PostgreSQL 15 med pgvector
-├── start-backend.sh                  # Startskript för backend
-├── requirements.txt                  # Python-dependencies
-├── QUICKSTART.md                     # Snabbstart-guide
-└── README.md
+│       └── style.css
+└── backend/
+    ├── main.py             # FastAPI-app med SQLite
+    ├── requirements.txt
+    └── cv_optimizer.db     # Skapas automatiskt (ignoreras av git)
 ```
 
-## Databasmodeller
+---
 
-- **users** — Användarkonton med namn, e-post och hashat lösenord
-- **cvs** — Uppladdade CV:n med originaltext och strukturerad JSON-data
-- **skill_entries** — Kompetensbanken: unika färdigheter med kategori, typ och källhänvisning (source_cv_ids)
-- **experience_entries** — Kompetensbanken: erfarenheter med prestationer och källhänvisning
-- **job_seeker_profiles** — Sökprofil per användare (roller, ort, anställningsform m.m.)
+## API-endpoints (backend)
+
+| Metod    | Endpoint                    | Beskrivning                  |
+|----------|-----------------------------|------------------------------|
+| `POST`   | `/api/v1/profiles`          | Publicera ny profil          |
+| `PUT`    | `/api/v1/profiles/{uuid}`   | Uppdatera publicerad profil  |
+| `DELETE` | `/api/v1/profiles/{uuid}`   | Ta bort publicerad profil    |
+
+---
+
+## Datamodell
+
+### Frontend — IndexedDB
+
+```mermaid
+erDiagram
+    profile {
+        string id PK "singleton"
+        string public_name
+        string public_phone
+        string roles
+        string desired_city
+        array desired_employment
+        array desired_workplace
+        array desired_domains
+        array unwanted_domains
+        bool willing_to_commute
+        bool searchable
+        string available_from
+        string description
+        array personal_qualities
+    }
+
+    kandidater {
+        int id PK
+        string public_name
+        string email
+        string public_phone
+        string roles
+        string desired_city
+        array desired_employment
+        array desired_workplace
+        bool willing_to_commute
+        array personal_qualities
+        bool searchable
+        string available_from
+        string description
+        bool is_own_profile
+        string profile_uuid
+        string created_at
+        string updated_at
+    }
+
+    kand_skills {
+        int id PK
+        int kandidat_id FK
+        string skill_name
+        string category
+        string skill_level
+    }
+
+    kand_experiences {
+        int id PK
+        int kandidat_id FK
+        string title
+        string organization
+        string experience_type
+        string start_date
+        string end_date
+        bool is_current
+        string description
+        array achievements
+        array related_skills
+    }
+
+    kand_education {
+        int id PK
+        int kandidat_id FK
+        string degree
+        string institution
+        string field_of_study
+        string start_date
+        string end_date
+        string description
+    }
+
+    kand_certifications {
+        int id PK
+        int kandidat_id FK
+        string name
+        string issuer
+        string date
+        string description
+    }
+
+    kand_cvs {
+        int id PK
+        int kandidat_id FK
+        string filename
+        string title
+        string upload_date
+        bool is_processed
+        string mime_type
+        object structured_data
+        blob file_data
+    }
+
+    cvs {
+        int id PK
+        string filename
+        string title
+        string upload_date
+        string original_text
+        object structured_data
+        blob file_data
+    }
+
+    skills {
+        int id PK
+        string skill_name
+        string category
+        string skill_type
+        array source_cv_ids
+    }
+
+    experiences {
+        int id PK
+        string title
+        string organization
+        string experience_type
+        string start_date
+        string end_date
+        bool is_current
+        string description
+        array achievements
+        array source_cv_ids
+    }
+
+    education {
+        int id PK
+        string degree
+        string institution
+        string field_of_study
+        string start_date
+        string end_date
+        string description
+        int source_cv_id
+    }
+
+    certifications {
+        int id PK
+        string name
+        string issuer
+        string date_issued
+        string expiry_date
+        string credential_id
+        string credential_url
+        int source_cv_id
+    }
+
+    search_profiles {
+        int id PK
+        string name
+        string roles
+        string desired_city
+        array desired_employment
+        array desired_workplace
+        bool willing_to_commute
+        string notes
+        string job_description
+        array saved_match_results
+        string created_at
+    }
+
+    settings {
+        string key PK
+        any value
+    }
+
+    kandidater ||--o{ kand_skills : "har"
+    kandidater ||--o{ kand_experiences : "har"
+    kandidater ||--o{ kand_education : "har"
+    kandidater ||--o{ kand_certifications : "har"
+    kandidater ||--o{ kand_cvs : "har"
+    cvs }o--o{ skills : "bidrar till"
+    cvs }o--o{ experiences : "bidrar till"
+```
+
+> `profile` och raden i `kandidater` där `is_own_profile = true` representerar tillsammans den egna sökprofilen.
+> `skills`, `experiences`, `education`, `certifications` är den gemensamma kompetensbanken (egna CV:n).
+> `settings` innehåller bl.a. `pub_at_{uuid}` — tidsstämpel för senaste publicering per profil.
+
+---
+
+### Backend — SQLite
+
+```mermaid
+erDiagram
+    profiles {
+        string uuid PK
+        text data "JSON-blob (hela profilobjektet)"
+        string created_at
+        string updated_at
+    }
+```
+
+---
 
 ## Licens
 

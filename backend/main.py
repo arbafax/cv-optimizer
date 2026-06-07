@@ -86,12 +86,11 @@ def create_profile(body: ProfileBody):
 def update_profile(profile_uuid: str, body: ProfileBody):
     now = _now()
     with db() as conn:
-        cur = conn.execute(
-            "UPDATE profiles SET data = ?, updated_at = ? WHERE uuid = ?",
-            (json.dumps(body.data), now, profile_uuid),
+        conn.execute(
+            """INSERT INTO profiles (uuid, data, created_at, updated_at) VALUES (?, ?, ?, ?)
+               ON CONFLICT(uuid) DO UPDATE SET data = excluded.data, updated_at = excluded.updated_at""",
+            (profile_uuid, json.dumps(body.data), now, now),
         )
-        if cur.rowcount == 0:
-            raise HTTPException(status_code=404, detail="Profile not found")
         row = conn.execute("SELECT * FROM profiles WHERE uuid = ?", (profile_uuid,)).fetchone()
     return _row_to_profile(row)
 

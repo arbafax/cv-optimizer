@@ -776,10 +776,11 @@ async function browserRoute(path, options = {}) {
         // ── SOKPROFIL ────────────────────────────────────────────────────────
         if (parts[0] === 'sokprofil') {
             if (method === 'GET') {
-                const [p, own] = await Promise.all([cvDb.profile.get(), cvDb.kandidater.getOwn()]);
+                const ownId = await _getOwnKandidatId();
+                const [p, own] = await Promise.all([cvDb.profile.get(), cvDb.kandidater.get(ownId)]);
                 const prof = p || {};
                 return new LocalResponse({
-                    public_name: prof.public_name || null,
+                    public_name: own?.public_name || prof.public_name || null,
                     public_phone: prof.public_phone || null,
                     roles: prof.roles || null,
                     desired_city: prof.desired_city || null,
@@ -796,10 +797,15 @@ async function browserRoute(path, options = {}) {
                 });
             }
             if (method === 'PUT') {
-                await cvDb.profile.save({ ...(await cvDb.profile.get() || {}), ...body });
-                const own = await cvDb.kandidater.getOwn();
-                if (own && body.public_name !== undefined) {
-                    await cvDb.kandidater.update(own.id, { public_name: body.public_name });
+                const { public_name, ...profileBody } = body;
+                await cvDb.profile.save({ ...(await cvDb.profile.get() || {}), ...profileBody });
+                const ownId = await _getOwnKandidatId();
+                const own = await cvDb.kandidater.get(ownId);
+                if (own && public_name !== undefined) {
+                    await cvDb.kandidater.update(own.id, { public_name });
+                } else if (own && !own.public_name) {
+                    const prof = await cvDb.profile.get();
+                    if (prof?.public_name) await cvDb.kandidater.update(own.id, { public_name: prof.public_name });
                 }
                 return new LocalResponse({ ...body, profile_uuid: own?.profile_uuid || null });
             }

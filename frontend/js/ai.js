@@ -766,6 +766,7 @@ async function fetchJobUrl(url) {
 }
 
 window.cvAI = {
+  chat: (system, user, opts) => _chat(system, user, opts),
   structureCV,
   analyzeJob,
   explainRequiredSkill,

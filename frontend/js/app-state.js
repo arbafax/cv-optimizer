@@ -19,6 +19,120 @@ async function _backendPublish(uuid, data) {
     return (await res.json()).uuid;
 }
 
+async function _buildKandidatPayload(kandidatId) {
+    const [kand, skills, exps, edu, certs] = await Promise.all([
+        cvDb.kandidater.get(kandidatId),
+        cvDb.kandSkills.listFor(kandidatId),
+        cvDb.kandExperiences.listFor(kandidatId),
+        cvDb.kandEducation.listFor(kandidatId),
+        cvDb.kandCertifications.listFor(kandidatId),
+    ]);
+    return { ...kand, skills, experiences: exps, education: edu, certifications: certs };
+}
+
+async function _buildSpPayload() {
+    const ownId = await _getOwnKandidatId();
+    const [prof, payload] = await Promise.all([
+        cvDb.profile.get(),
+        _buildKandidatPayload(ownId),
+    ]);
+    const p = prof || {};
+    return {
+        ...payload,
+        email:              p.email              ?? payload.email              ?? null,
+        public_phone:       p.public_phone       ?? payload.public_phone       ?? null,
+        roles:              p.roles              ?? payload.roles              ?? null,
+        desired_city:       p.desired_city       ?? payload.desired_city       ?? null,
+        desired_employment: p.desired_employment ?? payload.desired_employment ?? [],
+        desired_workplace:  p.desired_workplace  ?? payload.desired_workplace  ?? [],
+        desired_domains:    p.desired_domains    ?? [],
+        unwanted_domains:   p.unwanted_domains   ?? [],
+        willing_to_commute: p.willing_to_commute ?? payload.willing_to_commute ?? false,
+        searchable:         p.searchable         ?? payload.searchable         ?? false,
+        available_from:     p.available_from     ?? payload.available_from     ?? null,
+        description:        p.description        ?? payload.description        ?? null,
+        personal_qualities: p.personal_qualities ?? payload.personal_qualities ?? [],
+    };
+}
+
+async function _generateKandidatPortrait(kandidatId) {
+    const [kand, skills, exps, edu, certs] = await Promise.all([
+        cvDb.kandidater.get(kandidatId),
+        cvDb.kandSkills.listFor(kandidatId),
+        cvDb.kandExperiences.listFor(kandidatId),
+        cvDb.kandEducation.listFor(kandidatId),
+        cvDb.kandCertifications.listFor(kandidatId),
+    ]);
+    if (!kand) throw new Error('Kandidat hittades inte');
+
+    const skillsByCategory = {};
+    for (const s of skills) {
+        const cat = s.category || 'Övrigt';
+        if (!skillsByCategory[cat]) skillsByCategory[cat] = [];
+        skillsByCategory[cat].push(s.skill_level ? `${s.skill_name} (${s.skill_level})` : s.skill_name);
+    }
+    const skillsText = Object.entries(skillsByCategory)
+        .map(([cat, list]) => `${cat}: ${list.join(', ')}`)
+        .join('\n') || '(inga kompetenser registrerade)';
+
+    const expsText = exps.length ? exps.map(e => {
+        const period = [e.start_date, e.is_current ? 'idag' : e.end_date].filter(Boolean).join('–');
+        const lines = [`${e.title}${e.organization ? ' på ' + e.organization : ''}${period ? ' (' + period + ')' : ''}`];
+        if (e.description) lines.push(e.description);
+        if (e.achievements?.length) lines.push('Prestationer: ' + e.achievements.join('; '));
+        return lines.join('\n');
+    }).join('\n\n') : '(ingen erfarenhet registrerad)';
+
+    const eduText = edu.length ? edu.map(e =>
+        `${e.degree}${e.field_of_study ? ', ' + e.field_of_study : ''}${e.institution ? ' – ' + e.institution : ''}${e.end_date ? ' (' + e.end_date + ')' : ''}`
+    ).join('\n') : '(ingen utbildning registrerad)';
+
+    const certsText = certs.length ? certs.map(c =>
+        `${c.name}${c.issuer ? ', ' + c.issuer : ''}${c.date ? ' (' + c.date + ')' : ''}`
+    ).join('\n') : '';
+
+    const userPrompt = `Skriv ett professionellt kandidatportätt på svenska, 300–400 ord.
+
+Regler:
+- Skriv i tredje person — använd konsekvent "kandidaten" som substantiv och "hen"/"hens" som pronomen
+- Avslöja aldrig kön, ålder eller annan personlig information som kan identifiera personen
+- Nämn inga specifika årtal som avslöjar ålder — beskriv erfarenhetslängd i relativa termer ("över tio år", "mångårig erfarenhet")
+- Inled med en mening som sammanfattar vad kandidaten arbetar med och vad hen söker
+- Väv in kompetenser och erfarenheter naturligt i löptext — inga punktlistor
+- Lyft fram konkreta prestationer om sådana finns
+- Avsluta med vad kandidaten söker: roll, ort, anställningsform och tillgänglighet
+- Texten ska vara optimerad för semantisk matchning mot jobbannonser
+
+--- KANDIDATDATA ---
+Namn: ${kand.public_name || '(ej angivet)'}
+Sökt roll/titel: ${kand.roles || '(ej angivet)'}
+Önskad ort: ${kand.desired_city || '(ej angivet)'}
+Anställningsform: ${(kand.desired_employment || []).join(', ') || '(ej angivet)'}
+Arbetsplats: ${(kand.desired_workplace || []).join(', ') || '(ej angivet)'}
+Kan pendla: ${kand.willing_to_commute ? 'Ja' : 'Nej'}
+Tillgänglig från: ${kand.available_from || 'Omgående'}
+Personlig beskrivning: ${kand.description || '(ingen beskrivning)'}
+Personliga egenskaper: ${(kand.personal_qualities || []).join(', ') || '(ej angivet)'}
+
+KOMPETENSER:
+${skillsText}
+
+ARBETSLIVSERFARENHET:
+${expsText}
+
+UTBILDNING:
+${eduText}
+${certsText ? '\nCERTIFIERINGAR:\n' + certsText : ''}`;
+
+    const portrait = await cvAI.chat(
+        'Du är en erfaren rekryteringskonsult som skriver professionella kandidatportätt.',
+        userPrompt,
+        { temperature: 0.6 }
+    );
+    await cvDb.kandidater.update(kandidatId, { portrait });
+    return portrait;
+}
+
 async function _backendUnpublish(uuid) {
     if (!uuid) return;
     const res = await fetch(`${BACKEND_URL}/api/v1/profiles/${uuid}`, { method: 'DELETE' });

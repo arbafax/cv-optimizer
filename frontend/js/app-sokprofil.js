@@ -32,6 +32,7 @@ async function touchOwnKandidat() {
         await cvDb.kandidater.update(own.id, {});
         const fresh = await cvDb.kandidater.get(own.id);
         _showSpTimestamps(fresh);
+        refreshSpPublishStatus().catch(() => {});
     } catch { /* silent */ }
 }
 
@@ -74,9 +75,29 @@ async function publishSokprofilToBackend() {
     const btn = document.getElementById('sp-publish-btn');
     if (btn) { btn.disabled = true; btn.textContent = t('publish.publishing'); }
     try {
-        const own = await cvDb.kandidater.getOwn();
+        let own = await cvDb.kandidater.getOwn();
         if (!own) throw new Error('Ingen profil hittades');
-        const uuid = await _backendPublish(own.profile_uuid, own);
+        if (!own.portrait) {
+            if (btn) btn.textContent = t('portrait.publish_generating');
+            await _generateKandidatPortrait(own.id);
+            own = await cvDb.kandidater.getOwn();
+            const ta = document.getElementById('sp-portrait-text');
+            if (ta) ta.value = own?.portrait || '';
+        } else {
+            const pubAt = own.profile_uuid
+                ? await cvDb.settings.get(`pub_at_${own.profile_uuid}`).catch(() => null)
+                : null;
+            const isStale = pubAt && new Date(pubAt) < new Date(own.updated_at);
+            if (isStale && confirm(t('portrait.confirm_update'))) {
+                if (btn) btn.textContent = t('portrait.publish_generating');
+                await _generateKandidatPortrait(own.id);
+                own = await cvDb.kandidater.getOwn();
+                const ta = document.getElementById('sp-portrait-text');
+                if (ta) ta.value = own?.portrait || '';
+            }
+        }
+        const payload = await _buildSpPayload();
+        const uuid = await _backendPublish(own.profile_uuid, payload);
         if (!own.profile_uuid) {
             await cvDb.kandidater.update(own.id, { profile_uuid: uuid });
             document.getElementById('sp-profile-uuid').value = uuid;
@@ -208,7 +229,7 @@ function showSokprofilStatus(msg, type) {
 }
 
 function switchSokprofilTab(tab) {
-    ['basinfo', 'kompetenser', 'erfarenheter', 'utbildning', 'certifikat', 'cv'].forEach(t => {
+    ['basinfo', 'kompetenser', 'erfarenheter', 'utbildning', 'certifikat', 'cv', 'portratt'].forEach(t => {
         document.getElementById(`sp-tab-${t}`).style.display       = t === tab ? '' : 'none';
         document.getElementById(`sp-tab-btn-${t}`).classList.toggle('active', t === tab);
     });
@@ -216,7 +237,40 @@ function switchSokprofilTab(tab) {
     if (tab === 'erfarenheter') loadSpErfarenheter();
     if (tab === 'utbildning')   loadSpEducation();
     if (tab === 'certifikat')   loadSpCertifications();
-    if (tab === 'cv') { setupSpCVUpload(); loadSpCandidateCVs(); }
+    if (tab === 'cv')           { setupSpCVUpload(); loadSpCandidateCVs(); }
+    if (tab === 'portratt')     loadSpPortrait();
+}
+
+async function loadSpPortrait() {
+    const own = await cvDb.kandidater.getOwn().catch(() => null);
+    const ta = document.getElementById('sp-portrait-text');
+    if (ta) ta.value = own?.portrait || '';
+}
+
+async function generateSpPortrait() {
+    const btn = document.getElementById('sp-portrait-gen-btn');
+    const status = document.getElementById('sp-portrait-status');
+    if (btn) { btn.disabled = true; btn.textContent = t('portrait.generating'); }
+    try {
+        const own = await cvDb.kandidater.getOwn();
+        if (!own) throw new Error('Ingen profil hittades');
+        const portrait = await _generateKandidatPortrait(own.id);
+        const ta = document.getElementById('sp-portrait-text');
+        if (ta) ta.value = portrait;
+        if (status) status.textContent = t('portrait.saved');
+    } catch (err) {
+        if (status) status.textContent = err.message || t('publish.error');
+    } finally {
+        if (btn) { btn.disabled = false; btn.textContent = t('portrait.generate_btn'); }
+    }
+}
+
+async function saveSpPortrait() {
+    const own = await cvDb.kandidater.getOwn().catch(() => null);
+    if (!own) return;
+    const ta = document.getElementById('sp-portrait-text');
+    if (!ta) return;
+    await cvDb.kandidater.update(own.id, { portrait: ta.value }).catch(() => {});
 }
 
 // ── Kompetenser ────────────────────────────────────────────────────────────────
@@ -257,6 +311,7 @@ async function _saveSpQualities() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ personal_qualities: [..._spQualities] }),
     });
+    touchOwnKandidat();
 }
 
 async function addSpQuality(name) {

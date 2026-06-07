@@ -184,7 +184,7 @@ function showKandidatForm(kandidat) {
 
     // Dessa flikar aktiveras bara vid redigering av befintlig kandidat
     ['kand-tab-btn-kompetenser', 'kand-tab-btn-erfarenheter',
-     'kand-tab-btn-utbildning', 'kand-tab-btn-certifikat', 'kand-tab-btn-cv'].forEach(id => {
+     'kand-tab-btn-utbildning', 'kand-tab-btn-certifikat', 'kand-tab-btn-cv', 'kand-tab-btn-portratt'].forEach(id => {
         document.getElementById(id).disabled = !kandidat;
     });
     switchKandidatTab('basinfo');
@@ -232,9 +232,29 @@ async function publishCurrentKandidat() {
     const btn = document.getElementById('kand-publish-btn');
     if (btn) { btn.disabled = true; btn.textContent = t('publish.publishing'); }
     try {
-        const kand = await cvDb.kandidater.get(currentKandidatId);
+        let kand = await cvDb.kandidater.get(currentKandidatId);
         if (!kand) throw new Error('Kandidat hittades inte');
-        const uuid = await _backendPublish(kand.profile_uuid, kand);
+        if (!kand.portrait) {
+            if (btn) btn.textContent = t('portrait.publish_generating');
+            await _generateKandidatPortrait(currentKandidatId);
+            kand = await cvDb.kandidater.get(currentKandidatId);
+            const ta = document.getElementById('kand-portrait-text');
+            if (ta) ta.value = kand.portrait || '';
+        } else {
+            const pubAt = kand.profile_uuid
+                ? await cvDb.settings.get(`pub_at_${kand.profile_uuid}`).catch(() => null)
+                : null;
+            const isStale = pubAt && new Date(pubAt) < new Date(kand.updated_at);
+            if (isStale && confirm(t('portrait.confirm_update'))) {
+                if (btn) btn.textContent = t('portrait.publish_generating');
+                await _generateKandidatPortrait(currentKandidatId);
+                kand = await cvDb.kandidater.get(currentKandidatId);
+                const ta = document.getElementById('kand-portrait-text');
+                if (ta) ta.value = kand.portrait || '';
+            }
+        }
+        const payload = await _buildKandidatPayload(currentKandidatId);
+        const uuid = await _backendPublish(kand.profile_uuid, payload);
         if (!kand.profile_uuid) {
             await cvDb.kandidater.update(currentKandidatId, { profile_uuid: uuid });
             document.getElementById('kand-profile-uuid').value = uuid;
@@ -574,7 +594,7 @@ async function saveKandidat() {
         document.getElementById('kand-delete-btn').style.display = '';
         if (saved.profile_uuid) document.getElementById('kand-profile-uuid').value = saved.profile_uuid;
         ['kand-tab-btn-kompetenser', 'kand-tab-btn-erfarenheter',
-         'kand-tab-btn-utbildning', 'kand-tab-btn-certifikat', 'kand-tab-btn-cv']
+         'kand-tab-btn-utbildning', 'kand-tab-btn-certifikat', 'kand-tab-btn-cv', 'kand-tab-btn-portratt']
             .forEach(id => { document.getElementById(id).disabled = false; });
         if (isNew) loadDashKandidaterCount();
         showKandidatStatus(t('kand.saved_msg'), 'success');
@@ -611,7 +631,7 @@ function showKandidatStatus(msg, type) {
 // ── Kandidat tabs ─────────────────────────────────────────────────────────────
 
 function switchKandidatTab(tab) {
-    ['basinfo', 'kompetenser', 'erfarenheter', 'utbildning', 'certifikat', 'cv'].forEach(t => {
+    ['basinfo', 'kompetenser', 'erfarenheter', 'utbildning', 'certifikat', 'cv', 'portratt'].forEach(t => {
         document.getElementById(`kand-tab-${t}`).style.display       = t === tab ? '' : 'none';
         document.getElementById(`kand-tab-btn-${t}`).classList.toggle('active', t === tab);
     });
@@ -621,7 +641,38 @@ function switchKandidatTab(tab) {
         if (tab === 'utbildning')   loadKandidatEducation(currentKandidatId);
         if (tab === 'certifikat')   loadKandidatCertifications(currentKandidatId);
         if (tab === 'cv')           { setupKandidatUpload(); loadKandidatCVs(currentKandidatId); }
+        if (tab === 'portratt')     loadKandidatPortrait(currentKandidatId);
     }
+}
+
+async function loadKandidatPortrait(kandidatId) {
+    const kand = await cvDb.kandidater.get(kandidatId).catch(() => null);
+    const ta = document.getElementById('kand-portrait-text');
+    if (ta) ta.value = kand?.portrait || '';
+}
+
+async function generateKandPortrait() {
+    if (!currentKandidatId) return;
+    const btn = document.getElementById('kand-portrait-gen-btn');
+    const status = document.getElementById('kand-portrait-status');
+    if (btn) { btn.disabled = true; btn.textContent = t('portrait.generating'); }
+    try {
+        const portrait = await _generateKandidatPortrait(currentKandidatId);
+        const ta = document.getElementById('kand-portrait-text');
+        if (ta) ta.value = portrait;
+        if (status) status.textContent = t('portrait.saved');
+    } catch (err) {
+        if (status) status.textContent = err.message || t('publish.error');
+    } finally {
+        if (btn) { btn.disabled = false; btn.textContent = t('portrait.generate_btn'); }
+    }
+}
+
+async function saveKandPortrait() {
+    if (!currentKandidatId) return;
+    const ta = document.getElementById('kand-portrait-text');
+    if (!ta) return;
+    await cvDb.kandidater.update(currentKandidatId, { portrait: ta.value }).catch(() => {});
 }
 
 // ── Kandidat kompetensbank ────────────────────────────────────────────────────

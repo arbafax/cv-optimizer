@@ -188,6 +188,16 @@ sv: {
     'matchk.hint_no_candidate':     'Bocka för minst en kandidat för att köra detaljerad analys.',
     'matchk.select_all':            'Välj alla',
 
+    // Portätt
+    'tab.portratt':                 'Portätt',
+    'portrait.hint':                'Ett portätt är en löpande text (300–400 ord) som beskriver kandidaten och används för semantisk matchning mot jobbannonser. Genereras automatiskt men kan redigeras fritt.',
+    'portrait.generate_btn':        'Generera portätt',
+    'portrait.generating':          'Genererar...',
+    'portrait.placeholder':         'Inget portätt ännu. Klicka "Generera portätt" för att skapa ett automatiskt.',
+    'portrait.saved':               'Portättet är sparat.',
+    'portrait.publish_generating':  'Genererar portätt...',
+    'portrait.confirm_update':      'Profilen har ändrats sedan portättet skapades.\n\nKlicka OK för att uppdatera portättet innan publicering, eller Avbryt för att publicera med befintligt portätt.',
+
     // Publicering
     'publish.btn':                  'Publicera',
     'publish.publishing':           'Publicerar...',
@@ -796,6 +806,15 @@ en: {
     'matchk.select_all':            'Select all',
 
     // Publishing
+    'tab.portratt':                 'Portrait',
+    'portrait.hint':                'A portrait is a flowing text (300–400 words) describing the candidate, used for semantic matching against job ads. Generated automatically but freely editable.',
+    'portrait.generate_btn':        'Generate portrait',
+    'portrait.generating':          'Generating...',
+    'portrait.placeholder':         'No portrait yet. Click "Generate portrait" to create one automatically.',
+    'portrait.saved':               'Portrait saved.',
+    'portrait.publish_generating':  'Generating portrait...',
+    'portrait.confirm_update':      'The profile has changed since the portrait was created.\n\nClick OK to update the portrait before publishing, or Cancel to publish with the existing portrait.',
+
     'publish.btn':                  'Publish',
     'publish.publishing':           'Publishing...',
     'publish.synced':               'Published',

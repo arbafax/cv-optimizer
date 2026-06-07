@@ -279,6 +279,12 @@
                     <p class="view-subtitle" id="kandidat-form-subtitle">Fyll i kandidatens profil och preferenser.</p>
                     <div id="kand-timestamps" class="kand-timestamps hidden"></div>
                 </div>
+                <div id="kand-publish-row" class="publish-row publish-row--header hidden">
+                    <span id="kand-publish-dot" class="publish-dot publish-dot--never"></span>
+                    <span id="kand-publish-ts" class="publish-ts"></span>
+                    <button id="kand-publish-btn" class="btn btn-primary btn-sm" onclick="publishCurrentKandidat()" data-i18n="publish.btn">Publicera</button>
+                    <button id="kand-unpublish-btn" class="btn btn-secondary btn-sm" onclick="unpublishCurrentKandidat()" disabled data-i18n="publish.unpublish">Sluta publicera</button>
+                </div>
                 <button class="btn btn-secondary" onclick="showKandidatListPanel()" data-i18n="kand.back">← Tillbaka</button>
             </div>
 
@@ -290,6 +296,7 @@
                 <button id="kand-tab-btn-utbildning" class="kand-tab-btn" onclick="switchKandidatTab('utbildning')" disabled data-i18n="tab.utbildning">Utbildning</button>
                 <button id="kand-tab-btn-certifikat" class="kand-tab-btn" onclick="switchKandidatTab('certifikat')" disabled data-i18n="tab.certifikat">Kurser &amp; Cert</button>
                 <button id="kand-tab-btn-cv" class="kand-tab-btn" onclick="switchKandidatTab('cv')" disabled data-i18n="tab.cv">CV</button>
+                <button id="kand-tab-btn-portratt" class="kand-tab-btn" onclick="switchKandidatTab('portratt')" disabled data-i18n="tab.portratt">Portätt</button>
             </div>
 
             <!-- ── TAB: Basinfo ── -->
@@ -407,12 +414,6 @@
                         <small class="form-hint" data-i18n="account.hint_identity"></small>
                     </div>
 
-                    <div id="kand-publish-row" class="publish-row hidden">
-                        <span id="kand-publish-dot" class="publish-dot publish-dot--never"></span>
-                        <span id="kand-publish-ts" class="publish-ts"></span>
-                        <button id="kand-publish-btn" class="btn btn-primary btn-sm" onclick="publishCurrentKandidat()" data-i18n="publish.btn">Publicera</button>
-                        <button id="kand-unpublish-btn" class="btn btn-secondary btn-sm" onclick="unpublishCurrentKandidat()" disabled data-i18n="publish.unpublish">Sluta publicera</button>
-                    </div>
                     <div id="kand-status"></div>
                     <button id="kand-delete-btn" class="btn btn-danger" onclick="deleteKandidat()" style="display:none" data-i18n="kand.delete">Ta bort kandidat</button>
                 </div>
@@ -613,6 +614,21 @@
                     <div class="empty-hint" data-i18n="kand.no_cv">Inga CV:n uppladdade än</div>
                 </div>
 
+            </div>
+
+            <div id="kand-tab-portratt" style="display:none">
+                <div class="card">
+                    <p class="field-desc" data-i18n="portrait.hint" style="margin-bottom:0.75rem"></p>
+                    <textarea id="kand-portrait-text" class="form-input" rows="14"
+                              style="font-family:inherit;resize:vertical;width:100%;box-sizing:border-box"
+                              onblur="saveKandPortrait()"
+                              data-i18n-ph="portrait.placeholder"></textarea>
+                    <div style="display:flex;gap:0.5rem;margin-top:0.75rem;align-items:center">
+                        <button id="kand-portrait-gen-btn" class="btn btn-primary"
+                                onclick="generateKandPortrait()" data-i18n="portrait.generate_btn">Generera portätt</button>
+                        <span id="kand-portrait-status" class="form-hint"></span>
+                    </div>
+                </div>
             </div>
 
         </div>
@@ -837,6 +853,12 @@
                 <p class="view-subtitle" data-i18n-html="profile.subtitle">Hur du presenterar dig och vad du söker.</p>
                 <div id="sp-timestamps" class="kand-timestamps hidden"></div>
             </div>
+            <div id="sp-publish-row" class="publish-row publish-row--header hidden">
+                <span id="sp-publish-dot" class="publish-dot publish-dot--never"></span>
+                <span id="sp-publish-ts" class="publish-ts"></span>
+                <button id="sp-publish-btn" class="btn btn-primary btn-sm" onclick="publishSokprofilToBackend()" data-i18n="publish.btn">Publicera</button>
+                <button id="sp-unpublish-btn" class="btn btn-secondary btn-sm" onclick="unpublishSokprofilFromBackend()" disabled data-i18n="publish.unpublish">Sluta publicera</button>
+            </div>
         </div>
 
         <!-- Tab navigation -->
@@ -847,6 +869,7 @@
             <button id="sp-tab-btn-utbildning" class="kand-tab-btn" onclick="switchSokprofilTab('utbildning')" data-i18n="tab.utbildning">Utbildning</button>
             <button id="sp-tab-btn-certifikat" class="kand-tab-btn" onclick="switchSokprofilTab('certifikat')" data-i18n="tab.certifikat">Kurser &amp; Cert</button>
             <button id="sp-tab-btn-cv" class="kand-tab-btn" onclick="switchSokprofilTab('cv')" data-i18n="tab.cv">CV</button>
+            <button id="sp-tab-btn-portratt" class="kand-tab-btn" onclick="switchSokprofilTab('portratt')" data-i18n="tab.portratt">Portätt</button>
         </div>
 
         <!-- ── TAB: Basinfo ── -->
@@ -1008,12 +1031,6 @@
                 <small class="form-hint" data-i18n="account.hint_identity"></small>
             </div>
 
-            <div id="sp-publish-row" class="publish-row hidden">
-                <span id="sp-publish-dot" class="publish-dot publish-dot--never"></span>
-                <span id="sp-publish-ts" class="publish-ts"></span>
-                <button id="sp-publish-btn" class="btn btn-primary btn-sm" onclick="publishSokprofilToBackend()" data-i18n="publish.btn">Publicera</button>
-                <button id="sp-unpublish-btn" class="btn btn-secondary btn-sm" onclick="unpublishSokprofilFromBackend()" disabled data-i18n="publish.unpublish">Sluta publicera</button>
-            </div>
             <div id="sp-status"></div>
         </div>
         </div><!-- /sp-tab-basinfo -->
@@ -1206,6 +1223,24 @@
             <div id="sp-cv-list" class="cv-grid">
                 <div class="empty-hint" data-i18n="cv.no_cvs">Inga CV:n uppladdade än</div>
             </div>
+        </div>
+
+        <!-- ── TAB: Portätt ── -->
+        <div id="sp-tab-portratt" style="display:none">
+            <div class="card">
+                <p class="field-desc" data-i18n="portrait.hint" style="margin-bottom:0.75rem"></p>
+                <textarea id="sp-portrait-text" class="form-input" rows="14"
+                          style="font-family:inherit;resize:vertical;width:100%;box-sizing:border-box"
+                          onblur="saveSpPortrait()"
+                          data-i18n-ph="portrait.placeholder"></textarea>
+                <div style="display:flex;gap:0.5rem;margin-top:0.75rem;align-items:center">
+                    <button id="sp-portrait-gen-btn" class="btn btn-primary"
+                            onclick="generateSpPortrait()" data-i18n="portrait.generate_btn">Generera portätt</button>
+                    <span id="sp-portrait-status" class="form-hint"></span>
+                </div>
+            </div>
+        </div>
+
         </div>
 
     </div>

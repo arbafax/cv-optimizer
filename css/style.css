@@ -209,6 +209,13 @@ body {
     border-top: 1px solid var(--border);
     font-size: 13px;
 }
+.publish-row--header {
+    border-top: none;
+    padding: 0;
+    margin-top: 0;
+    flex-wrap: wrap;
+    justify-content: flex-end;
+}
 .publish-dot {
     width: 10px;
     height: 10px;

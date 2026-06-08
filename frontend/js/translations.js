@@ -317,6 +317,16 @@ sv: {
     // Min profil (sökprofil)
     'profile.title':                'Min profil',
     'profile.subtitle':             'Hur du presenterar dig och vad du söker.<br><br>Det enklaste sättet att bygga din databas med kompetenser, erfarenheter, utbildningar etc är att läsa in ett eller flera av dina befintliga CV. Inlästa CV och dess analysresultat sparas lokalt i din webbläsare, men analysen utförs på den LLM du konfigurerat. Under "Mitt konto" kan du rensa all data från webbläsaren med ett klick.',
+
+    // Profil (gemensam)
+    'profile.title_own':            'Min profil',
+    'profile.title_candidate':      'Kandidatprofil',
+    'profile.subtitle_own':         'Din egenprofil — hur du presenterar dig och vad du söker.',
+    'profile.subtitle_candidate':   'Kandidatens profil och preferenser.',
+    'profile.desc_public_name_own': 'Det namn som visas när din profil publiceras.',
+    'profile.desc_public_name_cand':'Kandidatens offentliga namn.',
+    'profile.saved':                'Profilen är sparad.',
+    'profile.back':                 '← Tillbaka',
     'sp.label_public_name':         'Publikt namn',
     'sp.label_public_phone':        'Publikt telefonnummer',
     'sp.label_email':               'Publik e-postadress',
@@ -925,6 +935,17 @@ en: {
 
     'profile.title':                'My profile',
     'profile.subtitle':             'How you present yourself and what you are looking for.<br><br>The easiest way to build your database of skills, experiences, education etc. is to import one or more of your existing CVs. Imported CVs and their analysis results are stored locally in your browser, but the analysis is performed by the LLM you have configured. Under "My Account" you can clear all data from the browser with one click.',
+
+    // Profile (shared)
+    'profile.title_own':            'My profile',
+    'profile.title_candidate':      'Candidate profile',
+    'profile.subtitle_own':         'Your own profile — how you present yourself and what you are looking for.',
+    'profile.subtitle_candidate':   'The candidate\'s profile and preferences.',
+    'profile.desc_public_name_own': 'The name shown when your profile is published.',
+    'profile.desc_public_name_cand':'The candidate\'s public name.',
+    'profile.saved':                'Profile saved.',
+    'profile.back':                 '← Back',
+
     'sp.label_public_name':         'Public name',
     'sp.label_public_phone':        'Public phone number',
     'sp.label_email':               'Public email address',

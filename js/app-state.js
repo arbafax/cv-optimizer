@@ -645,7 +645,7 @@ function setupSkillDragDrop(container, onCategoryChange) {
                 ownSkills.forEach(s => s.category && userCats.push(s.category));
             }
             const all = await cvDb.kandidater.list();
-            for (const k of all.filter(k => !k.is_own_profile)) {
+            for (const k of all.filter(k => k.profile_type !== 'egenprofil')) {
                 const ks = await cvDb.kandSkills.listFor(k.id);
                 ks.forEach(s => s.category && userCats.push(s.category));
             }
@@ -756,7 +756,7 @@ async function _resolveOwnKandidatId() {
         searchable:         profile.searchable         || false,
         available_from:     profile.available_from     || null,
         description:        profile.description        || null,
-        is_own_profile:     true,
+        profile_type:     'egenprofil',
     });
     _ownKandidatId = newKand.id;
 
@@ -1317,7 +1317,7 @@ async function browserRoute(path, options = {}) {
             if (method === 'GET' && parts.length === 1) {
                 const all = await cvDb.kandidater.list();
                 const enriched = await Promise.all(
-                    all.filter(k => !k.is_own_profile).map(async k => {
+                    all.filter(k => k.profile_type !== 'egenprofil').map(async k => {
                         const [skills, exps, edu, certs, cvs] = await Promise.all([
                             cvDb.kandSkills.listFor(k.id),
                             cvDb.kandExperiences.listFor(k.id),
@@ -1353,7 +1353,7 @@ async function browserRoute(path, options = {}) {
             // DELETE /kandidater/{id}
             if (method === 'DELETE' && parts.length === 2) {
                 const toDelete = await cvDb.kandidater.get(kid);
-                if (toDelete?.is_own_profile) return new LocalResponse({ detail: 'Kan inte ta bort egen profil' }, 403);
+                if (toDelete?.profile_type === 'egenprofil') return new LocalResponse({ detail: 'Kan inte ta bort egen profil' }, 403);
                 await cvDb.kandSkills.deleteAll(kid);
                 await cvDb.kandExperiences.deleteAll(kid);
                 await cvDb.kandEducation.deleteAll(kid);
@@ -1589,7 +1589,7 @@ async function browserRoute(path, options = {}) {
             if (parts[1] === 'multi-match' && method === 'POST') {
                 const { kandidat_ids = [] } = body;
                 const allKand = (await cvDb.kandidater.list()).filter(k =>
-                    !k.is_own_profile && (kandidat_ids.length === 0 || kandidat_ids.includes(k.id))
+                    k.profile_type !== 'egenprofil' && (kandidat_ids.length === 0 || kandidat_ids.includes(k.id))
                 );
                 // Analyze the job once — reused for all candidates
                 const structuredJob = await _getStructuredJob(body.job_title || '', body.job_description || '');

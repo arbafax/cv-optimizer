@@ -4,7 +4,7 @@
  */
 
 const DB_NAME = 'cv-optimizer';
-const DB_VERSION = 5;
+const DB_VERSION = 6;
 
 let _db = null;
 
@@ -494,8 +494,8 @@ const kandidater = {
         searchable:         data.searchable         ?? false,
         available_from:     data.available_from     ?? null,
         description:        data.description        ?? null,
-        is_own_profile:     data.is_own_profile     ?? false,
-        profile_uuid:       data.profile_uuid       ?? crypto.randomUUID(),
+        profile_type:       data.profile_type       ?? 'kandidat',
+        profile_uuid:       data.profile_uuid       ?? null,
         created_at:         new Date().toISOString(),
         updated_at:         new Date().toISOString(),
       }));
@@ -505,7 +505,7 @@ const kandidater = {
   async getOwn() {
     return _tx('kandidater', 'readonly', async (tx) => {
       const all = await _req(tx.objectStore('kandidater').getAll());
-      const ownProfiles = all.filter(k => k.is_own_profile === true);
+      const ownProfiles = all.filter(k => k.profile_type === 'egenprofil');
       if (!ownProfiles.length) return null;
       // If duplicates exist (race condition), pick the highest ID — most recently created, most complete
       return ownProfiles.reduce((best, k) => k.id > best.id ? k : best);

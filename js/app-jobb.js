@@ -5,7 +5,8 @@
 
 const PLATSBANKEN_URL    = 'https://jobsearch.api.jobtechdev.se/search';
 const PLATSBANKEN_AD_URL = 'https://jobsearch.api.jobtechdev.se/ad';
-const JOBS_FETCH_LIMIT   = 30;
+const JOBS_FETCH_LIMIT   = 100;  // How many to request from API per city (before filtering)
+const JOBS_DISPLAY_LIMIT = 30;   // How many to show in the list after filtering
 
 // ── Init ──────────────────────────────────────────────────────────────────────
 
@@ -119,7 +120,7 @@ function _buildBaseQuery(own) {
 // ── Kaskaderad sökning per ort ────────────────────────────────────────────────
 
 async function _fetchCascade(own, baseQuery, seenIds, statusFn) {
-    const TARGET   = JOBS_FETCH_LIMIT;
+    const TARGET   = JOBS_DISPLAY_LIMIT;
     const cities   = (own.desired_city || '').split(',').map(s => s.trim()).filter(Boolean);
     const targets  = cities.length ? cities : [null]; // null = ingen ortfiltrering
 
@@ -438,7 +439,15 @@ function _renderSparadeTable(jobs) {
 }
 
 async function deleteFromSaved(jobId) {
-    await cvDb.jobSeen.delete(jobId);
+    // Downgrade to 'dismissed' instead of deleting — keeps the job out of future searches
+    const existing = await cvDb.jobSeen.get(jobId);
+    if (existing) {
+        await cvDb.jobSeen.add(jobId, 'dismissed', {
+            headline: existing.headline,
+            employer: existing.employer,
+            url:      existing.url,
+        });
+    }
     const saved = await cvDb.jobSeen.getByStatus('saved');
     _renderSparadeTable(saved);
 }

@@ -4,7 +4,7 @@
  */
 
 const DB_NAME = 'cv-optimizer';
-const DB_VERSION = 6;
+const DB_VERSION = 7;
 
 let _db = null;
 
@@ -95,6 +95,11 @@ function _openDB() {
 
       if (db.objectStoreNames.contains('kand_vectors')) {
         db.deleteObjectStore('kand_vectors');
+      }
+
+      if (!db.objectStoreNames.contains('job_seen')) {
+        const js = db.createObjectStore('job_seen', { keyPath: 'job_id' });
+        js.createIndex('status', 'status', { unique: false });
       }
     };
 
@@ -486,6 +491,7 @@ const kandidater = {
         email:              data.email              ?? null,
         public_phone:       data.public_phone       ?? null,
         roles:              data.roles              ?? null,
+        unwanted_roles:     data.unwanted_roles     ?? null,
         desired_city:       data.desired_city       ?? null,
         desired_employment: data.desired_employment ?? [],
         desired_workplace:  data.desired_workplace  ?? [],
@@ -884,6 +890,74 @@ const settings = {
   },
 };
 
+// ─── job_seen ─────────────────────────────────────────────────────────────────
+
+const jobSeen = {
+  async add(job_id, status, meta = {}) {
+    const row = {
+      job_id,
+      status,
+      headline:               meta.headline               ?? '',
+      employer:               meta.employer               ?? '',
+      location:               meta.location               ?? '',
+      deadline:               meta.deadline               ?? '',
+      url:                    meta.url                    ?? '',
+      description:            meta.description            ?? '',
+      score:                  meta.score                  ?? null,
+      match_score:            meta.match_score            ?? null,
+      // API structured fields
+      employment_type:        meta.employment_type        ?? '',
+      working_hours_type:     meta.working_hours_type     ?? '',
+      salary_type:            meta.salary_type            ?? '',
+      // AI-extracted analysis
+      required_competencies:  meta.required_competencies  ?? [],
+      merit_competencies:     meta.merit_competencies     ?? [],
+      personal_qualities:     meta.personal_qualities     ?? [],
+      salary_range:           meta.salary_range           ?? null,
+      work_tasks_summary:     meta.work_tasks_summary     ?? '',
+      seniority_level:        meta.seniority_level        ?? null,
+      min_experience_years:   meta.min_experience_years   ?? null,
+      required_education:     meta.required_education     ?? null,
+      workplace:              meta.workplace              ?? null,
+      domain:                 meta.domain                 ?? null,
+      duration_type:          meta.duration_type          ?? null,
+      created_at:             new Date().toISOString(),
+    };
+    return _tx('job_seen', 'readwrite', (tx) =>
+      _req(tx.objectStore('job_seen').put(row))
+    );
+  },
+  async get(job_id) {
+    return _tx('job_seen', 'readonly', (tx) =>
+      _req(tx.objectStore('job_seen').get(job_id))
+    );
+  },
+  async getAll() {
+    return _tx('job_seen', 'readonly', (tx) =>
+      _req(tx.objectStore('job_seen').getAll())
+    );
+  },
+  async getByStatus(status) {
+    return _tx('job_seen', 'readonly', (tx) => {
+      const store = tx.objectStore('job_seen');
+      return _req(store.index('status').getAll(status));
+    });
+  },
+  async updateMatchScore(job_id, match_score) {
+    return _tx('job_seen', 'readwrite', async (tx) => {
+      const store = tx.objectStore('job_seen');
+      const row = await _req(store.get(job_id));
+      if (!row) return;
+      await _req(store.put({ ...row, match_score }));
+    });
+  },
+  async delete(job_id) {
+    return _tx('job_seen', 'readwrite', (tx) =>
+      _req(tx.objectStore('job_seen').delete(job_id))
+    );
+  },
+};
+
 // ─── Public API ───────────────────────────────────────────────────────────────
 
 const cvDb = {
@@ -905,6 +979,7 @@ const cvDb = {
   kandCvs,
   searchProfiles,
   settings,
+  jobSeen,
 };
 
 window.cvDb = cvDb;

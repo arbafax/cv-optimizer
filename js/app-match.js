@@ -9,6 +9,15 @@ function updateCharCount() {
     charCount.textContent = `${count}${t('match.chars')}`;
 }
 
+function clearMatchResult() {
+    optimizeResult.classList.add('hidden');
+    optimizeResult.innerHTML = '';
+    lastMatchResult  = null;
+    lastJobDesc      = '';
+    lastMatchJobId   = null;
+    lastMatchJobMeta = null;
+}
+
 // ── Show/hide warnings and gate button on match view ─────────────────────────
 let _matchLlmReady = false;
 
@@ -96,7 +105,7 @@ async function handleOptimize() {
 
     } catch (error) {
         optimizeResult.innerHTML = `
-            <div class="status-message status-error">❌ Fel: ${error.message}</div>
+            <div class="status-message status-error"><span class="material-icons" style="font-size:1rem;vertical-align:middle">error</span> Fel: ${error.message}</div>
         `;
         optimizeResult.classList.remove('hidden');
     } finally {
@@ -336,7 +345,7 @@ async function handleTips() {
         alert('Fel: ' + err.message);
     } finally {
         tipsBtn.disabled = false;
-        tipsBtn.innerHTML = t('match.tips_btn');
+        tipsBtn.innerHTML = `<span class="material-icons" style="font-size:1rem;vertical-align:middle;margin-right:4px">lightbulb</span>${t('match.tips_btn')}`;
     }
 }
 
@@ -441,7 +450,7 @@ async function addSuggestedSkill(skillName, category, rowIndex) {
         }
 
         row.classList.add('tip-skill-row--added');
-        btn.textContent = t('match.added_btn');
+        btn.innerHTML = `<span class="material-icons" style="font-size:1rem;vertical-align:middle;margin-right:2px">check</span>${t('match.added_btn')}`;
 
     } catch (err) {
         btn.disabled = false;
@@ -474,7 +483,7 @@ async function addSuggestedQuality(qualityName, rowIndex) {
             await addSpQuality(qualityName);
         }
         row.classList.add('tip-skill-row--added');
-        btn.textContent = t('match.added_btn');
+        btn.innerHTML = `<span class="material-icons" style="font-size:1rem;vertical-align:middle;margin-right:2px">check</span>${t('match.added_btn')}`;
     } catch (err) {
         btn.disabled = false;
         btn.textContent = t('match.add_btn');

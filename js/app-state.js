@@ -1,59 +1,6 @@
 // ── Constants ─────────────────────────────────────────────────────────────────
 // Browser-only version: API_BASE_URL stripped in apiFetch dispatcher
 const API_BASE_URL  = '';
-const BACKEND_URL   = 'http://localhost:8018';
-
-async function _backendPublish(uuid, data) {
-    const url = uuid
-        ? `${BACKEND_URL}/api/v1/profiles/${uuid}`
-        : `${BACKEND_URL}/api/v1/profiles`;
-    const res = await fetch(url, {
-        method:  uuid ? 'PUT' : 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body:    JSON.stringify({ data }),
-    });
-    if (!res.ok) {
-        const err = await res.json().catch(() => ({}));
-        throw new Error(err.detail || `HTTP ${res.status}`);
-    }
-    return (await res.json()).uuid;
-}
-
-async function _buildKandidatPayload(kandidatId) {
-    const [kand, skills, exps, edu, certs] = await Promise.all([
-        cvDb.kandidater.get(kandidatId),
-        cvDb.kandSkills.listFor(kandidatId),
-        cvDb.kandExperiences.listFor(kandidatId),
-        cvDb.kandEducation.listFor(kandidatId),
-        cvDb.kandCertifications.listFor(kandidatId),
-    ]);
-    return { ...kand, skills, experiences: exps, education: edu, certifications: certs };
-}
-
-async function _buildSpPayload() {
-    const ownId = await _getOwnKandidatId();
-    const [prof, payload] = await Promise.all([
-        cvDb.profile.get(),
-        _buildKandidatPayload(ownId),
-    ]);
-    const p = prof || {};
-    return {
-        ...payload,
-        email:              p.email              ?? payload.email              ?? null,
-        public_phone:       p.public_phone       ?? payload.public_phone       ?? null,
-        roles:              p.roles              ?? payload.roles              ?? null,
-        desired_city:       p.desired_city       ?? payload.desired_city       ?? null,
-        desired_employment: p.desired_employment ?? payload.desired_employment ?? [],
-        desired_workplace:  p.desired_workplace  ?? payload.desired_workplace  ?? [],
-        desired_domains:    p.desired_domains    ?? [],
-        unwanted_domains:   p.unwanted_domains   ?? [],
-        willing_to_commute: p.willing_to_commute ?? payload.willing_to_commute ?? false,
-        searchable:         p.searchable         ?? payload.searchable         ?? false,
-        available_from:     p.available_from     ?? payload.available_from     ?? null,
-        description:        p.description        ?? payload.description        ?? null,
-        personal_qualities: p.personal_qualities ?? payload.personal_qualities ?? [],
-    };
-}
 
 async function _generateKandidatPortrait(kandidatId) {
     const [kand, skills, exps, edu, certs] = await Promise.all([
@@ -133,15 +80,6 @@ ${certsText ? '\nCERTIFIERINGAR:\n' + certsText : ''}`;
     return portrait;
 }
 
-async function _backendUnpublish(uuid) {
-    if (!uuid) return;
-    const res = await fetch(`${BACKEND_URL}/api/v1/profiles/${uuid}`, { method: 'DELETE' });
-    if (!res.ok && res.status !== 404) {
-        const err = await res.json().catch(() => ({}));
-        throw new Error(err.detail || `HTTP ${res.status}`);
-    }
-}
-
 // DOM Elements (referenced across modules)
 const optimizeBtn    = document.getElementById('optimize-btn');
 const jobDescription = document.getElementById('job-description');
@@ -154,6 +92,8 @@ let allCVs              = [];
 let lastMatchResult     = null;
 let lastJobDesc         = '';
 let lastMatchKandidatId = null;
+let lastMatchJobId      = null;   // Platsbanken job ID, if match was opened from job board
+let lastMatchJobMeta    = null;   // { headline, employer, url, status: null|'saved'|'dismissed' }
 
 let currentUser = null;
 let authMode    = 'login';
@@ -251,7 +191,7 @@ async function _showContextModal({ name, addLabel, addFnName, showLevel = false 
         <div class="modal-content" style="max-width:540px">
             <div class="modal-header">
                 <h2>${esc(name)}</h2>
-                <button class="modal-close" onclick="closeSkillContextModal()">&times;</button>
+                <button class="modal-close" onclick="closeSkillContextModal()"><span class="material-icons">close</span></button>
             </div>
             <div class="modal-body" id="skill-context-body">
                 <div style="display:flex;align-items:center;gap:10px;color:var(--text-muted)">
@@ -321,7 +261,7 @@ async function addSkillFromContextModal(skillName) {
         if (!res.ok) { const err = await res.json(); throw new Error(err.detail || t('modal.cannot_add')); }
         btn.remove();
         document.getElementById('skill-add-level')?.remove();
-        feedback.textContent = t('modal.added_to_profile');
+        feedback.innerHTML = `<span class="material-icons" style="font-size:1rem;vertical-align:middle;margin-right:2px">check</span>${t('modal.added_to_profile')}`;
         feedback.style.color = 'var(--green)';
     } catch (err) {
         btn.disabled = false;
@@ -338,24 +278,25 @@ async function addQualityFromContextModal(qualityName) {
     btn.disabled = true;
     btn.textContent = '…';
     try {
-        if (lastMatchKandidatId) {
-            const res = await apiFetch(`${API_BASE_URL}/kandidater/${lastMatchKandidatId}`);
-            if (!res.ok) throw new Error(t('modal.cannot_fetch_candidate'));
-            const kand = await res.json();
-            const existing = kand.personal_qualities || [];
-            if (!existing.includes(qualityName)) {
-                const putRes = await apiFetch(`${API_BASE_URL}/kandidater/${lastMatchKandidatId}`, {
-                    method: 'PUT',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ personal_qualities: [...existing, qualityName] }),
-                });
-                if (!putRes.ok) throw new Error(t('modal.cannot_save'));
+        const kandidatId = lastMatchKandidatId || (await _getOwnKandidatId());
+        const res = await apiFetch(`${API_BASE_URL}/kandidater/${kandidatId}`);
+        if (!res.ok) throw new Error(t('modal.cannot_fetch_candidate'));
+        const kand = await res.json();
+        const existing = kand.personal_qualities || [];
+        if (!existing.includes(qualityName)) {
+            const putRes = await apiFetch(`${API_BASE_URL}/kandidater/${kandidatId}`, {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ personal_qualities: [...existing, qualityName] }),
+            });
+            if (!putRes.ok) throw new Error(t('modal.cannot_save'));
+            // Synka minnescachen om egenprofil
+            if (!lastMatchKandidatId) {
+                _spQualities = [...existing, qualityName];
             }
-        } else {
-            await addSpQuality(qualityName);
         }
         btn.remove();
-        feedback.textContent = t('modal.added_to_profile');
+        feedback.innerHTML = `<span class="material-icons" style="font-size:1rem;vertical-align:middle;margin-right:2px">check</span>${t('modal.added_to_profile')}`;
         feedback.style.color = 'var(--green)';
     } catch (err) {
         btn.disabled = false;
@@ -441,7 +382,7 @@ function showCVReviewModal(text, filename, onConfirm) {
                     <h2 style="margin:0 0 2px">${t('cv.review_title')}</h2>
                     <div style="font-size:0.8125rem;color:var(--text-muted)">${esc(filename)}</div>
                 </div>
-                <button class="modal-close" onclick="closeCVReviewModal()">&times;</button>
+                <button class="modal-close" onclick="closeCVReviewModal()"><span class="material-icons">close</span></button>
             </div>
             <div class="modal-body" style="display:flex;flex-direction:column;gap:1rem">
                 <div class="cv-review-info">
@@ -451,7 +392,7 @@ function showCVReviewModal(text, filename, onConfirm) {
                 <textarea id="cv-review-text" class="form-input cv-review-textarea"></textarea>
                 <div style="display:flex;gap:0.75rem;justify-content:flex-end">
                     <button class="btn btn-secondary" onclick="closeCVReviewModal()">${t('common.cancel')}</button>
-                    <button class="btn btn-primary" onclick="confirmCVReview()">${t('cv.review_confirm')}</button>
+                    <button class="btn btn-primary" onclick="confirmCVReview()"><span class="material-icons" style="font-size:1rem;vertical-align:middle;margin-right:4px">manage_search</span>${t('cv.review_confirm')}</button>
                 </div>
             </div>
         </div>`;
@@ -1680,24 +1621,28 @@ function displayMatchResult(result, container) {
         <div class="match-missing-section">
             <h4 class="match-section-title">Personliga egenskaper</h4>
             <div class="match-missing-chips">
-                ${matchingQualities.map(q => `<span class="match-missing-chip match-quality-match">✓ ${esc(q)}<button class="skill-info-btn" onclick="showQualityContextModal('${q.replace(/'/g, "\\'")}', false)" title="Visa hur annonsen beskriver denna egenskap"><span class="material-icons">info</span></button></span>`).join('')}
+                ${matchingQualities.map(q => `<span class="match-missing-chip match-quality-match"><span class="material-icons" style="font-size:.85rem;vertical-align:middle">check</span> ${esc(q)}<button class="skill-info-btn" onclick="showQualityContextModal('${q.replace(/'/g, "\\'")}', false)" title="Visa hur annonsen beskriver denna egenskap"><span class="material-icons">info</span></button></span>`).join('')}
                 ${missingQualities.map(q =>  `<span class="match-missing-chip match-quality-missing">${esc(q)}<button class="skill-info-btn" onclick="showQualityContextModal('${q.replace(/'/g, "\\'")}', true)" title="Visa hur annonsen beskriver denna egenskap"><span class="material-icons">info</span></button></span>`).join('')}
             </div>
         </div>` : '';
 
     const jobInfoItems = [
-        { icon: '📍', value: jobInfo.city },
-        { icon: '⏱', value: jobInfo.employment_type },
-        { icon: '📋', value: jobInfo.duration },
-        { icon: '🏢', value: jobInfo.workplace },
+        { icon: 'place',       value: jobInfo.city },
+        { icon: 'schedule',    value: jobInfo.employment_type },
+        { icon: 'list_alt',    value: jobInfo.duration },
+        { icon: 'business',    value: jobInfo.workplace },
     ].filter(i => i.value);
 
     const jobInfoHtml = jobInfoItems.length ? `
         <div class="job-info-bar">
-            ${jobInfoItems.map(i => `<span class="job-info-chip">${i.icon} ${i.value}</span>`).join('')}
+            ${jobInfoItems.map(i => `<span class="job-info-chip"><span class="material-icons" style="font-size:.85rem;vertical-align:middle">${i.icon}</span> ${i.value}</span>`).join('')}
         </div>` : '';
 
-    const fitIcon = m => m === true ? '✅' : m === false ? '❌' : '❓';
+    const fitIcon = m => m === true
+        ? '<span class="material-icons" style="font-size:1rem;color:#16a34a">check_circle</span>'
+        : m === false
+        ? '<span class="material-icons" style="font-size:1rem;color:#dc2626">cancel</span>'
+        : '<span class="material-icons" style="font-size:1rem;color:var(--text-muted)">help_outline</span>';
     const profileFitHtml = profileFit.length ? `
         <div class="profile-fit-section">
             <h4 class="match-section-title">Passning mot profil</h4>
@@ -1708,7 +1653,7 @@ function displayMatchResult(result, container) {
                         <span class="fit-aspect">${f.aspect}</span>
                         <span class="fit-values">
                             <span class="fit-job">${f.job_value || 'Ej angiven'}</span>
-                            <span class="fit-arrow">→</span>
+                            <span class="fit-arrow"><span class="material-icons" style="font-size:.85rem;vertical-align:middle">arrow_forward</span></span>
                             <span class="fit-pref">${f.preference || 'Ej angiven'}</span>
                         </span>
                         ${f.note ? `<span class="fit-note">${f.note}</span>` : ''}
@@ -1752,15 +1697,40 @@ function displayMatchResult(result, container) {
 
         <div class="gen-cv-action">
             <button id="tips-btn" class="btn btn-secondary" onclick="handleTips()">
-                ${t('match.tips_btn')}
+                <span class="material-icons" style="font-size:1rem;vertical-align:middle;margin-right:4px">lightbulb</span>${t('match.tips_btn')}
             </button>
             <button id="gen-lh-cv-btn" class="btn btn-primary" onclick="handleGenerateLHCV()">
                 ${t('match.gen_lh_btn')}
             </button>
         </div>
+
+        ${lastMatchJobId ? `
+        <div class="match-job-actions" id="match-job-actions">
+            <button id="match-save-btn" class="btn btn-secondary" onclick="saveJobFromMatch()"
+                ${lastMatchJobMeta?.status === 'saved' ? 'disabled' : ''}>
+                <span class="material-icons" style="font-size:1rem;vertical-align:middle;margin-right:4px">${lastMatchJobMeta?.status === 'saved' ? 'bookmark' : 'bookmark_add'}</span>${lastMatchJobMeta?.status === 'saved' ? t('jobs.already_saved') : t('jobs.save_job')}
+            </button>
+            <button id="match-dismiss-btn" class="btn btn-ghost" onclick="dismissJobFromMatch()">
+                <span class="material-icons" style="font-size:1rem;vertical-align:middle;margin-right:4px">thumb_down</span>${t('jobs.dismiss')}
+            </button>
+        </div>` : ''}
     `;
 
     optimizeResult.classList.remove('hidden');
+
+    // Safety net: verify against IndexedDB in case status wasn't set correctly
+    if (lastMatchJobId) {
+        const _jobId = lastMatchJobId;
+        cvDb.jobSeen.get(_jobId).then(existing => {
+            if (existing?.status === 'saved') {
+                const btn = document.getElementById('match-save-btn');
+                if (btn && !btn.disabled) {
+                    btn.disabled = true;
+                    btn.innerHTML = `<span class="material-icons" style="font-size:1rem;vertical-align:middle;margin-right:4px">bookmark</span>${t('jobs.already_saved')}`;
+                }
+            }
+        }).catch(() => {});
+    }
 }
 
 // ── PDF download (browser-only) ──────────────────────────────────────────────

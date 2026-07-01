@@ -32,105 +32,7 @@ async function touchOwnKandidat() {
         await cvDb.kandidater.update(own.id, {});
         const fresh = await cvDb.kandidater.get(own.id);
         _showSpTimestamps(fresh);
-        refreshSpPublishStatus().catch(() => {});
     } catch { /* silent */ }
-}
-
-// ── Publish (backend sync) ────────────────────────────────────────────────────
-
-async function refreshSpPublishStatus() {
-    const row = document.getElementById('sp-publish-row');
-    if (!row) return;
-    const own = await cvDb.kandidater.getOwn().catch(() => null);
-    if (!own) { row.classList.add('hidden'); return; }
-    row.classList.remove('hidden');
-
-    const uuid  = own.profile_uuid;
-    const pubAt = uuid ? await cvDb.settings.get(`pub_at_${uuid}`).catch(() => null) : null;
-
-    if (!pubAt) {
-        _setSpPublishUi('never', t('publish.never'), true);
-        return;
-    }
-    const synced = new Date(pubAt) >= new Date(own.updated_at);
-    if (synced) {
-        _setSpPublishUi('synced', `${t('publish.synced')} ${_fmtSpDateTime(pubAt)}`, false);
-    } else {
-        _setSpPublishUi('stale', t('publish.stale'), true);
-    }
-}
-
-function _setSpPublishUi(dotClass, tsText, btnEnabled) {
-    const dot   = document.getElementById('sp-publish-dot');
-    const ts    = document.getElementById('sp-publish-ts');
-    const btn   = document.getElementById('sp-publish-btn');
-    const unbtn = document.getElementById('sp-unpublish-btn');
-    if (dot)   dot.className  = `publish-dot publish-dot--${dotClass}`;
-    if (ts)    ts.textContent = tsText;
-    if (btn)   btn.disabled   = !btnEnabled;
-    if (unbtn) unbtn.disabled = dotClass === 'never';
-}
-
-async function publishSokprofilToBackend() {
-    const btn = document.getElementById('sp-publish-btn');
-    if (btn) { btn.disabled = true; btn.textContent = t('publish.publishing'); }
-    try {
-        let own = await cvDb.kandidater.getOwn();
-        if (!own) throw new Error('Ingen profil hittades');
-        if (!own.portrait) {
-            if (btn) btn.textContent = t('portrait.publish_generating');
-            await _generateKandidatPortrait(own.id);
-            own = await cvDb.kandidater.getOwn();
-            const ta = document.getElementById('sp-portrait-text');
-            if (ta) ta.value = own?.portrait || '';
-        } else {
-            const pubAt = own.profile_uuid
-                ? await cvDb.settings.get(`pub_at_${own.profile_uuid}`).catch(() => null)
-                : null;
-            const isStale = pubAt && new Date(pubAt) < new Date(own.updated_at);
-            if (isStale && confirm(t('portrait.confirm_update'))) {
-                if (btn) btn.textContent = t('portrait.publish_generating');
-                await _generateKandidatPortrait(own.id);
-                own = await cvDb.kandidater.getOwn();
-                const ta = document.getElementById('sp-portrait-text');
-                if (ta) ta.value = own?.portrait || '';
-            }
-        }
-        const payload = await _buildSpPayload();
-        const uuid = await _backendPublish(own.profile_uuid, payload);
-        if (!own.profile_uuid) {
-            await cvDb.kandidater.update(own.id, { profile_uuid: uuid });
-            document.getElementById('sp-profile-uuid').value = uuid;
-        }
-        await cvDb.settings.set(`pub_at_${uuid}`, new Date().toISOString());
-        showSokprofilStatus(t('publish.synced'), 'success');
-    } catch (err) {
-        showSokprofilStatus(err.message || t('publish.error'), 'error');
-    } finally {
-        if (btn) btn.textContent = t('publish.btn');
-        refreshSpPublishStatus().catch(() => {});
-    }
-}
-
-async function unpublishSokprofilFromBackend() {
-    const unbtn = document.getElementById('sp-unpublish-btn');
-    if (unbtn) { unbtn.disabled = true; unbtn.textContent = t('publish.unpublishing'); }
-    try {
-        const own = await cvDb.kandidater.getOwn();
-        if (!own) throw new Error('Ingen profil hittades');
-        await _backendUnpublish(own.profile_uuid);
-        if (own.profile_uuid) {
-            await cvDb.settings.set(`pub_at_${own.profile_uuid}`, null);
-            await cvDb.kandidater.update(own.id, { profile_uuid: null });
-            document.getElementById('sp-profile-uuid').value = '';
-        }
-        showSokprofilStatus(t('publish.never'), 'success');
-    } catch (err) {
-        showSokprofilStatus(err.message || t('publish.error'), 'error');
-    } finally {
-        if (unbtn) unbtn.textContent = t('publish.unpublish');
-        refreshSpPublishStatus().catch(() => {});
-    }
 }
 
 async function loadSokprofil() {
@@ -141,7 +43,8 @@ async function loadSokprofil() {
         document.getElementById('sp-email').value        = own.email        || '';
         document.getElementById('sp-public-name').value  = own.public_name  || '';
         document.getElementById('sp-public-phone').value = own.public_phone || '';
-        document.getElementById('sp-roles').value        = own.roles        || '';
+        document.getElementById('sp-roles').value          = own.roles          || '';
+        document.getElementById('sp-unwanted-roles').value = own.unwanted_roles || '';
         document.getElementById('sp-city').value         = own.desired_city || '';
 
         ['sp-emp-heltid', 'sp-emp-deltid', 'sp-emp-timmar', 'sp-emp-fast', 'sp-emp-konsult'].forEach(id => {
@@ -167,7 +70,6 @@ async function loadSokprofil() {
         document.getElementById('sp-available-from').value = own.available_from     || '';
         document.getElementById('sp-profile-uuid').value   = own.profile_uuid       || '';
         _showSpTimestamps(own);
-        refreshSpPublishStatus().catch(() => {});
     } catch (err) {
         if (err.message !== 'Inte inloggad') console.error(err);
     }
@@ -196,7 +98,8 @@ async function saveSokprofil() {
                 email:              document.getElementById('sp-email').value.trim()         || null,
                 public_name:        document.getElementById('sp-public-name').value.trim()  || null,
                 public_phone:       document.getElementById('sp-public-phone').value.trim() || null,
-                roles:              document.getElementById('sp-roles').value.trim()         || null,
+                roles:              document.getElementById('sp-roles').value.trim()          || null,
+                unwanted_roles:     document.getElementById('sp-unwanted-roles').value.trim() || null,
                 desired_city:       document.getElementById('sp-city').value.trim()          || null,
                 desired_employment,
                 desired_workplace,
@@ -213,7 +116,6 @@ async function saveSokprofil() {
         if (saved.profile_uuid) document.getElementById('sp-profile-uuid').value = saved.profile_uuid;
         showSokprofilStatus(t('sp.saved'), 'success');
         touchOwnKandidat();
-        refreshSpPublishStatus().catch(() => {});
     } catch (err) {
         showSokprofilStatus(err.message, 'error');
     }
@@ -258,7 +160,7 @@ async function generateSpPortrait() {
         if (ta) ta.value = portrait;
         if (status) status.textContent = t('portrait.saved');
     } catch (err) {
-        if (status) status.textContent = err.message || t('publish.error');
+        if (status) status.textContent = err.message || t('sp.error');
     } finally {
         if (btn) { btn.disabled = false; btn.textContent = t('portrait.generate_btn'); }
     }
@@ -299,7 +201,7 @@ function renderSpQualities() {
     container.innerHTML = _spQualities.map((q, i) => `
         <span class="bank-skill-chip chip-personal">
             ${esc(q)}
-            <button class="chip-delete" onclick="removeSpQuality(${i})" title="Ta bort">×</button>
+            <button class="chip-delete" onclick="removeSpQuality(${i})" title="Ta bort"><span class="material-icons">close</span></button>
         </span>
     `).join('');
 }
@@ -418,8 +320,8 @@ function renderSpSkills(skills) {
                     }
                     return `<span class="bank-skill-chip ${skillLevelClass(s.skill_level)}" draggable="true" data-skill-id="${s.id}" data-skill-cat="${esc(cat)}">
                         ${esc(s.skill_name)}
-                        <button class="chip-delete" style="font-size:0.85em;padding:0 1px 0 3px" onclick="spEditingSkillId=${s.id};renderSpSkills(cachedSpSkills)" title="${t('action.edit')}">✎</button>
-                        <button class="chip-delete" onclick="deleteSpSkill(${s.id})" title="${t('action.delete')}">×</button>
+                        <button class="chip-delete" style="font-size:0.85em;padding:0 1px 0 3px" onclick="spEditingSkillId=${s.id};renderSpSkills(cachedSpSkills)" title="${t('action.edit')}"><span class="material-icons">edit</span></button>
+                        <button class="chip-delete" onclick="deleteSpSkill(${s.id})" title="${t('action.delete')}"><span class="material-icons">close</span></button>
                     </span>`;
                 }).join('')}
             </div>
@@ -559,8 +461,8 @@ function renderSpExperiences(experiences) {
                     </div>
                 </div>
                 <div class="exp-card-actions">
-                    <button class="btn-icon" onclick="spEditingExpId=${e.id};renderSpExperiences(cachedSpExps)" title="${t('action.edit')}">✎</button>
-                    <button class="btn-icon btn-icon-danger" onclick="deleteSpExperience(${e.id})" title="${t('action.delete')}">&times;</button>
+                    <button class="btn-icon" onclick="spEditingExpId=${e.id};renderSpExperiences(cachedSpExps)" title="${t('action.edit')}"><span class="material-icons">edit</span></button>
+                    <button class="btn-icon btn-icon-danger" onclick="deleteSpExperience(${e.id})" title="${t('action.delete')}"><span class="material-icons">delete</span></button>
                 </div>
             </div>
             ${e.description ? `<div class="exp-card-desc">${esc(e.description)}</div>` : ''}
@@ -733,8 +635,8 @@ function renderSpEducation(items) {
                 ${period           ? `<div class="edu-card-period">${period}</div>` : ''}
             </div>
             <div class="exp-card-actions">
-                <button class="btn-icon" onclick="spEditingEduId=${e.id};renderSpEducation(cachedSpEdu)" title="${t('action.edit')}">✎</button>
-                <button class="btn-icon btn-icon-danger" onclick="deleteSpEducation(${e.id})" title="${t('action.delete')}">&times;</button>
+                <button class="btn-icon" onclick="spEditingEduId=${e.id};renderSpEducation(cachedSpEdu)" title="${t('action.edit')}"><span class="material-icons">edit</span></button>
+                <button class="btn-icon btn-icon-danger" onclick="deleteSpEducation(${e.id})" title="${t('action.delete')}"><span class="material-icons">delete</span></button>
             </div>
         </div>`;
     }).join('');
@@ -858,8 +760,8 @@ function renderSpCertifications(items) {
                 ${c.date   ? `<div class="edu-card-period">${c.date}</div>` : ''}
             </div>
             <div class="exp-card-actions">
-                <button class="btn-icon" onclick="spEditingCertId=${c.id};renderSpCertifications(cachedSpCerts)" title="${t('action.edit')}">✎</button>
-                <button class="btn-icon btn-icon-danger" onclick="deleteSpCertification(${c.id})" title="${t('action.delete')}">&times;</button>
+                <button class="btn-icon" onclick="spEditingCertId=${c.id};renderSpCertifications(cachedSpCerts)" title="${t('action.edit')}"><span class="material-icons">edit</span></button>
+                <button class="btn-icon btn-icon-danger" onclick="deleteSpCertification(${c.id})" title="${t('action.delete')}"><span class="material-icons">delete</span></button>
             </div>
         </div>`;
     }).join('');

@@ -317,7 +317,7 @@ function renderProfQualities() {
     container.innerHTML = _profQualities.map((q, i) => `
         <span class="bank-skill-chip chip-personal">
             ${esc(q)}
-            <button class="chip-delete" onclick="removeProfQuality(${i})" title="Ta bort">×</button>
+            <button class="chip-delete" onclick="removeProfQuality(${i})" title="Ta bort"><span class="material-icons" style="font-size:14px">close</span></button>
         </span>
     `).join('');
 }
@@ -471,8 +471,8 @@ function renderProfileSkills(skills) {
                     }
                     return `<span class="bank-skill-chip ${skillLevelClass(s.skill_level)}" draggable="true" data-skill-id="${s.id}" data-skill-cat="${esc(cat)}">
                         ${esc(s.skill_name)}
-                        <button class="chip-delete" style="font-size:0.85em;padding:0 1px 0 3px" onclick="profEditingSkillId=${s.id};renderProfileSkills(cachedProfSkills)" title="${t('action.edit')}">✎</button>
-                        <button class="chip-delete" onclick="deleteProfileSkill(${s.id})" title="${t('action.delete')}">×</button>
+                        <button class="chip-delete" style="font-size:0.85em;padding:0 1px 0 3px" onclick="profEditingSkillId=${s.id};renderProfileSkills(cachedProfSkills)" title="${t('action.edit')}"><span class="material-icons" style="font-size:14px">edit</span></button>
+                        <button class="chip-delete" onclick="deleteProfileSkill(${s.id})" title="${t('action.delete')}"><span class="material-icons" style="font-size:14px">close</span></button>
                     </span>`;
                 }).join('')}
             </div>
@@ -657,8 +657,8 @@ function renderProfileExperiences(experiences) {
                     </div>
                 </div>
                 <div class="exp-card-actions">
-                    <button class="btn-icon" onclick="profEditingExpId=${e.id};renderProfileExperiences(cachedProfExps)" title="${t('action.edit')}">✎</button>
-                    <button class="btn-icon btn-icon-danger" onclick="deleteProfileExperience(${e.id})" title="${t('action.delete')}">&times;</button>
+                    <button class="btn-icon" onclick="profEditingExpId=${e.id};renderProfileExperiences(cachedProfExps)" title="${t('action.edit')}"><span class="material-icons" style="font-size:1rem">edit</span></button>
+                    <button class="btn-icon btn-icon-danger" onclick="deleteProfileExperience(${e.id})" title="${t('action.delete')}"><span class="material-icons" style="font-size:1rem">delete</span></button>
                 </div>
             </div>
             ${e.description ? `<div class="exp-card-desc">${esc(e.description)}</div>` : ''}
@@ -840,8 +840,8 @@ function renderProfileEducation(items) {
                 ${period           ? `<div class="edu-card-period">${period}</div>` : ''}
             </div>
             <div class="exp-card-actions">
-                <button class="btn-icon" onclick="profEditingEduId=${e.id};renderProfileEducation(cachedProfEdu)" title="${t('action.edit')}">✎</button>
-                <button class="btn-icon btn-icon-danger" onclick="deleteProfileEducation(${e.id})" title="${t('action.delete')}">&times;</button>
+                <button class="btn-icon" onclick="profEditingEduId=${e.id};renderProfileEducation(cachedProfEdu)" title="${t('action.edit')}"><span class="material-icons" style="font-size:1rem">edit</span></button>
+                <button class="btn-icon btn-icon-danger" onclick="deleteProfileEducation(${e.id})" title="${t('action.delete')}"><span class="material-icons" style="font-size:1rem">delete</span></button>
             </div>
         </div>`;
     }).join('');
@@ -993,8 +993,8 @@ function renderProfileCertifications(items) {
                 ${c.date   ? `<div class="edu-card-period">${c.date}</div>` : ''}
             </div>
             <div class="exp-card-actions">
-                <button class="btn-icon" onclick="profEditingCertId=${c.id};renderProfileCertifications(cachedProfCerts)" title="${t('action.edit')}">✎</button>
-                <button class="btn-icon btn-icon-danger" onclick="deleteProfileCertification(${c.id})" title="${t('action.delete')}">&times;</button>
+                <button class="btn-icon" onclick="profEditingCertId=${c.id};renderProfileCertifications(cachedProfCerts)" title="${t('action.edit')}"><span class="material-icons" style="font-size:1rem">edit</span></button>
+                <button class="btn-icon btn-icon-danger" onclick="deleteProfileCertification(${c.id})" title="${t('action.delete')}"><span class="material-icons" style="font-size:1rem">delete</span></button>
             </div>
         </div>`;
     }).join('');
@@ -1129,7 +1129,7 @@ function displayProfileCVs(cvs) {
             ? new Date(cv.upload_date).toLocaleDateString('sv-SE', { year:'numeric', month:'short', day:'numeric' })
             : '—';
         const processedBadge = cv.is_processed
-            ? `<span class="cv-badge cv-badge--green">✓ ${t('cv.badge_processed')}</span>`
+            ? `<span class="cv-badge cv-badge--green"><span class="material-icons" style="font-size:.85rem;vertical-align:middle">check</span> ${t('cv.badge_processed')}</span>`
             : `<span class="cv-badge cv-badge--blue">${t('cv.badge_unprocessed')}</span>`;
         const safeName = cv.filename.replace(/'/g, "\\'");
         return `
@@ -1191,7 +1191,7 @@ function setupProfileCVUpload() {
 async function handleProfileCVUpload(file) {
     if (!currentProfileId) return;
 
-    showProfileUploadStatus(`⏳ ${t('cv.loading')}`, 'loading');
+    showProfileUploadStatus(t('cv.loading'), 'loading');
 
     try {
         const raw = await cvPdf.extractText(file);
@@ -1199,7 +1199,7 @@ async function handleProfileCVUpload(file) {
         showProfileUploadStatus('', '');
 
         showCVReviewModal(stripped, file.name, async (reviewedText) => {
-            showProfileUploadStatus(`⏳ ${t('cv.analysing_ai')}`, 'loading');
+            showProfileUploadStatus(t('cv.analysing_ai'), 'loading');
             const formData = new FormData();
             formData.append('file', file);
             formData.append('reviewed_text', reviewedText);
@@ -1214,7 +1214,7 @@ async function handleProfileCVUpload(file) {
                 if (!res.ok) { const e = await res.json(); throw new Error(e.detail || 'Fel vid uppladdning'); }
                 const data = await res.json();
                 showProfileUploadStatus(
-                    `✅ ${t('kand.cv_upload_result').replace('{filename}', data.filename || file.name).replace('{skills}', data.skill_count).replace('{exps}', data.experience_count)}`,
+                    `<span class="material-icons" style="font-size:1rem;vertical-align:middle">check_circle</span> ${t('kand.cv_upload_result').replace('{filename}', data.filename || file.name).replace('{skills}', data.skill_count).replace('{exps}', data.experience_count)}`,
                     'success'
                 );
                 await loadProfileSkills();
@@ -1224,20 +1224,20 @@ async function handleProfileCVUpload(file) {
                 loadProfileCVs();
                 touchProfile();
             } catch (err) {
-                showProfileUploadStatus(`❌ ${err.message}`, 'error');
+                showProfileUploadStatus(`<span class="material-icons" style="font-size:1rem;vertical-align:middle">error</span> ${err.message}`, 'error');
             }
         });
     } catch (err) {
-        showProfileUploadStatus(`❌ ${err.message}`, 'error');
+        showProfileUploadStatus(`<span class="material-icons" style="font-size:1rem;vertical-align:middle">error</span> ${err.message}`, 'error');
     }
 }
 
 function showProfileUploadStatus(msg, type) {
     const el = document.getElementById('prof-upload-status');
     if (!el) return;
-    el.textContent = msg;
+    el.innerHTML = msg;
     el.className = `status-message status-${type}`;
-    if (type !== 'loading') setTimeout(() => { el.textContent = ''; el.className = ''; }, 5000);
+    if (type !== 'loading') setTimeout(() => { el.innerHTML = ''; el.className = ''; }, 5000);
 }
 
 async function openProfile(profileId) {

@@ -151,7 +151,7 @@ function renderSkillsTab() {
                 ${groups[cat].slice().sort((a, b) => a.skill_name.localeCompare(b.skill_name, currentLang)).map(s => `
                     <span class="bank-skill-chip ${skillLevelClass(s.skill_level)}" draggable="true" data-skill-id="${s.id}" data-skill-cat="${esc(cat)}">
                         ${s.skill_name}
-                        <button class="chip-delete" onclick="event.stopPropagation(); deleteSkill(${s.id}, '${s.skill_name.replace(/'/g, "\\'")}')" title="${t('action.delete')}">&times;</button>
+                        <button class="chip-delete" onclick="event.stopPropagation(); deleteSkill(${s.id}, '${s.skill_name.replace(/'/g, "\\'")}')" title="${t('action.delete')}"><span class="material-icons">close</span></button>
                     </span>
                 `).join('')}
             </div>
@@ -236,12 +236,12 @@ function renderExperiencesTab() {
                                         </h4>
                                         <div class="bank-exp-date-row" id="date-row-${e.id}">
                                             ${dateStr ? `<span class="bank-exp-date">${dateStr}</span>` : `<span class="bank-exp-date bank-exp-date-empty">${t('bank.no_date')}</span>`}
-                                            <button class="btn-icon btn-icon-small btn-edit-period" onclick="editPeriod(${e.id}, '${e.start_date || ''}', '${e.end_date || ''}', ${e.is_current})" title="${t('action.edit_period')}">&#9998;</button>
+                                            <button class="btn-icon btn-icon-small btn-edit-period" onclick="editPeriod(${e.id}, '${e.start_date || ''}', '${e.end_date || ''}', ${e.is_current})" title="${t('action.edit_period')}"><span class="material-icons">edit</span></button>
                                         </div>
                                         <div id="period-form-${e.id}"></div>
                                     </div>
                                     <div class="bank-exp-actions">
-                                        <button class="btn-icon btn-icon-danger" onclick="event.stopPropagation(); deleteExperience(${e.id}, '${e.title.replace(/'/g, "\\'")}')" title="${t('action.delete_experience')}">&times;</button>
+                                        <button class="btn-icon btn-icon-danger" onclick="event.stopPropagation(); deleteExperience(${e.id}, '${e.title.replace(/'/g, "\\'")}')" title="${t('action.delete_experience')}"><span class="material-icons">delete</span></button>
                                     </div>
                                 </div>
                                 ${e.organization ? `<div class="bank-exp-org">${e.organization}</div>` : ''}
@@ -263,8 +263,8 @@ function renderExperiencesTab() {
                                                 <li>
                                                     <span class="achievement-text" id="ach-text-${e.id}-${idx}">${a}</span>
                                                     <span class="achievement-actions">
-                                                        <button class="btn-icon btn-icon-small" onclick="editAchievement(${e.id}, ${idx})" title="${t('action.edit')}">&#9998;</button>
-                                                        <button class="btn-icon btn-icon-small btn-icon-danger" onclick="deleteAchievement(${e.id}, ${idx})" title="${t('action.delete')}">&times;</button>
+                                                        <button class="btn-icon btn-icon-small" onclick="editAchievement(${e.id}, ${idx})" title="${t('action.edit')}"><span class="material-icons">edit</span></button>
+                                                        <button class="btn-icon btn-icon-small btn-icon-danger" onclick="deleteAchievement(${e.id}, ${idx})" title="${t('action.delete')}"><span class="material-icons">close</span></button>
                                                     </span>
                                                 </li>
                                             `).join('')}
@@ -282,7 +282,7 @@ function renderExperiencesTab() {
                                             ${skills.map((s, idx) => `
                                                 <span class="bank-skill-chip chip-technical">
                                                     ${s}
-                                                    <button class="chip-delete" onclick="event.stopPropagation(); removeExpSkill(${e.id}, ${idx}, '${s.replace(/'/g, "\\'")}')" title="${t('action.delete')}">&times;</button>
+                                                    <button class="chip-delete" onclick="event.stopPropagation(); removeExpSkill(${e.id}, ${idx}, '${s.replace(/'/g, "\\'")}')" title="${t('action.delete')}"><span class="material-icons">close</span></button>
                                                 </span>
                                             `).join('')}
                                         </div>
@@ -336,13 +336,13 @@ async function mergeSelectedExperiences() {
         const data = await res.json();
         selectedExperienceIds.clear();
         showMergeStatus(
-            `✅ ${data.merged_count} ${t('bank.selected')} → "${data.title}"`,
+            `<span class="material-icons" style="font-size:1rem;vertical-align:middle">check_circle</span> ${data.merged_count} ${t('bank.selected')} → "${data.title}"`,
             'success'
         );
         await loadBankData();
 
     } catch (err) {
-        showMergeStatus(`❌ ${err.message}`, 'error');
+        showMergeStatus(`<span class="material-icons" style="font-size:1rem;vertical-align:middle">error</span> ${err.message}`, 'error');
     }
 }
 
@@ -394,13 +394,13 @@ async function mergeSelectedCV() {
 
         const data = await res.json();
         showMergeStatus(
-            `✅ ${data.cv_name}: +${data.skills_added} skills, +${data.experiences_added} exp, ${data.duplicates_skipped} dup`,
+            `<span class="material-icons" style="font-size:1rem;vertical-align:middle">check_circle</span> ${data.cv_name}: +${data.skills_added} skills, +${data.experiences_added} exp, ${data.duplicates_skipped} dup`,
             'success'
         );
         await loadBankData();
 
     } catch (err) {
-        showMergeStatus(`❌ ${err.message}`, 'error');
+        showMergeStatus(`<span class="material-icons" style="font-size:1rem;vertical-align:middle">error</span> ${err.message}`, 'error');
     } finally {
         document.getElementById('merge-selected-btn').disabled = false;
     }
@@ -423,13 +423,13 @@ async function mergeAllCVs() {
 
         const data = await res.json();
         showMergeStatus(
-            `✅ ${data.total_cvs_processed} CVs — +${data.total_skills_added} skills, +${data.total_experiences_added} exp`,
+            `<span class="material-icons" style="font-size:1rem;vertical-align:middle">check_circle</span> ${data.total_cvs_processed} CVs — +${data.total_skills_added} skills, +${data.total_experiences_added} exp`,
             'success'
         );
         await loadBankData();
 
     } catch (err) {
-        showMergeStatus(`❌ ${err.message}`, 'error');
+        showMergeStatus(`<span class="material-icons" style="font-size:1rem;vertical-align:middle">error</span> ${err.message}`, 'error');
     } finally {
         document.getElementById('merge-all-btn').disabled = false;
     }
@@ -775,7 +775,7 @@ async function improveAchievements(expId) {
     if (!btn || !preview) return;
 
     btn.disabled = true;
-    btn.textContent = '⏳';
+    btn.innerHTML = '<span class="spinner-small"></span>';
     preview.innerHTML = `<p class="ach-improve-loading">${t('bank.analysing_ach')}</p>`;
 
     try {
@@ -789,7 +789,7 @@ async function improveAchievements(expId) {
         const data = await res.json();
         showImprovePreview(expId, data.improved, data.original);
     } catch (err) {
-        preview.innerHTML = `<p class="ach-improve-error">❌ ${err.message}</p>`;
+        preview.innerHTML = `<p class="ach-improve-error"><span class="material-icons" style="font-size:1rem;vertical-align:middle">error</span> ${err.message}</p>`;
         btn.disabled = false;
         btn.textContent = t('bank.improve_btn');
     }
@@ -826,7 +826,7 @@ async function acceptImprovedAchievements(expId, btn) {
     if (!improved) return;
 
     btn.disabled = true;
-    btn.textContent = '⏳';
+    btn.innerHTML = '<span class="spinner-small"></span>';
 
     try {
         const res = await apiFetch(`${API_BASE_URL}/competence/experiences/${expId}/achievements`, {

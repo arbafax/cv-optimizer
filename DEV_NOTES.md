@@ -26,3 +26,6 @@ Kör i konsolen:
     console.log('Efter:', check.map(k => ({ id: k.id, uuid: k.profile_uuid })));
     })();
 
+
+
+––––––––

@@ -489,6 +489,8 @@ const kandidater = {
         desired_city:       data.desired_city       ?? null,
         desired_employment: data.desired_employment ?? [],
         desired_workplace:  data.desired_workplace  ?? [],
+        desired_domains:    data.desired_domains    ?? [],
+        unwanted_domains:   data.unwanted_domains   ?? [],
         willing_to_commute: data.willing_to_commute ?? false,
         personal_qualities: data.personal_qualities ?? [],
         searchable:         data.searchable         ?? false,

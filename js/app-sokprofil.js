@@ -135,40 +135,38 @@ async function unpublishSokprofilFromBackend() {
 
 async function loadSokprofil() {
     try {
-        const res  = await apiFetch(`${API_BASE_URL}/sokprofil/`);
-        if (!res.ok) return;
-        const data = await res.json();
+        const own = await cvDb.kandidater.getOwn();
+        if (!own) return;
 
-        document.getElementById('sp-email').value        = data.email        || '';
-        document.getElementById('sp-public-name').value  = data.public_name  || '';
-        document.getElementById('sp-public-phone').value = data.public_phone || '';
-        document.getElementById('sp-roles').value        = data.roles        || '';
-        document.getElementById('sp-city').value         = data.desired_city || '';
+        document.getElementById('sp-email').value        = own.email        || '';
+        document.getElementById('sp-public-name').value  = own.public_name  || '';
+        document.getElementById('sp-public-phone').value = own.public_phone || '';
+        document.getElementById('sp-roles').value        = own.roles        || '';
+        document.getElementById('sp-city').value         = own.desired_city || '';
 
         ['sp-emp-heltid', 'sp-emp-deltid', 'sp-emp-timmar', 'sp-emp-fast', 'sp-emp-konsult'].forEach(id => {
             const el = document.getElementById(id);
-            el.checked = (data.desired_employment || []).includes(el.value);
+            el.checked = (own.desired_employment || []).includes(el.value);
         });
         document.querySelectorAll('.sp-domain-desired').forEach(el => {
-            el.checked = (data.desired_domains || []).includes(el.value);
+            el.checked = (own.desired_domains || []).includes(el.value);
         });
         document.querySelectorAll('.sp-domain-unwanted').forEach(el => {
-            el.checked = (data.unwanted_domains || []).includes(el.value);
+            el.checked = (own.unwanted_domains || []).includes(el.value);
         });
 
         ['sp-wp-plats', 'sp-wp-hybrid', 'sp-wp-distans'].forEach(id => {
             const el = document.getElementById(id);
-            el.checked = (data.desired_workplace || []).includes(el.value);
+            el.checked = (own.desired_workplace || []).includes(el.value);
         });
 
-        _spQualities = Array.isArray(data.personal_qualities) ? [...data.personal_qualities] : [];
+        _spQualities = Array.isArray(own.personal_qualities) ? [...own.personal_qualities] : [];
         renderSpQualities();
-        document.getElementById('sp-commute').checked      = data.willing_to_commute;
-        document.getElementById('sp-searchable').checked   = data.searchable;
-        document.getElementById('sp-available-from').value = data.available_from || '';
-        document.getElementById('sp-profile-uuid').value   = data.profile_uuid   || '';
-        const own = await cvDb.kandidater.getOwn();
-        _showSpTimestamps(own || null);
+        document.getElementById('sp-commute').checked      = own.willing_to_commute || false;
+        document.getElementById('sp-searchable').checked   = own.searchable         || false;
+        document.getElementById('sp-available-from').value = own.available_from     || '';
+        document.getElementById('sp-profile-uuid').value   = own.profile_uuid       || '';
+        _showSpTimestamps(own);
         refreshSpPublishStatus().catch(() => {});
     } catch (err) {
         if (err.message !== 'Inte inloggad') console.error(err);
@@ -190,7 +188,8 @@ async function saveSokprofil() {
         .map(el => el.value);
 
     try {
-        const res = await apiFetch(`${API_BASE_URL}/sokprofil/`, {
+        const ownId = await _getOwnKandidatId();
+        const res = await apiFetch(`${API_BASE_URL}/kandidater/${ownId}`, {
             method: 'PUT',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
@@ -306,7 +305,8 @@ function renderSpQualities() {
 }
 
 async function _saveSpQualities() {
-    await apiFetch(`${API_BASE_URL}/sokprofil/`, {
+    const ownId = await _getOwnKandidatId();
+    await apiFetch(`${API_BASE_URL}/kandidater/${ownId}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ personal_qualities: [..._spQualities] }),

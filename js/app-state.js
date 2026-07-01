@@ -887,44 +887,6 @@ async function browserRoute(path, options = {}) {
             if (parts[1] === 'logout') return new LocalResponse({});
         }
 
-        // ── SOKPROFIL ────────────────────────────────────────────────────────
-        if (parts[0] === 'sokprofil') {
-            if (method === 'GET') {
-                const ownId = await _getOwnKandidatId();
-                const [p, own] = await Promise.all([cvDb.profile.get(), cvDb.kandidater.get(ownId)]);
-                const prof = p || {};
-                return new LocalResponse({
-                    public_name: own?.public_name || prof.public_name || null,
-                    public_phone: prof.public_phone || null,
-                    roles: prof.roles || null,
-                    desired_city: prof.desired_city || null,
-                    desired_employment: prof.desired_employment || [],
-                    desired_workplace: prof.desired_workplace || [],
-                    desired_domains: prof.desired_domains || [],
-                    unwanted_domains: prof.unwanted_domains || [],
-                    willing_to_commute: prof.willing_to_commute || false,
-                    searchable: prof.searchable || false,
-                    available_from: prof.available_from || null,
-                    description: prof.description || null,
-                    personal_qualities: prof.personal_qualities || [],
-                    profile_uuid: own?.profile_uuid || null,
-                });
-            }
-            if (method === 'PUT') {
-                const { public_name, ...profileBody } = body;
-                await cvDb.profile.save({ ...(await cvDb.profile.get() || {}), ...profileBody });
-                const ownId = await _getOwnKandidatId();
-                const own = await cvDb.kandidater.get(ownId);
-                if (own && public_name !== undefined) {
-                    await cvDb.kandidater.update(own.id, { public_name });
-                } else if (own && !own.public_name) {
-                    const prof = await cvDb.profile.get();
-                    if (prof?.public_name) await cvDb.kandidater.update(own.id, { public_name: prof.public_name });
-                }
-                return new LocalResponse({ ...body, profile_uuid: own?.profile_uuid || null });
-            }
-        }
-
         // ── CV ──────────────────────────────────────────────────────────────
         if (parts[0] === 'cv') {
             if (method === 'GET' && !parts[1]) {

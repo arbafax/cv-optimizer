@@ -772,7 +772,8 @@ body {
 .bank-skill-chip.dragging { opacity: 0.35; }
 
 .bank-skill-chip {
-    display: inline-block;
+    display: inline-flex;
+    align-items: center;
     padding: 4px 11px;
     border-radius: 5px;
     font-size: 12.5px;
@@ -1053,6 +1054,9 @@ body {
     opacity: 0;
     transition: opacity var(--t);
     color: inherit;
+    display: inline-flex;
+    align-items: center;
+    vertical-align: middle;
 }
 
 .bank-skill-chip:hover .chip-delete {
@@ -1107,6 +1111,8 @@ body {
     border-radius: 4px;
     color: var(--text-tertiary);
     transition: all var(--t);
+    display: inline-flex;
+    align-items: center;
 }
 
 .btn-icon:hover {
@@ -1542,6 +1548,7 @@ body {
     background: none; border: none; cursor: pointer;
     font-size: 20px; line-height: 1; color: var(--text-tertiary);
     padding: 0 4px; border-radius: 4px;
+    display: inline-flex; align-items: center;
 }
 .cv-preview-close:hover { color: var(--text-primary); background: var(--bg-tertiary); }
 
@@ -1593,13 +1600,15 @@ body {
 .modal-close {
     background: none;
     border: none;
-    font-size: 22px;
+    font-size: 20px;
     color: var(--text-tertiary);
     cursor: pointer;
     padding: 2px 6px;
     border-radius: 6px;
     transition: background var(--t), color var(--t);
     line-height: 1;
+    display: inline-flex;
+    align-items: center;
 }
 
 .modal-close:hover { background: var(--bg); color: var(--text-primary); }
@@ -1679,6 +1688,16 @@ body {
     gap: 10px;
     margin-top: 24px;
     padding-top: 20px;
+    border-top: 1px solid var(--border);
+    flex-wrap: wrap;
+}
+
+.match-job-actions {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-top: 12px;
+    padding-top: 16px;
     border-top: 1px solid var(--border);
     flex-wrap: wrap;
 }
@@ -3768,3 +3787,239 @@ body {
 }
 .cat-combo-opt:hover,
 .cat-combo-opt--active { background: var(--blue-light, #eff6ff); color: var(--blue); }
+
+/* ── Hitta jobb ─────────────────────────────────────────────────────────────── */
+.jobb-criteria-row {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 6px;
+    margin-bottom: 1.25rem;
+    font-size: 0.85rem;
+}
+.jobb-criteria-label {
+    color: var(--text-muted);
+    margin-right: 2px;
+}
+.jobb-chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 3px;
+    background: var(--blue-light, #eff6ff);
+    color: var(--blue);
+    border-radius: 99px;
+    padding: 2px 10px;
+    font-size: 0.8rem;
+    font-weight: 500;
+}
+.jobb-chip--loc { background: #f0fdf4; color: #166534; }
+
+.jobb-list {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+}
+.jobb-card {
+    display: grid;
+    grid-template-columns: 56px 1fr auto;
+    gap: 1rem;
+    align-items: start;
+    background: #fff;
+    border: 1px solid var(--border);
+    border-radius: 0.5rem;
+    padding: 1rem 1.1rem;
+}
+.jobb-score-badge {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 48px;
+    height: 48px;
+    border-radius: 50%;
+    font-weight: 700;
+    font-size: 0.85rem;
+    flex-shrink: 0;
+    margin-top: 2px;
+}
+.jobb-score--high { background: #dcfce7; color: #166534; }
+.jobb-score--mid  { background: #fef9c3; color: #854d0e; }
+.jobb-score--low  { background: #fee2e2; color: #991b1b; }
+.jobb-score--none { background: transparent; border: none; }
+
+.jobb-info { min-width: 0; }
+.jobb-headline {
+    margin: 0 0 2px;
+    font-size: 1rem;
+    font-weight: 600;
+}
+.jobb-headline a { color: var(--text-primary); text-decoration: none; }
+.jobb-headline a:hover { text-decoration: underline; color: var(--blue); }
+.jobb-meta {
+    margin: 0 0 4px;
+    font-size: 0.82rem;
+    color: var(--text-muted);
+}
+.jobb-deadline { margin-left: 8px; }
+.jobb-motivation {
+    margin: 4px 0 0;
+    font-size: 0.85rem;
+    color: var(--text);
+    font-style: italic;
+}
+.jobb-actions {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    flex-shrink: 0;
+}
+@media (max-width: 680px) {
+    .jobb-card {
+        grid-template-columns: 48px 1fr;
+        grid-template-rows: auto auto;
+    }
+    .jobb-actions {
+        grid-column: 1 / -1;
+        flex-direction: row;
+        flex-wrap: wrap;
+    }
+}
+
+/* ── Sparade jobb — tabell ───────────────────────────────────────────────────── */
+.sparade-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 0.875rem;
+}
+.sparade-table th {
+    text-align: left;
+    padding: 8px 12px;
+    border-bottom: 2px solid var(--border);
+    color: var(--text-muted);
+    font-weight: 600;
+    white-space: nowrap;
+}
+.sparade-table td {
+    padding: 10px 12px;
+    border-bottom: 1px solid var(--border);
+    vertical-align: middle;
+}
+.sparade-row {
+    cursor: pointer;
+    transition: background 0.1s;
+}
+.sparade-row:hover { background: var(--bg); }
+.sparade-title { font-weight: 500; color: var(--blue); }
+.sparade-actions { text-align: right; white-space: nowrap; }
+
+.score-pill {
+    display: inline-block;
+    padding: 2px 8px;
+    border-radius: 99px;
+    font-size: 0.78rem;
+    font-weight: 600;
+}
+.score-high { background: #dcfce7; color: #166534; }
+.score-mid  { background: #fef9c3; color: #854d0e; }
+.score-low  { background: #fee2e2; color: #991b1b; }
+
+.btn-icon {
+    background: none;
+    border: none;
+    cursor: pointer;
+    color: var(--text-muted);
+    padding: 4px;
+    border-radius: 4px;
+    display: inline-flex;
+    align-items: center;
+    transition: color 0.15s, background 0.15s;
+}
+.btn-icon:hover { color: var(--danger, #dc2626); background: #fee2e2; }
+
+/* ── Jobbdetaljer ────────────────────────────────────────────────────────────── */
+#view-jobbdetaljer .view-header { margin-bottom: 1rem; }
+#view-jobbdetaljer > .card,
+#view-jobbdetaljer > #jobbdet-analysis,
+#view-jobbdetaljer > #jobbdet-description { margin-bottom: 1rem; }
+
+.jobbdet-header-card {
+    padding: 20px 28px;
+    margin-bottom: 0;
+}
+.jobbdet-meta {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 16px;
+    margin-bottom: 0.75rem;
+    font-size: 0.875rem;
+    color: var(--text-muted);
+}
+.jobbdet-meta-item {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+}
+.jobbdet-meta-item .material-icons { font-size: 1rem; }
+.jobbdet-meta-item[href] { color: var(--blue); text-decoration: none; }
+.jobbdet-meta-item[href]:hover { text-decoration: underline; }
+.jobbdet-scores {
+    display: flex;
+    gap: 8px;
+    margin-top: 4px;
+}
+.jobbdet-scores:empty { display: none; }
+.jobbdet-description {
+    white-space: pre-wrap;
+    font-size: 0.9rem;
+    line-height: 1.7;
+    color: var(--text);
+    max-height: 60vh;
+    overflow-y: auto;
+}
+
+/* ── Jobbdetaljer AI-analys ──────────────────────────────────────────────────── */
+.jobdet-analysis {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+}
+.jobdet-analysis > .card { padding: 20px 28px; }
+.jobdet-section-title {
+    font-size: 0.8rem;
+    font-weight: 600;
+    color: var(--text-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    margin: 0 0 0.75rem;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+.jobdet-section-title .material-icons { font-size: 1rem; }
+.jobdet-analysis-text {
+    font-size: 0.9rem;
+    line-height: 1.6;
+    color: var(--text);
+    margin: 0;
+}
+.jobdet-chip-list {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+}
+.jobdet-chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 3px;
+    font-size: 0.78rem;
+    padding: 3px 8px;
+    border-radius: 99px;
+    border: 1px solid var(--border);
+    background: var(--surface);
+    color: var(--text);
+}
+.jobdet-chip--info {
+    border-color: var(--border);
+    background: var(--bg);
+    color: var(--text-muted);
+    border-radius: 99px;
+}

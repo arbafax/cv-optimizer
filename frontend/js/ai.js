@@ -233,7 +233,8 @@ Analysera jobbannonsen och extrahera strukturerad information i exakt detta JSON
   "duration": "<Tillsvidare|Tidsbegränsat|null>",
   "workplace": "<På plats|Hybrid|Distans|null>",
   "domain": "<bransch/domän, t.ex. 'IT & Data', 'Vård & omsorg', eller null>",
-  "summary": "<2-3 meningar som beskriver rollen>"
+  "summary": "<2-3 meningar som beskriver rollen>",
+  "salary_range": "<lönespann om nämnt i annonsen, t.ex. '45 000–55 000 kr/mån', annars null>"
 }
 
 Regler:

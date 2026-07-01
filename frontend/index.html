@@ -76,6 +76,14 @@
             <span class="material-icons">folder_open</span>
             <span data-i18n="nav.my_profile">Min sökprofil</span>
         </a>
+        <a href="#" class="nav-item hidden" id="nav-hittajobb" data-requires-role="Kandidat" onclick="showView('hittajobb', this); loadJobbView()">
+            <span class="material-icons">work_outline</span>
+            <span data-i18n="nav.find_jobs">Hitta jobb</span>
+        </a>
+        <a href="#" class="nav-item hidden" id="nav-sparade-jobb" data-requires-role="Kandidat" onclick="showView('sparade-jobb', this); loadSparadeJobbView()">
+            <span class="material-icons">bookmarks</span>
+            <span data-i18n="nav.saved_jobs">Sparade jobb</span>
+        </a>
         <a href="#" class="nav-item hidden" id="nav-matchakandidater" data-requires-role="Säljare Rekryterare" onclick="showView('matchakandidater', this); loadMatchKandidatView()">
             <span class="material-icons">person_search</span>
             <span data-i18n="nav.match_candidates">Matcha mot kandidater</span>
@@ -279,13 +287,7 @@
                     <p class="view-subtitle" id="kandidat-form-subtitle">Fyll i kandidatens profil och preferenser.</p>
                     <div id="kand-timestamps" class="kand-timestamps hidden"></div>
                 </div>
-                <div id="kand-publish-row" class="publish-row publish-row--header hidden">
-                    <span id="kand-publish-dot" class="publish-dot publish-dot--never"></span>
-                    <span id="kand-publish-ts" class="publish-ts"></span>
-                    <button id="kand-publish-btn" class="btn btn-primary btn-sm" onclick="publishCurrentKandidat()" data-i18n="publish.btn">Publicera</button>
-                    <button id="kand-unpublish-btn" class="btn btn-secondary btn-sm" onclick="unpublishCurrentKandidat()" disabled data-i18n="publish.unpublish">Sluta publicera</button>
-                </div>
-                <button class="btn btn-secondary" onclick="showKandidatListPanel()" data-i18n="kand.back">← Tillbaka</button>
+                <button class="btn btn-secondary" onclick="showKandidatListPanel()"><span class="material-icons" style="font-size:1rem;vertical-align:middle;margin-right:4px">arrow_back</span><span data-i18n="kand.back">Tillbaka</span></button>
             </div>
 
             <!-- Tab navigation -->
@@ -790,7 +792,7 @@
 
                 <div class="form-group">
                     <label for="job-description" data-i18n="match.label_job">Klistra in jobbannonsen</label>
-                    <textarea id="job-description" rows="10" placeholder="Klistra in hela jobbannonsen här..." data-i18n-ph="match.ph_job" oninput="updateCharCount(); updateOptimizeButton()"></textarea>
+                    <textarea id="job-description" rows="10" placeholder="Klistra in hela jobbannonsen här..." data-i18n-ph="match.ph_job" oninput="updateCharCount(); updateOptimizeButton(); clearMatchResult()"></textarea>
                     <div class="char-count" id="char-count">0 tecken</div>
                 </div>
 
@@ -853,12 +855,6 @@
                 <p class="view-subtitle" data-i18n-html="profile.subtitle">Hur du presenterar dig och vad du söker.</p>
                 <div id="sp-timestamps" class="kand-timestamps hidden"></div>
             </div>
-            <div id="sp-publish-row" class="publish-row publish-row--header hidden">
-                <span id="sp-publish-dot" class="publish-dot publish-dot--never"></span>
-                <span id="sp-publish-ts" class="publish-ts"></span>
-                <button id="sp-publish-btn" class="btn btn-primary btn-sm" onclick="publishSokprofilToBackend()" data-i18n="publish.btn">Publicera</button>
-                <button id="sp-unpublish-btn" class="btn btn-secondary btn-sm" onclick="unpublishSokprofilFromBackend()" disabled data-i18n="publish.unpublish">Sluta publicera</button>
-            </div>
         </div>
 
         <!-- Tab navigation -->
@@ -891,9 +887,15 @@
                 <input type="tel" id="sp-public-phone" class="form-input" placeholder="+46 70 000 00 00" data-i18n-ph="sp.ph_phone" onblur="saveSokprofil()">
             </div>
             <div class="form-group">
-                <label for="sp-roles" data-i18n="common.label_roles">Roller</label>
+                <label for="sp-roles" data-i18n="sp.label_desired_roles">Önskade roller</label>
                 <p class="field-desc" data-i18n="sp.desc_roles">Vilka typer av roller du kan tänka dig att jobba i. Används för att matcha dig mot relevanta jobb.</p>
                 <input type="text" id="sp-roles" class="form-input" placeholder="t.ex. Frontend-utvecklare, UX-designer" data-i18n-ph="sp.ph_roles" onblur="saveSokprofil()">
+                <span class="form-hint" data-i18n="sp.hint_roles">Separera med kommatecken</span>
+            </div>
+            <div class="form-group">
+                <label for="sp-unwanted-roles" data-i18n="sp.label_unwanted_roles">Oönskade roller</label>
+                <p class="field-desc" data-i18n="sp.desc_unwanted_roles">Roller du inte vill bli matchad mot. Annonser med dessa roller filtreras bort.</p>
+                <input type="text" id="sp-unwanted-roles" class="form-input" placeholder="t.ex. Säljare, Konsultchef" data-i18n-ph="sp.ph_unwanted_roles" onblur="saveSokprofil()">
                 <span class="form-hint" data-i18n="sp.hint_roles">Separera med kommatecken</span>
             </div>
             <div class="form-group">
@@ -1245,6 +1247,87 @@
 
     </div>
 
+    <!-- ═══════════════════════════════════════════════════════════════════════
+         HITTA JOBB
+         ═══════════════════════════════════════════════════════════════════════ -->
+    <div id="view-hittajobb" class="view">
+        <div class="view-header">
+            <div>
+                <h1 data-i18n="jobs.title">Hitta jobb</h1>
+                <p class="view-subtitle" data-i18n="jobs.subtitle">Hämtar annonser från Platsbanken och rankar dem mot din profil.</p>
+            </div>
+            <div class="header-actions">
+                <button class="btn btn-primary" onclick="fetchAndRankJobs()" id="jobb-fetch-btn">
+                    <span class="material-icons" style="font-size:1rem;vertical-align:middle;margin-right:4px">refresh</span>
+                    <span data-i18n="jobs.fetch_btn">Hämta &amp; ranka</span>
+                </button>
+            </div>
+        </div>
+
+        <div id="jobb-criteria" class="jobb-criteria-row"></div>
+        <div id="jobb-status" class="status-message hidden"></div>
+
+        <div id="jobb-list" class="jobb-list"></div>
+
+        <div id="jobb-empty" class="empty-state hidden">
+            <span class="material-icons" style="font-size:3rem;color:var(--border)">work_off</span>
+            <p data-i18n="jobs.no_results">Inga nya annonser hittades. Prova att justera din sökprofil eller hämta igen.</p>
+        </div>
+
+        <div id="jobb-no-profile" class="empty-state hidden">
+            <span class="material-icons" style="font-size:3rem;color:var(--border)">person_off</span>
+            <p data-i18n="jobs.no_profile">Fyll i din sökprofil (titel och/eller önskade domäner) innan du söker.</p>
+        </div>
+    </div>
+
+    <!-- ═══ SPARADE JOBB ══════════════════════════════════════════════════════ -->
+    <div id="view-sparade-jobb" class="view">
+        <div class="view-header">
+            <div>
+                <h1 data-i18n="jobs.saved_title">Sparade jobb</h1>
+                <p class="view-subtitle" data-i18n="jobs.saved_subtitle">Jobbannonser du sparat från sökningen.</p>
+            </div>
+        </div>
+        <div id="sparade-jobb-list"></div>
+    </div>
+
+    <!-- ═══ JOBBDETALJER ══════════════════════════════════════════════════════ -->
+    <div id="view-jobbdetaljer" class="view">
+        <div class="view-header">
+            <div>
+                <button class="btn btn-ghost btn-sm" onclick="showView('sparade-jobb', document.getElementById('nav-sparade-jobb')); loadSparadeJobbView()" style="margin-bottom:8px">
+                    <span class="material-icons" style="font-size:1rem;vertical-align:middle">arrow_back</span>
+                    <span data-i18n="jobs.back_to_saved">Sparade jobb</span>
+                </button>
+                <h1 id="jobbdet-title"></h1>
+            </div>
+            <div class="header-actions">
+                <button class="btn btn-primary" onclick="openSavedJobInMatch()">
+                    <span class="material-icons" style="font-size:1rem;vertical-align:middle;margin-right:4px">manage_search</span>
+                    <span data-i18n="jobs.match_btn">Matcha med AI</span>
+                </button>
+            </div>
+        </div>
+
+        <div class="card jobbdet-header-card">
+            <div class="jobbdet-meta">
+                <span class="jobbdet-meta-item"><span class="material-icons">business</span><span id="jobbdet-company"></span></span>
+                <span class="jobbdet-meta-item"><span class="material-icons">place</span><span id="jobbdet-location"></span></span>
+                <span class="jobbdet-meta-item"><span class="material-icons">event</span><span id="jobbdet-deadline"></span></span>
+                <a id="jobbdet-link" href="#" target="_blank" rel="noopener" class="jobbdet-meta-item hidden">
+                    <span data-i18n="jobs.open_ad">Öppna annons</span>
+                    <span class="material-icons" style="font-size:.9rem;vertical-align:middle;margin-left:2px">open_in_new</span>
+                </a>
+            </div>
+            <div class="jobbdet-scores" id="jobbdet-score"></div>
+            <div class="jobbdet-scores" id="jobbdet-match"></div>
+        </div>
+
+        <div id="jobbdet-analysis" class="hidden"></div>
+
+        <div class="card jobbdet-description" id="jobbdet-description"></div>
+    </div>
+
 </main>
 
 
@@ -1263,7 +1346,7 @@
                     <span data-i18n="match.save_md">Spara som markdown</span>
                 </button>
 
-                <button class="modal-close" onclick="closeLHCVModal()">&times;</button>
+                <button class="modal-close" onclick="closeLHCVModal()"><span class="material-icons">close</span></button>
             </div>
         </div>
         <div class="modal-body" id="lh-cv-body"></div>
@@ -1278,7 +1361,7 @@
     <div class="modal-content modal-content--wide">
         <div class="modal-header">
             <h2 data-i18n="match.tips_title">Förbättringstips</h2>
-            <button class="modal-close" onclick="closeTipsModal()">&times;</button>
+            <button class="modal-close" onclick="closeTipsModal()"><span class="material-icons">close</span></button>
         </div>
         <div class="modal-body" id="tips-body"></div>
     </div>
@@ -1290,7 +1373,7 @@
     <div class="modal-content">
         <div class="modal-header">
             <h2 id="modal-title">CV-detaljer</h2>
-            <button class="modal-close" onclick="closeCVModal()">&times;</button>
+            <button class="modal-close" onclick="closeCVModal()"><span class="material-icons">close</span></button>
         </div>
         <div class="modal-body" id="modal-body"></div>
     </div>
@@ -1302,7 +1385,7 @@
     <div class="modal-content" style="max-width:520px">
         <div class="modal-header">
             <h2 data-i18n="account.import_modal_title">Importera data</h2>
-            <button class="modal-close" onclick="closeImportModal()">&times;</button>
+            <button class="modal-close" onclick="closeImportModal()"><span class="material-icons">close</span></button>
         </div>
         <div class="modal-body">
             <div id="import-drop-zone" class="import-drop-zone" onclick="document.getElementById('import-file-input').click()">
@@ -1330,6 +1413,7 @@
 <script src="js/app-match.js"></script>
 <script src="js/app-kandidater.js"></script>
 <script src="js/app-account.js"></script>
+<script src="js/app-jobb.js"></script>
 <script src="js/app.js"></script>
 </body>
 </html>

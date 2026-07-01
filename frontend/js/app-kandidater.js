@@ -62,26 +62,13 @@ async function loadKandidaterView() {
         if (!res.ok) return;
         const data = await res.json();
         kandidaterCache = data.kandidater;
-        const pubAtMap = {};
-        for (const [key, value] of Object.entries(allSettings)) {
-            if (key.startsWith('pub_at_')) pubAtMap[key.slice(7)] = value;
-        }
-        renderKandidatList(kandidaterCache, pubAtMap);
+        renderKandidatList(kandidaterCache);
     } catch (err) {
         if (err.message !== 'Inte inloggad') console.error(err);
     }
 }
 
-function _kandPublishDot(k, pubAtMap) {
-    if (!k.profile_uuid) return '<span class="publish-dot publish-dot--never kand-list-dot" title="' + t('publish.never') + '"></span>';
-    const pubAt = pubAtMap?.[k.profile_uuid] ?? null;
-    if (!pubAt) return '<span class="publish-dot publish-dot--never kand-list-dot" title="' + t('publish.never') + '"></span>';
-    const cls = new Date(pubAt) >= new Date(k.updated_at) ? 'synced' : 'stale';
-    const label = cls === 'synced' ? t('publish.synced') : t('publish.stale');
-    return `<span class="publish-dot publish-dot--${cls} kand-list-dot" title="${label}"></span>`;
-}
-
-function renderKandidatList(kandidater, pubAtMap) {
+function renderKandidatList(kandidater) {
     const container = document.getElementById('kandidater-list');
     if (!container) return;
     const dashEl = document.getElementById('dash-kandidater-count');
@@ -114,7 +101,7 @@ function renderKandidatList(kandidater, pubAtMap) {
         return `
         <div class="cv-item" onclick="editKandidatById(${k.id})" style="cursor:pointer">
             <div class="cv-item-info">
-                <div class="cv-item-name">${_kandPublishDot(k, pubAtMap)}${safeName}</div>
+                <div class="cv-item-name">${safeName}</div>
                 ${meta ? `<div class="cv-item-meta">${meta}</div>` : ''}
                 ${statsHtml}
             </div>
@@ -188,107 +175,6 @@ function showKandidatForm(kandidat) {
         document.getElementById(id).disabled = !kandidat;
     });
     switchKandidatTab('basinfo');
-    if (kandidat) refreshKandidatPublishStatus(kandidat.id).catch(() => {});
-    else document.getElementById('kand-publish-row')?.classList.add('hidden');
-}
-
-// ── Publish (backend sync) ────────────────────────────────────────────────────
-
-async function refreshKandidatPublishStatus(kandidatId) {
-    const row = document.getElementById('kand-publish-row');
-    if (!row || !kandidatId) { row?.classList.add('hidden'); return; }
-    const kand = await cvDb.kandidater.get(kandidatId).catch(() => null);
-    if (!kand) { row.classList.add('hidden'); return; }
-    row.classList.remove('hidden');
-
-    const uuid  = kand.profile_uuid;
-    const pubAt = uuid ? await cvDb.settings.get(`pub_at_${uuid}`).catch(() => null) : null;
-
-    if (!pubAt) {
-        _setKandPublishUi('never', t('publish.never'), true);
-        return;
-    }
-    const synced = new Date(pubAt) >= new Date(kand.updated_at);
-    if (synced) {
-        _setKandPublishUi('synced', `${t('publish.synced')} ${_fmtDateTime(pubAt)}`, false);
-    } else {
-        _setKandPublishUi('stale', t('publish.stale'), true);
-    }
-}
-
-function _setKandPublishUi(dotClass, tsText, btnEnabled) {
-    const dot    = document.getElementById('kand-publish-dot');
-    const ts     = document.getElementById('kand-publish-ts');
-    const btn    = document.getElementById('kand-publish-btn');
-    const unbtn  = document.getElementById('kand-unpublish-btn');
-    if (dot)   dot.className  = `publish-dot publish-dot--${dotClass}`;
-    if (ts)    ts.textContent = tsText;
-    if (btn)   btn.disabled   = !btnEnabled;
-    if (unbtn) unbtn.disabled = dotClass === 'never';
-}
-
-async function publishCurrentKandidat() {
-    if (!currentKandidatId) return;
-    const btn = document.getElementById('kand-publish-btn');
-    if (btn) { btn.disabled = true; btn.textContent = t('publish.publishing'); }
-    try {
-        let kand = await cvDb.kandidater.get(currentKandidatId);
-        if (!kand) throw new Error('Kandidat hittades inte');
-        if (!kand.portrait) {
-            if (btn) btn.textContent = t('portrait.publish_generating');
-            await _generateKandidatPortrait(currentKandidatId);
-            kand = await cvDb.kandidater.get(currentKandidatId);
-            const ta = document.getElementById('kand-portrait-text');
-            if (ta) ta.value = kand.portrait || '';
-        } else {
-            const pubAt = kand.profile_uuid
-                ? await cvDb.settings.get(`pub_at_${kand.profile_uuid}`).catch(() => null)
-                : null;
-            const isStale = pubAt && new Date(pubAt) < new Date(kand.updated_at);
-            if (isStale && confirm(t('portrait.confirm_update'))) {
-                if (btn) btn.textContent = t('portrait.publish_generating');
-                await _generateKandidatPortrait(currentKandidatId);
-                kand = await cvDb.kandidater.get(currentKandidatId);
-                const ta = document.getElementById('kand-portrait-text');
-                if (ta) ta.value = kand.portrait || '';
-            }
-        }
-        const payload = await _buildKandidatPayload(currentKandidatId);
-        const uuid = await _backendPublish(kand.profile_uuid, payload);
-        if (!kand.profile_uuid) {
-            await cvDb.kandidater.update(currentKandidatId, { profile_uuid: uuid });
-            document.getElementById('kand-profile-uuid').value = uuid;
-        }
-        await cvDb.settings.set(`pub_at_${uuid}`, new Date().toISOString());
-        showKandidatStatus(t('publish.synced'), 'success');
-    } catch (err) {
-        showKandidatStatus(err.message || t('publish.error'), 'error');
-    } finally {
-        if (btn) btn.textContent = t('publish.btn');
-        refreshKandidatPublishStatus(currentKandidatId).catch(() => {});
-    }
-}
-
-async function unpublishCurrentKandidat() {
-    if (!currentKandidatId) return;
-    const unbtn = document.getElementById('kand-unpublish-btn');
-    if (unbtn) { unbtn.disabled = true; unbtn.textContent = t('publish.unpublishing'); }
-    try {
-        const kand = await cvDb.kandidater.get(currentKandidatId);
-        if (!kand) throw new Error('Kandidat hittades inte');
-        await _backendUnpublish(kand.profile_uuid);
-        if (kand.profile_uuid) {
-            await cvDb.settings.set(`pub_at_${kand.profile_uuid}`, null);
-            await cvDb.kandidater.update(currentKandidatId, { profile_uuid: null });
-            document.getElementById('kand-profile-uuid').value = '';
-        }
-        showKandidatStatus(t('publish.never'), 'success');
-    } catch (err) {
-        showKandidatStatus(err.message || t('publish.error'), 'error');
-    } finally {
-        if (unbtn) unbtn.textContent = t('publish.unpublish');
-        refreshKandidatPublishStatus(currentKandidatId).catch(() => {});
-    }
 }
 
 function showKandidatListPanel() {
@@ -408,7 +294,7 @@ async function rankAllKandidater() {
         });
         renderRankingList(data.candidates || []);
     } catch (err) {
-        ranking.innerHTML = `<div class="status-message status-error">❌ Fel: ${err.message}</div>`;
+        ranking.innerHTML = `<div class="status-message status-error"><span class="material-icons" style="font-size:1rem;vertical-align:middle">error</span> Fel: ${err.message}</div>`;
         ranking.classList.remove('hidden');
     } finally {
         rankBtn.disabled = false;
@@ -520,13 +406,13 @@ async function matchKandidatJob(overrideId = null, overrideName = null) {
         const ranking = document.getElementById('mk-ranking');
         if (overrideId !== null && ranking && !ranking.classList.contains('hidden')) {
             res.insertAdjacentHTML('afterbegin',
-                `<button class="mk-back-btn" onclick="document.getElementById('mk-result').classList.add('hidden')">${t('matchk.back_to_ranking')}</button>`);
+                `<button class="mk-back-btn" onclick="document.getElementById('mk-result').classList.add('hidden')"><span class="material-icons" style="font-size:1rem;vertical-align:middle;margin-right:4px">arrow_back</span>${t('matchk.back_to_ranking')}</button>`);
         }
         res.classList.remove('hidden');
         setTimeout(() => res.scrollIntoView({ behavior: 'smooth', block: 'start' }), 100);
 
     } catch (err) {
-        res.innerHTML = `<div class="status-message status-error">❌ Fel: ${err.message}</div>`;
+        res.innerHTML = `<div class="status-message status-error"><span class="material-icons" style="font-size:1rem;vertical-align:middle">error</span> Fel: ${err.message}</div>`;
         res.classList.remove('hidden');
     } finally {
         if (activeBtn) {
@@ -600,7 +486,6 @@ async function saveKandidat() {
         showKandidatStatus(t('kand.saved_msg'), 'success');
         const fresh = await cvDb.kandidater.get(currentKandidatId);
         _showKandTimestamps(fresh);
-        refreshKandidatPublishStatus(currentKandidatId).catch(() => {});
     } catch (err) {
         showKandidatStatus(err.message, 'error');
     }
@@ -662,7 +547,7 @@ async function generateKandPortrait() {
         if (ta) ta.value = portrait;
         if (status) status.textContent = t('portrait.saved');
     } catch (err) {
-        if (status) status.textContent = err.message || t('publish.error');
+        if (status) status.textContent = err.message || t('sp.error');
     } finally {
         if (btn) { btn.disabled = false; btn.textContent = t('portrait.generate_btn'); }
     }
@@ -705,7 +590,7 @@ function renderKandQualities() {
     container.innerHTML = _kandQualities.map((q, i) => `
         <span class="bank-skill-chip chip-personal">
             ${esc(q)}
-            <button class="chip-delete" onclick="removeKandQuality(${i})" title="Ta bort">×</button>
+            <button class="chip-delete" onclick="removeKandQuality(${i})" title="Ta bort"><span class="material-icons" style="font-size:14px">close</span></button>
         </span>
     `).join('');
 }
@@ -790,8 +675,8 @@ function renderKandidatSkills(skills) {
                     }
                     return `<span class="bank-skill-chip ${skillLevelClass(s.skill_level)}" draggable="true" data-skill-id="${s.id}" data-skill-cat="${esc(cat)}">
                         ${esc(s.skill_name)}
-                        <button class="chip-delete" style="font-size:0.85em;padding:0 1px 0 3px" onclick="kandEditingSkillId=${s.id};renderKandidatSkills(cachedKandSkills)" title="${t('action.edit')}">✎</button>
-                        <button class="chip-delete" onclick="deleteKandidatSkill(${s.id})" title="${t('action.delete')}">×</button>
+                        <button class="chip-delete" style="font-size:0.85em;padding:0 1px 0 3px" onclick="kandEditingSkillId=${s.id};renderKandidatSkills(cachedKandSkills)" title="${t('action.edit')}"><span class="material-icons">edit</span></button>
+                        <button class="chip-delete" onclick="deleteKandidatSkill(${s.id})" title="${t('action.delete')}"><span class="material-icons">close</span></button>
                     </span>`;
                 }).join('')}
             </div>
@@ -881,9 +766,9 @@ function showKandidatBankStatus(msg, type) {
 function showKandidatUploadStatus(msg, type) {
     const el = document.getElementById('kand-upload-status');
     if (!el) return;
-    el.textContent = msg;
+    el.innerHTML = `<span>${msg}</span>`;
     el.className = `status-message status-${type}`;
-    if (type !== 'loading') setTimeout(() => { el.textContent = ''; el.className = ''; }, 5000);
+    if (type !== 'loading') setTimeout(() => { el.innerHTML = ''; el.className = ''; }, 5000);
 }
 
 // ── Kandidat CV upload ────────────────────────────────────────────────────────
@@ -902,7 +787,7 @@ function setupKandidatUpload() {
 async function handleKandidatCVUpload(file) {
     if (!currentKandidatId) return;
 
-    showKandidatUploadStatus(`⏳ ${t('cv.loading')}`, 'loading');
+    showKandidatUploadStatus(t('cv.loading'), 'loading');
 
     try {
         const raw = await cvPdf.extractText(file);
@@ -910,7 +795,7 @@ async function handleKandidatCVUpload(file) {
         showKandidatUploadStatus('', '');
 
         showCVReviewModal(stripped, file.name, async (reviewedText) => {
-            showKandidatUploadStatus(`⏳ ${t('cv.analysing_ai')}`, 'loading');
+            showKandidatUploadStatus(t('cv.analysing_ai'), 'loading');
             const formData = new FormData();
             formData.append('file', file);
             formData.append('reviewed_text', reviewedText);
@@ -922,7 +807,7 @@ async function handleKandidatCVUpload(file) {
                 if (!res.ok) { const e = await res.json(); throw new Error(e.detail || 'Fel vid uppladdning'); }
                 const data = await res.json();
                 showKandidatUploadStatus(
-                    `✅ ${t('kand.cv_upload_result').replace('{filename}', data.filename || file.name).replace('{skills}', data.skill_count).replace('{exps}', data.experience_count)}`,
+                    `<span class="material-icons" style="font-size:1rem;vertical-align:middle">check_circle</span> ${t('kand.cv_upload_result').replace('{filename}', data.filename || file.name).replace('{skills}', data.skill_count).replace('{exps}', data.experience_count)}`,
                     'success'
                 );
                 await loadKandidatBank(currentKandidatId);
@@ -931,11 +816,11 @@ async function handleKandidatCVUpload(file) {
                 loadKandidatCVs(currentKandidatId);
                 touchKandidat();
             } catch (err) {
-                showKandidatUploadStatus(`❌ ${err.message}`, 'error');
+                showKandidatUploadStatus(`<span class="material-icons" style="font-size:1rem;vertical-align:middle">error</span> ${err.message}`, 'error');
             }
         });
     } catch (err) {
-        showKandidatUploadStatus(`❌ ${err.message}`, 'error');
+        showKandidatUploadStatus(`<span class="material-icons" style="font-size:1rem;vertical-align:middle">error</span> ${err.message}`, 'error');
     }
 }
 
@@ -998,8 +883,8 @@ function renderKandidatExperiences(experiences) {
                     ${period ? `<div class="exp-card-period">${period}</div>` : ''}
                 </div>
                 <div class="exp-card-actions">
-                    <button class="btn-icon" onclick="kandEditingExpId=${e.id};renderKandidatExperiences(cachedKandExps)" title="${t('action.edit')}">✎</button>
-                    <button class="btn-icon btn-icon-danger" onclick="deleteKandExperience(${e.id})" title="${t('action.delete')}">&times;</button>
+                    <button class="btn-icon" onclick="kandEditingExpId=${e.id};renderKandidatExperiences(cachedKandExps)" title="${t('action.edit')}"><span class="material-icons">edit</span></button>
+                    <button class="btn-icon btn-icon-danger" onclick="deleteKandExperience(${e.id})" title="${t('action.delete')}"><span class="material-icons">delete</span></button>
                 </div>
             </div>
             ${e.description ? `<div class="exp-card-desc">${esc(e.description)}</div>` : ''}
@@ -1141,7 +1026,7 @@ function displayKandidatCVs(cvs, kandidatId) {
             ? new Date(cv.upload_date).toLocaleDateString('sv-SE', { year:'numeric', month:'short', day:'numeric' })
             : '—';
         const processedBadge = cv.is_processed
-            ? `<span class="cv-badge cv-badge--green">✓ ${t('cv.badge_processed')}</span>`
+            ? `<span class="cv-badge cv-badge--green"><span class="material-icons" style="font-size:.85rem;vertical-align:middle">check</span> ${t('cv.badge_processed')}</span>`
             : `<span class="cv-badge cv-badge--blue">${t('cv.badge_unprocessed')}</span>`;
         const safeName = cv.filename.replace(/'/g, "\\'");
         return `
@@ -1233,8 +1118,8 @@ function renderKandidatEducation(items, kandidatId) {
                 ${period           ? `<div class="edu-card-period">${period}</div>` : ''}
             </div>
             <div class="exp-card-actions">
-                <button class="btn-icon" onclick="kandEditingEduId=${e.id};renderKandidatEducation(cachedKandEdu,${kandidatId})" title="${t('action.edit')}">✎</button>
-                <button class="btn-icon btn-icon-danger" onclick="deleteKandidatEducation(${e.id},${kandidatId})" title="${t('action.delete')}">&times;</button>
+                <button class="btn-icon" onclick="kandEditingEduId=${e.id};renderKandidatEducation(cachedKandEdu,${kandidatId})" title="${t('action.edit')}"><span class="material-icons">edit</span></button>
+                <button class="btn-icon btn-icon-danger" onclick="deleteKandidatEducation(${e.id},${kandidatId})" title="${t('action.delete')}"><span class="material-icons">delete</span></button>
             </div>
         </div>`;
     }).join('');
@@ -1348,8 +1233,8 @@ function renderKandidatCertifications(items, kandidatId) {
                 ${c.date   ? `<div class="edu-card-period">${c.date}</div>` : ''}
             </div>
             <div class="exp-card-actions">
-                <button class="btn-icon" onclick="kandEditingCertId=${c.id};renderKandidatCertifications(cachedKandCerts,${kandidatId})" title="${t('action.edit')}">✎</button>
-                <button class="btn-icon btn-icon-danger" onclick="deleteKandidatCertification(${c.id},${kandidatId})" title="${t('action.delete')}">&times;</button>
+                <button class="btn-icon" onclick="kandEditingCertId=${c.id};renderKandidatCertifications(cachedKandCerts,${kandidatId})" title="${t('action.edit')}"><span class="material-icons">edit</span></button>
+                <button class="btn-icon btn-icon-danger" onclick="deleteKandidatCertification(${c.id},${kandidatId})" title="${t('action.delete')}"><span class="material-icons">delete</span></button>
             </div>
         </div>`;
     }).join('');

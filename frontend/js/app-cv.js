@@ -28,12 +28,12 @@ function handleFileSelect(e) {
 // Upload CV (old Mina CV:n flow)
 async function handleFileUpload(file) {
     if (!file.type.includes('pdf')) {
-        showStatus('❌ Endast PDF-filer är tillåtna', 'error');
+        showStatus('<span class="material-icons" style="font-size:1rem;vertical-align:middle">error</span> Endast PDF-filer är tillåtna', 'error');
         return;
     }
 
     if (file.size > 10 * 1024 * 1024) {
-        showStatus('❌ Filen är för stor. Max 10 MB tillåtet', 'error');
+        showStatus('<span class="material-icons" style="font-size:1rem;vertical-align:middle">error</span> Filen är för stor. Max 10 MB tillåtet', 'error');
         return;
     }
 
@@ -41,7 +41,7 @@ async function handleFileUpload(file) {
     formData.append('file', file);
 
     uploadArea.classList.add('uploading');
-    showStatus('⏳ Laddar upp och analyserar CV...', 'loading');
+    showStatus('Laddar upp och analyserar CV...', 'loading');
 
     try {
         const response = await apiFetch(`${API_BASE_URL}/cv/upload`, {
@@ -56,13 +56,13 @@ async function handleFileUpload(file) {
 
         const data = await response.json();
         uploadArea.classList.remove('uploading');
-        showStatus('✅ CV uppladdat och strukturerat!', 'success');
+        showStatus('<span class="material-icons" style="font-size:1rem;vertical-align:middle">check_circle</span> CV uppladdat och strukturerat!', 'success');
         displayCVPreview(data.structured_data);
         await loadCVs();
 
     } catch (error) {
         uploadArea.classList.remove('uploading');
-        showStatus(`❌ Fel: ${error.message}`, 'error');
+        showStatus(`<span class="material-icons" style="font-size:1rem;vertical-align:middle">error</span> Fel: ${error.message}`, 'error');
     }
 }
 
@@ -78,8 +78,8 @@ function displayCVPreview(cvData) {
 
     cvPreview.innerHTML = `
         <div class="cv-preview-header">
-            <h3>✅ CV strukturerat framgångsrikt!</h3>
-            <button class="cv-preview-close" onclick="closePreview()" title="${t('action.close')}">&times;</button>
+            <h3><span class="material-icons" style="font-size:1.1rem;vertical-align:middle;color:var(--green)">check_circle</span> CV strukturerat framgångsrikt!</h3>
+            <button class="cv-preview-close" onclick="closePreview()" title="${t('action.close')}"><span class="material-icons">close</span></button>
         </div>
         <div class="cv-preview-section">
             <h4>Personlig information</h4>
@@ -136,7 +136,7 @@ async function loadCVs() {
     } catch (error) {
         console.error('Error loading CVs:', error);
         if (typeof cvList !== 'undefined' && cvList) {
-            cvList.innerHTML = `<div class="empty-hint">❌ Kunde inte ladda CV:n</div>`;
+            cvList.innerHTML = `<div class="empty-hint"><span class="material-icons" style="font-size:1rem;vertical-align:middle">error</span> Kunde inte ladda CV:n</div>`;
         }
     }
 }
@@ -222,17 +222,17 @@ function displayCVs(cvs) {
                     </div>
                     <div class="cv-item-header-right">
                         ${mergeIndicator}
-                        ${selected ? '<button class="cv-item-badge" onclick="deselectCV(); event.stopPropagation()">Vald ×</button>' : ''}
+                        ${selected ? '<button class="cv-item-badge" onclick="deselectCV(); event.stopPropagation()">Vald <span class="material-icons" style="font-size:.85rem;vertical-align:middle">close</span></button>' : ''}
                     </div>
                 </div>
                 <div class="cv-item-details">
-                    <div class="cv-item-detail">📅 ${date}</div>
-                    <div class="cv-item-detail">💼 ${exps} ${t('cv.section_experience').toLowerCase()}</div>
-                    <div class="cv-item-detail">🎯 ${skills} ${t('cv.section_skills').toLowerCase()}</div>
+                    <div class="cv-item-detail"><span class="material-icons cv-detail-icon">calendar_today</span>${date}</div>
+                    <div class="cv-item-detail"><span class="material-icons cv-detail-icon">work_history</span>${exps} ${t('cv.section_experience').toLowerCase()}</div>
+                    <div class="cv-item-detail"><span class="material-icons cv-detail-icon">psychology</span>${skills} ${t('cv.section_skills').toLowerCase()}</div>
                 </div>
                 <div class="cv-item-actions">
                     <button class="btn btn-small btn-secondary" onclick="editTitle(${cv.id}, event)">${t('cv.btn_edit_title')}</button>
-                    <button class="btn btn-small btn-secondary" onclick="viewCV(${cv.id}, event)">👁️ ${t('cv.btn_view')}</button>
+                    <button class="btn btn-small btn-secondary" onclick="viewCV(${cv.id}, event)"><span class="material-icons" style="font-size:1rem;vertical-align:middle;margin-right:2px">visibility</span>${t('cv.btn_view')}</button>
                     <button class="btn btn-small btn-danger"    onclick="deleteCV(${cv.id}, event)">${t('cv.btn_delete')}</button>
                 </div>
             </div>
@@ -265,13 +265,13 @@ function displaySpCVs(cvs) {
                     </div>
                 </div>
                 <div class="cv-item-details">
-                    <div class="cv-item-detail">📅 ${date}</div>
-                    <div class="cv-item-detail">💼 ${exps} ${t('cv.section_experience').toLowerCase()}</div>
-                    <div class="cv-item-detail">🎯 ${skills} ${t('cv.section_skills').toLowerCase()}</div>
+                    <div class="cv-item-detail"><span class="material-icons cv-detail-icon">calendar_today</span>${date}</div>
+                    <div class="cv-item-detail"><span class="material-icons cv-detail-icon">work_history</span>${exps} ${t('cv.section_experience').toLowerCase()}</div>
+                    <div class="cv-item-detail"><span class="material-icons cv-detail-icon">psychology</span>${skills} ${t('cv.section_skills').toLowerCase()}</div>
                 </div>
                 <div class="cv-item-actions">
                     <button class="btn btn-small btn-secondary" onclick="editTitle(${cv.id}, event)">${t('cv.btn_edit_title')}</button>
-                    <button class="btn btn-small btn-secondary" onclick="viewCV(${cv.id}, event)">👁️ ${t('cv.btn_view')}</button>
+                    <button class="btn btn-small btn-secondary" onclick="viewCV(${cv.id}, event)"><span class="material-icons" style="font-size:1rem;vertical-align:middle;margin-right:2px">visibility</span>${t('cv.btn_view')}</button>
                     <button class="btn btn-small btn-danger"    onclick="deleteCV(${cv.id}, event)">${t('cv.btn_delete')}</button>
                 </div>
             </div>
@@ -321,21 +321,21 @@ async function handleSpCVUpload(file) {
                 if (typeof touchOwnKandidat === 'function') touchOwnKandidat();
             } catch (err) {
                 if (area) area.classList.remove('uploading');
-                showSpCVUploadStatus(`❌ ${err.message}`, 'error');
+                showSpCVUploadStatus(`<span class="material-icons" style="font-size:1rem;vertical-align:middle">error</span> ${err.message}`, 'error');
             }
         });
     } catch (err) {
         if (area) area.classList.remove('uploading');
-        showSpCVUploadStatus(`❌ ${err.message}`, 'error');
+        showSpCVUploadStatus(`<span class="material-icons" style="font-size:1rem;vertical-align:middle">error</span> ${err.message}`, 'error');
     }
 }
 
 function showSpCVUploadStatus(msg, type) {
     const el = document.getElementById('sp-cv-upload-status');
     if (!el) return;
-    el.textContent = msg;
+    el.innerHTML = `<span>${msg}</span>`;
     el.className = `status-message status-${type}`;
-    if (type !== 'loading') setTimeout(() => { el.textContent = ''; el.className = ''; }, 5000);
+    if (type !== 'loading') setTimeout(() => { el.innerHTML = ''; el.className = ''; }, 5000);
 }
 
 async function mergeCV(cvId, event) {
@@ -354,7 +354,7 @@ async function mergeCV(cvId, event) {
     } catch (err) {
         btn.disabled = false;
         btn.textContent = t('cv.btn_process');
-        showStatus(`❌ ${err.message}`, 'error');
+        showStatus(`<span class="material-icons" style="font-size:1rem;vertical-align:middle">error</span> ${err.message}`, 'error');
     }
 }
 
@@ -391,7 +391,7 @@ async function editTitle(id, event) {
         renderCVSelectList(allCVs);
 
     } catch (err) {
-        showStatus(`❌ ${err.message}`, 'error');
+        showStatus(`<span class="material-icons" style="font-size:1rem;vertical-align:middle">error</span> ${err.message}`, 'error');
     }
 }
 
@@ -574,7 +574,7 @@ async function deleteCV(id, event) {
         return;
     }
 
-    showStatus('⏳ Raderar CV...', 'loading');
+    showStatus('Raderar CV...', 'loading');
 
     try {
         const response = await apiFetch(`${API_BASE_URL}/competence/cvs/${id}`, {
@@ -594,9 +594,9 @@ async function deleteCV(id, event) {
         }
 
         await loadCVs();
-        showStatus('✅ CV borttaget.', 'success');
+        showStatus('<span class="material-icons" style="font-size:1rem;vertical-align:middle">check_circle</span> CV borttaget.', 'success');
 
     } catch (error) {
-        showStatus(`❌ ${error.message}`, 'error');
+        showStatus(`<span class="material-icons" style="font-size:1rem;vertical-align:middle">error</span> ${error.message}`, 'error');
     }
 }

@@ -336,11 +336,19 @@ async function _renderJobList(jobs) {
     }
     emptyEl?.classList.add('hidden');
 
-    // Check which jobs are already saved so the button can reflect that
-    const savedJobs = await cvDb.jobSeen.getByStatus('saved');
-    const savedIds  = new Set(savedJobs.map(j => j.job_id));
+    // Filter out dismissed and saved jobs — they shouldn't appear in the search list
+    const seenJobs = await cvDb.jobSeen.getAll();
+    const seenIds  = new Set(seenJobs.map(j => j.job_id));
+    const savedIds = new Set(seenJobs.filter(j => j.status === 'saved').map(j => j.job_id));
+    const visible  = jobs.filter(j => !seenIds.has(j.id));
 
-    listEl.innerHTML = jobs.map(job => {
+    if (visible.length === 0) {
+        listEl.innerHTML = '';
+        emptyEl?.classList.remove('hidden');
+        return;
+    }
+
+    listEl.innerHTML = visible.map(job => {
         const score = (job._score !== undefined && job._score !== null) ? job._score : null;
         const scoreClass = score === null ? 'jobb-score--none'
             : score >= 8 ? 'jobb-score--high'
@@ -678,7 +686,7 @@ function _renderJobAnalysis(job, ownSkillNames = new Set(), ownQualities = new S
         sections.push(`
         <div class="card">
             <h3 class="jobdet-section-title"><span class="material-icons">psychology</span> ${t('jobs.personal_qual')}</h3>
-            <div class="jobdet-chip-list">${job.personal_qualities.map(c =>
+            <div class="jobdet-chip-list">${[...job.personal_qualities].sort((a, b) => a.localeCompare(b, currentLang)).map(c =>
                 `<span class="bank-skill-chip chip-personal${_hasQuality(c) ? ' chip-owned' : ''}">${_hasQuality(c) ? _checkIcon : ''}${_esc(c)}${_infoBtn(c, 'showQualityContextModal')}</span>`
             ).join('')}</div>
         </div>`);

@@ -63,7 +63,7 @@ async function loadSokprofil() {
             el.checked = (own.desired_workplace || []).includes(el.value);
         });
 
-        _spQualities = Array.isArray(own.personal_qualities) ? [...own.personal_qualities] : [];
+        _spQualities = Array.isArray(own.personal_qualities) ? [...own.personal_qualities].sort((a, b) => a.localeCompare(b, currentLang)) : [];
         renderSpQualities();
         document.getElementById('sp-commute').checked      = own.willing_to_commute || false;
         document.getElementById('sp-searchable').checked   = own.searchable         || false;

@@ -103,6 +103,7 @@ function renderActiveBankTab() {
         setupSkillDragDrop(body, async (skillId, newCat) => {
             const skill = bankSkills.find(s => s.id === skillId);
             if (!skill) return;
+            // db.js kandSkills.update() handles dedup — if target category already has this skill it deletes the dragged one
             await apiFetch(`${API_BASE_URL}/competence/skills/${skillId}`, {
                 method: 'PUT', headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ skill_name: skill.skill_name, category: newCat, skill_level: skill.skill_level }),

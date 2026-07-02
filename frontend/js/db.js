@@ -540,11 +540,22 @@ const kandSkills = {
   async listFor(kandidatId) { return _byKandidatId('kand_skills', kandidatId); },
   async add(kandidatId, data) {
     return _tx('kand_skills', 'readwrite', async (tx) => {
-      const store = tx.objectStore('kand_skills');
+      const store    = tx.objectStore('kand_skills');
+      const category = data.category ?? 'Övrigt';
+      const nameLower = (data.skill_name ?? '').trim().toLowerCase();
+
+      // Dedup: reject if same skill_name (case-insensitive) + category already exists for this kandidat
+      const existing = await _req(store.index('kandidat_id').getAll(kandidatId));
+      const dupe = existing.find(s =>
+        s.skill_name.trim().toLowerCase() === nameLower &&
+        (s.category ?? 'Övrigt') === category
+      );
+      if (dupe) return dupe;
+
       const id = await _req(store.add({
         kandidat_id: kandidatId,
         skill_name:  data.skill_name,
-        category:    data.category   ?? 'Övrigt',
+        category,
         skill_level: data.skill_level ?? null,
       }));
       return _req(store.get(id));
@@ -555,6 +566,21 @@ const kandSkills = {
       const store = tx.objectStore('kand_skills');
       const existing = await _req(store.get(id));
       if (!existing) throw new Error(`KandSkill ${id} not found`);
+      const newCategory = data.category ?? existing.category ?? 'Övrigt';
+      const newName     = (data.skill_name ?? existing.skill_name ?? '').trim().toLowerCase();
+
+      // Dedup: if target category already has this skill_name, delete this record instead of creating a dupe
+      const all = await _req(store.index('kandidat_id').getAll(existing.kandidat_id));
+      const dupe = all.find(s =>
+        s.id !== id &&
+        s.skill_name.trim().toLowerCase() === newName &&
+        (s.category ?? 'Övrigt') === newCategory
+      );
+      if (dupe) {
+        await _req(store.delete(id));
+        return dupe;
+      }
+
       const updated = { ...existing, ...data, id };
       await _req(store.put(updated));
       return updated;

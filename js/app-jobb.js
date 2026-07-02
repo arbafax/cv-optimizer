@@ -411,6 +411,7 @@ function _esc(str) {
 
 async function dismissJob(jobId, headline, employer, url) {
     await cvDb.jobSeen.add(jobId, 'dismissed', { headline, employer, url });
+    cvDb.settings.set('job_match_' + jobId, '');
     document.getElementById(`jobb-card-${jobId}`)?.remove();
 
     // Uppdatera sessionStorage
@@ -701,17 +702,15 @@ function _renderJobAnalysis(job, ownSkillNames = new Set(), ownQualities = new S
     }
 }
 
-function openSavedJobInMatch() {
+async function openSavedJobInMatch() {
     if (!_currentSavedJob) return;
+    const job = _currentSavedJob;
+
     const textarea = document.getElementById('job-description');
     if (textarea) {
-        const job = _currentSavedJob;
         textarea.value = [job.headline, job.employer, job.url, job.description]
             .filter(Boolean).join('\n').trim();
 
-        // Pre-warm the match flow's analysis cache with the stored AI analysis.
-        // This lets _getStructuredJob() return immediately (cache hit) instead of
-        // making another analyzeJob AI call when the user clicks "Matcha med AI".
         if (job.required_competencies?.length || job.work_tasks_summary) {
             const structuredJob = {
                 title:               job.headline              ?? '',
@@ -732,15 +731,22 @@ function openSavedJobInMatch() {
             _jobAnalysisCache.set(_jobCacheKey(textarea.value), structuredJob);
         }
     }
-    if (typeof clearMatchResult === 'function') clearMatchResult();
+
+    // Check if IDB already has a result for this job — if so, keep it (don't clear)
+    const persistedJobId = (await cvDb.settings.get('last_match_job_id')) ?? '';
+    const sameJob = persistedJobId === job.job_id;
+    if (!sameJob && typeof clearMatchResult === 'function') clearMatchResult();
+
     // Set AFTER clearMatchResult (which resets these vars)
-    lastMatchJobId   = _currentSavedJob.job_id;
+    lastMatchJobId   = job.job_id;
     lastMatchJobMeta = {
-        headline: _currentSavedJob.headline ?? '',
-        employer: _currentSavedJob.employer ?? '',
-        url:      _currentSavedJob.url      ?? '',
+        headline: job.headline ?? '',
+        employer: job.employer ?? '',
+        url:      job.url      ?? '',
         status:   'saved',
+        source:   'saved-detail',
     };
+
     const navEl = document.querySelector('[onclick*="showView(\'optimize\'"]');
     showView('optimize', navEl);
     if (typeof updateMatchWarning === 'function') updateMatchWarning();
@@ -768,12 +774,24 @@ async function openJobInMatch(jobId) {
         if (typeof clearMatchResult === 'function') clearMatchResult();
         // Set AFTER clearMatchResult (which resets these vars)
         lastMatchJobId   = jobId;
-        lastMatchJobMeta = { headline: job.headline ?? '', employer, url, status };
+        lastMatchJobMeta = { headline: job.headline ?? '', employer, url, status, source: 'hitta-jobb' };
         showView('optimize', navEl);
         if (typeof updateMatchWarning === 'function') updateMatchWarning();
         if (typeof updateCharCount === 'function') updateCharCount();
     } catch (err) {
         console.error('openJobInMatch:', err);
+    }
+}
+
+// ── Tillbaka till jobb från matchresultatet ───────────────────────────────────
+
+function goBackToJob() {
+    if (!lastMatchJobMeta?.source) return;
+    if (lastMatchJobMeta.source === 'saved-detail' && lastMatchJobId) {
+        showView('jobbdetaljer', null);
+    } else {
+        const navEl = document.getElementById('nav-hittajobb');
+        showView('hittajobb', navEl);
     }
 }
 

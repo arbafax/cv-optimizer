@@ -2062,6 +2062,19 @@ body {
 .match-result-header.match-mid  { background: #fef9c3; border-color: #fde047; }
 .match-result-header.match-low  { background: #fee2e2; border-color: #fca5a5; }
 
+.match-back-btn {
+    margin-bottom: 12px;
+}
+
+.match-result-label {
+    font-size: 0.75rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    margin: 0 0 8px;
+    opacity: 0.65;
+}
+
 .match-overall-number {
     font-size: 40px;
     font-weight: 700;
@@ -3204,6 +3217,19 @@ body {
     color: var(--sidebar-text);
     border-color: #2e3248;
 }
+
+.sidebar-meta-link {
+    background: none;
+    border: none;
+    color: var(--sidebar-text);
+    font-size: 0.65rem;
+    opacity: 0.7;
+    cursor: pointer;
+    padding: 0;
+    text-decoration: underline;
+    font-family: inherit;
+}
+.sidebar-meta-link:hover { opacity: 1; color: #fff; }
 
 .lang-btn {
     background: none;

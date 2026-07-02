@@ -16,6 +16,18 @@ function clearMatchResult() {
     lastJobDesc      = '';
     lastMatchJobId   = null;
     lastMatchJobMeta = null;
+    document.getElementById('optimize-input-card')?.classList.remove('hidden');
+    // Clear persisted result
+    cvDb.settings.set('last_match_result',   '');
+    cvDb.settings.set('last_match_job_desc', '');
+    cvDb.settings.set('last_match_job_id',   '');
+    cvDb.settings.set('last_match_job_meta', '');
+}
+
+async function newMatchSession() {
+    clearMatchResult();
+    const ta = document.getElementById('job-description');
+    if (ta) { ta.value = ''; updateCharCount(); updateOptimizeButton(); }
 }
 
 // ── Show/hide warnings and gate button on match view ─────────────────────────
@@ -65,6 +77,21 @@ async function handleOptimize() {
         return;
     }
 
+    // Serve cached result if this job has already been matched
+    if (lastMatchJobId) {
+        try {
+            const cachedRaw = await cvDb.settings.get('job_match_' + lastMatchJobId);
+            if (cachedRaw) {
+                const result = JSON.parse(cachedRaw);
+                lastMatchResult = result;
+                lastJobDesc = jobDescription.value.trim();
+                displayMatchResult(result);
+                setTimeout(() => optimizeResult.scrollIntoView({ behavior: 'smooth', block: 'start' }), 100);
+                return;
+            }
+        } catch { /* corrupt cache — fall through to AI */ }
+    }
+
     optimizeBtn.disabled = true;
     optimizeBtn.querySelector('.btn-text').style.display = 'none';
     const loadingEl = optimizeBtn.querySelector('.btn-loading');
@@ -97,6 +124,9 @@ async function handleOptimize() {
         lastMatchResult     = result;
         lastJobDesc         = jobDescription.value.trim();
         lastMatchKandidatId = null;
+        if (lastMatchJobId) {
+            cvDb.settings.set('job_match_' + lastMatchJobId, JSON.stringify(result));
+        }
         displayMatchResult(result);
 
         setTimeout(() => {

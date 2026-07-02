@@ -1560,7 +1560,55 @@ function showView(viewId, navEl) {
     if (view) view.classList.add('active');
     if (navEl) navEl.classList.add('active');
     closeSidebar();
-    if (viewId === 'optimize' && typeof updateMatchWarning === 'function') updateMatchWarning();
+    if (viewId === 'optimize') {
+        if (typeof updateMatchWarning === 'function') updateMatchWarning();
+        _restoreMatchResult();
+        _updateMatchBackBtn();
+    }
+}
+
+// ── Back-to-job button visibility ────────────────────────────────────────────
+function _updateMatchBackBtn() {
+    const btn = document.getElementById('match-back-header-btn');
+    if (!btn) return;
+    const show = !!(lastMatchJobId && lastMatchJobMeta?.source);
+    btn.classList.toggle('hidden', !show);
+}
+
+// ── Restore persisted match result on view load ───────────────────────────────
+async function _restoreMatchResult() {
+    if (lastMatchResult) return;
+
+    try {
+        // Per-job cache takes priority when we navigated here from a job
+        if (lastMatchJobId) {
+            const cachedRaw = await cvDb.settings.get('job_match_' + lastMatchJobId);
+            if (cachedRaw) {
+                const result = JSON.parse(cachedRaw);
+                lastMatchResult = result;
+                displayMatchResult(result);
+                _updateMatchBackBtn();
+                return;
+            }
+        }
+
+        // Fall back to last generic match (e.g. navigated from sidebar)
+        const s = await cvDb.settings.getAll();
+        const raw = s.last_match_result;
+        if (!raw) return;
+
+        const result = JSON.parse(raw);
+        lastMatchResult  = result;
+        lastJobDesc      = s.last_match_job_desc  ?? '';
+        lastMatchJobId   = s.last_match_job_id    || null;
+        lastMatchJobMeta = s.last_match_job_meta  ? JSON.parse(s.last_match_job_meta) : null;
+
+        const ta = document.getElementById('job-description');
+        if (ta && lastJobDesc) ta.value = lastJobDesc;
+
+        displayMatchResult(result);
+        _updateMatchBackBtn();
+    } catch { /* corrupt data — ignore */ }
 }
 
 // ── Match result helpers ──────────────────────────────────────────────────────
@@ -1662,9 +1710,17 @@ function displayMatchResult(result, container) {
             </div>
         </div>` : '';
 
+    const matchLabel = overall >= 75 ? t('match.label_high')
+        : overall >= 45 ? t('match.label_mid')
+        : t('match.label_low');
+
+    const jobTitleParts = [lastMatchJobMeta?.headline, lastMatchJobMeta?.employer].filter(Boolean);
+    const jobTitleSuffix = jobTitleParts.length ? ': ' + jobTitleParts.join(', ') : '';
+
     optimizeResult.innerHTML = `
         <div class="match-result-header ${scoreColor(overall)}">
             <div>
+                <h2 class="match-result-label">${matchLabel}${esc(jobTitleSuffix)}</h2>
                 ${jobInfoHtml}
                 <p class="match-summary">${result.summary || ''}</p>
             </div>
@@ -1714,9 +1770,24 @@ function displayMatchResult(result, container) {
                 <span class="material-icons" style="font-size:1rem;vertical-align:middle;margin-right:4px">thumb_down</span>${t('jobs.dismiss')}
             </button>
         </div>` : ''}
+
+        <div style="margin-top:12px;padding-top:12px;border-top:1px solid var(--border)">
+            <button class="btn btn-ghost btn-sm" onclick="newMatchSession()">
+                <span class="material-icons" style="font-size:1rem;vertical-align:middle;margin-right:4px">add_circle_outline</span>${t('match.new_match')}
+            </button>
+        </div>
     `;
 
     optimizeResult.classList.remove('hidden');
+
+    // Hide the input card — result persists across navigation
+    document.getElementById('optimize-input-card')?.classList.add('hidden');
+
+    // Persist result to IndexedDB so it survives navigation
+    cvDb.settings.set('last_match_result',   JSON.stringify(result));
+    cvDb.settings.set('last_match_job_desc', lastJobDesc ?? '');
+    cvDb.settings.set('last_match_job_id',   lastMatchJobId ?? '');
+    cvDb.settings.set('last_match_job_meta', lastMatchJobMeta ? JSON.stringify(lastMatchJobMeta) : '');
 
     // Safety net: verify against IndexedDB in case status wasn't set correctly
     if (lastMatchJobId) {

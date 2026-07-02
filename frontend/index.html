@@ -78,7 +78,7 @@
         </a>
         <a href="#" class="nav-item hidden" id="nav-hittajobb" data-requires-role="Kandidat" onclick="showView('hittajobb', this); loadJobbView()">
             <span class="material-icons">work_outline</span>
-            <span data-i18n="nav.find_jobs">Hitta jobb</span>
+            <span data-i18n="nav.find_jobs">Leta jobb</span>
         </a>
         <a href="#" class="nav-item hidden" id="nav-sparade-jobb" data-requires-role="Kandidat" onclick="showView('sparade-jobb', this); loadSparadeJobbView()">
             <span class="material-icons">bookmarks</span>
@@ -113,9 +113,14 @@
                 <option value="en">🇬🇧 English (EN)</option>
             </select>
         </div>
-        <div id="sidebar-version" style="font-size:0.7rem;color:var(--sidebar-text);text-align:center;padding-top:0.5rem;opacity:0.7"></div>
-        <div style="text-align:center;padding-top:0.25rem">
-            <button onclick="checkForUpdates()" style="background:none;border:none;color:var(--sidebar-text);font-size:0.65rem;opacity:0.55;cursor:pointer;padding:0;text-decoration:underline" onmouseover="this.style.opacity='0.9'" onmouseout="this.style.opacity='0.55'">Uppdatera?</button>
+        <div style="font-size:0.7rem;color:var(--sidebar-text);text-align:center;padding-top:0.5rem">
+            <div style="display:flex;align-items:center;justify-content:center;gap:0.5rem">
+                <span id="sidebar-version" style="opacity:0.7;font-size:0.65rem;color:var(--sidebar-text)"></span>
+                <button onclick="checkForUpdates()" class="sidebar-meta-link">Uppdatera?</button>
+            </div>
+            <div style="margin-top:0.2rem">
+                <a href="mailto:seladof@gmail.com" class="sidebar-meta-link">Feedback</a>
+            </div>
         </div>
     </div>
 </aside>
@@ -765,13 +770,17 @@
     <div id="view-optimize" class="view">
         <div class="view-header">
             <div>
+                <button id="match-back-header-btn" class="btn btn-ghost btn-sm hidden" onclick="goBackToJob()" style="margin-bottom:8px">
+                    <span class="material-icons" style="font-size:1rem;vertical-align:middle">arrow_back</span>
+                    <span data-i18n="match.back_to_job">Tillbaka</span>
+                </button>
                 <h1 data-i18n="match.title">Matcha jobb</h1>
                 <p class="view-subtitle" data-i18n-html="match.subtitle">Klistra in en jobbannons – AI matchar hela din kompetensbank mot jobbet.</p>
             </div>
         </div>
 
         <div class="optimize-layout">
-            <div class="card">
+            <div class="card" id="optimize-input-card">
                 <h2 class="card-title" data-i18n="match.card_title">Jobbannons</h2>
 
                 <div class="form-group">
@@ -1237,7 +1246,7 @@
     <div id="view-hittajobb" class="view">
         <div class="view-header">
             <div>
-                <h1 data-i18n="jobs.title">Hitta jobb</h1>
+                <h1 data-i18n="jobs.title">Leta jobb</h1>
                 <p class="view-subtitle" data-i18n="jobs.subtitle">Hämtar annonser från Platsbanken och rankar dem mot din profil.</p>
             </div>
             <div class="header-actions">

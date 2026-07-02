@@ -22,14 +22,13 @@ Välj sedan en roll (Kandidat eller Säljare) för att komma åt alla funktioner
 
 ## Vad kan du göra?
 
-**Kandidat** – Som kandidat kan du ladda ett eller flera CV. Varje CV analyseras och erfarenheter, kompetenser, utbildningar mm extraheras till din kompetens- och erfarenhetsdatabas. Som du även kan hantera manuellt. 
+Som arbetssökande kan du ladda ett eller flera CV. Varje CV analyseras och erfarenheter, kompetenser, utbildningar mm extraheras till din kompetens- och erfarenhetsdatabas. Din kompetensbank kan du även kan hantera manuellt. 
 
-Du kan senare klistra in en jobbannons och be en AI (den du har konfigurerat) att matcha jobbannonsen mot din kompetensdatabas, och få tips på förbättringar
+Din kompetensbank kommer med tiden att utökas. Dels genom att ladda in flera av dina olika CV, dels genom att lägga kompetenser som en jobbannons omnämner.
+
+Du kan klistra in en jobbannons och låta en AI (den du har konfigurerat) matcha jobbannonsen mot din kompetensdatabas, och få tips på förbättringar.
+
+Du kan söka jobb på Platsbanken (Arbetsförmedlingen) baserat på dina uppgifter i din profil. För de hittade jobben fgörs en ytlig matchning och sedan kan man gå vidare och analysera mer på djupet.
 
 Du kan skapa ett CV speciellt riktat med den analyserade jobbannonsen och använda det som utgångspunkt för när du söker det jobbet.
 
-**Säljare** – Som säljare kan du hantera en eller flera kandidater som får var sin kompetens- och erfarenhetsdatabas baserad på deras CV
-
-Du kan matcha en jobbannons mot dina kandidaters CV för att se om uppdraget kan vara något för dom
-
-**Rekryterare** – Rekryterarfunktioner kommer senare

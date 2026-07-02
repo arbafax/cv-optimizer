@@ -5,8 +5,109 @@
 
 const PLATSBANKEN_URL    = 'https://jobsearch.api.jobtechdev.se/search';
 const PLATSBANKEN_AD_URL = 'https://jobsearch.api.jobtechdev.se/ad';
-const JOBS_FETCH_LIMIT   = 100;  // How many to request from API per city (before filtering)
+const JOBS_FETCH_LIMIT   = 100;  // How many to request from API (before filtering)
 const JOBS_DISPLAY_LIMIT = 30;   // How many to show in the list after filtering
+
+// SCB municipality codes (kommunkoder) for all 290 Swedish municipalities.
+// Used to pass municipality= parameter to Platsbanken instead of baking city into q.
+const MUNICIPALITY_CODES = {
+    // Stockholms län (01)
+    'upplands väsby':0114,'vallentuna':0115,'österåker':0117,'värmdö':0120,
+    'järfälla':0123,'ekerö':0125,'huddinge':0126,'botkyrka':0127,'salem':0128,
+    'haninge':0136,'tyresö':0138,'upplands-bro':0139,'upplandsbro':0139,
+    'nykvarn':0140,'täby':0160,'danderyd':0162,'sollentuna':0163,
+    'stockholm':0180,'södertälje':0181,'nacka':0182,'sundbyberg':0183,
+    'solna':0184,'lidingö':0186,'vaxholm':0187,'norrtälje':0188,
+    'sigtuna':0191,'nynäshamn':0192,
+    // Uppsala län (03)
+    'håbo':0305,'älvkarleby':0319,'knivsta':0330,'heby':0331,'tierp':0360,
+    'uppsala':0380,'enköping':0381,'östhammar':0382,
+    // Södermanlands län (04)
+    'vingåker':0428,'gnesta':0461,'nyköping':0480,'oxelösund':0481,
+    'flen':0482,'katrineholm':0483,'eskilstuna':0484,'strängnäs':0486,'trosa':0488,
+    // Östergötlands län (05)
+    'ödeshög':0509,'ydre':0512,'kinda':0513,'boxholm':0560,'åtvidaberg':0561,
+    'finspång':0562,'valdemarsvik':0563,'linköping':0580,'norrköping':0581,
+    'söderköping':0582,'motala':0583,'vadstena':0584,'mjölby':0586,
+    // Jönköpings län (06)
+    'aneby':0604,'gnosjö':0617,'mullsjö':0642,'habo':0643,'gislaved':0662,
+    'vaggeryd':0665,'jönköping':0680,'nässjö':0682,'värnamo':0683,
+    'sävsjö':0684,'vetlanda':0685,'eksjö':0686,'tranås':0687,
+    // Kronobergs län (07)
+    'uppvidinge':0760,'lessebo':0761,'tingsryd':0763,'alvesta':0764,
+    'älmhult':0765,'markaryd':0767,'växjö':0780,'ljungby':0781,
+    // Kalmar län (08)
+    'högsby':0821,'torsås':0834,'mörbylånga':0840,'hultsfred':0860,
+    'mönsterås':0861,'emmaboda':0862,'kalmar':0880,'nybro':0881,
+    'oskarshamn':0882,'västervik':0883,'vimmerby':0884,'borgholm':0885,
+    // Gotlands län (09)
+    'gotland':0980,
+    // Blekinge län (10)
+    'olofström':1060,'karlskrona':1080,'ronneby':1081,'karlshamn':1082,'sölvesborg':1083,
+    // Skåne län (12)
+    'svalöv':1214,'staffanstorp':1230,'burlöv':1231,'vellinge':1233,
+    'östra göinge':1256,'örkelljunga':1257,'bjuv':1260,'kävlinge':1261,
+    'lomma':1262,'svedala':1263,'skurup':1264,'sjöbo':1265,'hörby':1266,
+    'höör':1267,'tomelilla':1270,'bromölla':1272,'osby':1273,'perstorp':1275,
+    'klippan':1276,'åstorp':1277,'båstad':1278,'malmö':1280,'lund':1281,
+    'landskrona':1282,'helsingborg':1283,'höganäs':1284,'eslöv':1285,
+    'ystad':1286,'trelleborg':1287,'kristianstad':1290,'simrishamn':1291,
+    'ängelholm':1292,'hässleholm':1293,
+    // Hallands län (13)
+    'hylte':1315,'halmstad':1380,'laholm':1381,'falkenberg':1382,
+    'varberg':1383,'kungsbacka':1384,
+    // Västra Götalands län (14)
+    'härryda':1401,'partille':1402,'öckerö':1407,'stenungsund':1415,
+    'tjörn':1419,'orust':1421,'sotenäs':1427,'munkedal':1430,'tanum':1435,
+    'dals-ed':1438,'dalseد':1438,'färgelanda':1439,'ale':1440,'lerum':1441,
+    'vårgårda':1442,'bollebygd':1443,'grästorp':1444,'essunga':1445,
+    'karlsborg':1446,'gullspång':1447,'tranemo':1452,'bengtsfors':1460,
+    'mellerud':1461,'lilla edet':1462,'mark':1463,'svenljunga':1465,
+    'herrljunga':1466,'vara':1470,'götene':1471,'tibro':1472,'töreboda':1473,
+    'göteborg':1480,'mölndal':1481,'kungälv':1482,'lysekil':1484,
+    'uddevalla':1485,'strömstad':1486,'vänersborg':1487,'trollhättan':1488,
+    'alingsås':1489,'borås':1490,'ulricehamn':1491,'åmål':1492,
+    'mariestad':1493,'lidköping':1494,'skara':1495,'skövde':1496,
+    'hjo':1497,'tidaholm':1498,'falköping':1499,
+    // Värmlands län (17)
+    'kil':1715,'eda':1730,'torsby':1737,'storfors':1760,'hammarö':1761,
+    'munkfors':1762,'forshaga':1763,'grums':1764,'årjäng':1765,'sunne':1766,
+    'karlstad':1780,'kristinehamn':1781,'filipstad':1782,'hagfors':1783,
+    'arvika':1784,'säffle':1785,
+    // Örebro län (18)
+    'lekeberg':1814,'laxå':1860,'hallsberg':1861,'degerfors':1862,
+    'hällefors':1863,'ljusnarsberg':1864,'örebro':1880,'kumla':1881,
+    'askersund':1882,'karlskoga':1883,'nora':1884,'lindesberg':1885,
+    // Västmanlands län (19)
+    'skinnskatteberg':1904,'surahammar':1907,'kungsör':1960,'hallstahammar':1961,
+    'norberg':1962,'västerås':1980,'sala':1981,'fagersta':1982,
+    'köping':1983,'arboga':1984,
+    // Dalarnas län (20)
+    'vansbro':2021,'malung-sälen':2023,'malungsälen':2023,'gagnef':2026,
+    'leksand':2029,'rättvik':2031,'orsa':2034,'älvdalen':2039,
+    'smedjebacken':2061,'mora':2062,'falun':2080,'borlänge':2081,
+    'säter':2082,'hedemora':2083,'avesta':2084,'ludvika':2085,
+    // Gävleborgs län (21)
+    'ockelbo':2101,'hofors':2104,'ovanåker':2121,'nordanstig':2132,
+    'ljusdal':2161,'gävle':2180,'sandviken':2181,'söderhamn':2182,
+    'bollnäs':2183,'hudiksvall':2184,
+    // Västernorrlands län (22)
+    'ånge':2260,'timrå':2262,'härnösand':2280,'sundsvall':2281,
+    'kramfors':2282,'sollefteå':2283,'örnsköldsvik':2284,
+    // Jämtlands län (23)
+    'ragunda':2303,'bräcke':2305,'krokom':2309,'strömsund':2313,
+    'åre':2321,'berg':2326,'härjedalen':2361,'östersund':2380,
+    // Västerbottens län (24)
+    'nordmaling':2401,'bjurholm':2403,'vindeln':2404,'robertsfors':2409,
+    'norsjö':2417,'malå':2418,'storuman':2421,'sorsele':2422,
+    'dorotea':2425,'vännäs':2460,'vilhelmina':2462,'åsele':2463,
+    'umeå':2480,'lycksele':2481,'skellefteå':2482,
+    // Norrbottens län (25)
+    'arvidsjaur':2505,'arjeplog':2506,'jokkmokk':2510,'överkalix':2513,
+    'kalix':2514,'övertorneå':2518,'pajala':2521,'gällivare':2523,
+    'älvsbyn':2560,'luleå':2580,'piteå':2581,'boden':2582,
+    'haparanda':2583,'kiruna':2584,
+};
 
 // ── Init ──────────────────────────────────────────────────────────────────────
 
@@ -111,48 +212,60 @@ function _filterUnwantedRoles(hits, unwantedRolesStr) {
 
 function _buildBaseQuery(own) {
     if (!own) return null;
-    const parts = [];
-    if (own.roles) parts.push(...own.roles.split(',').map(s => s.trim()).filter(Boolean));
-    for (const d of (own.desired_domains || [])) parts.push(d);
+    // Only roles go into q — domains are used only for AI ranking, not for filtering in Platsbanken
+    const parts = own.roles ? own.roles.split(',').map(s => s.trim()).filter(Boolean) : [];
     return parts.length ? parts.join(' ') : null;
 }
 
-// ── Kaskaderad sökning per ort ────────────────────────────────────────────────
+// ── Kommunkodsuppslagning ─────────────────────────────────────────────────────
+
+function _municipalityCodes(cityString) {
+    if (!cityString) return [];
+    const codes = [];
+    for (const raw of cityString.split(',')) {
+        const key  = raw.trim().toLowerCase()
+            .replace(/[åä]/g, 'a').replace(/ö/g, 'o') // normalize for loose matching
+            .normalize('NFD').replace(/[̀-ͯ]/g, '');
+        // First try exact key, then try original normalized
+        const orig = raw.trim().toLowerCase();
+        const code = MUNICIPALITY_CODES[orig] ?? _fuzzyMunicipalityCode(key);
+        if (code) codes.push(String(code).padStart(4, '0'));
+    }
+    return codes;
+}
+
+function _fuzzyMunicipalityCode(normalized) {
+    for (const [name, code] of Object.entries(MUNICIPALITY_CODES)) {
+        const n = name.normalize('NFD').replace(/[̀-ͯ]/g, '')
+            .replace(/[åä]/g, 'a').replace(/ö/g, 'o');
+        if (n === normalized) return code;
+    }
+    return null;
+}
+
+// ── Sökning mot Platsbanken ───────────────────────────────────────────────────
 
 async function _fetchCascade(own, baseQuery, seenIds, statusFn) {
-    const TARGET   = JOBS_DISPLAY_LIMIT;
-    const cities   = (own.desired_city || '').split(',').map(s => s.trim()).filter(Boolean);
-    const targets  = cities.length ? cities : [null]; // null = ingen ortfiltrering
+    const municipalityCodes = _municipalityCodes(own.desired_city);
+    statusFn(t('jobs.fetching'));
 
-    const accumulated = [];
-    const fetchedIds  = new Set(); // deduplicering över stadsanrop
+    const hits     = await _fetchFromPlatsbanken(baseQuery, municipalityCodes);
+    const fresh    = hits.filter(h => !seenIds.has(h.id));
+    const filtered = _filterUnwantedRoles(fresh, own.unwanted_roles);
 
-    for (const city of targets) {
-        const query = city ? `${baseQuery} ${city}` : baseQuery;
-        statusFn(`${t('jobs.fetching')}${city ? ` · ${city}` : ''} (${accumulated.length}/${TARGET})`);
-
-        const hits    = await _fetchFromPlatsbanken(query);
-        const newHits = hits.filter(h => !fetchedIds.has(h.id));
-        newHits.forEach(h => fetchedIds.add(h.id));
-
-        const fresh    = newHits.filter(h => !seenIds.has(h.id));
-        const filtered = _filterUnwantedRoles(fresh, own.unwanted_roles);
-
-        accumulated.push(...filtered);
-        if (accumulated.length >= TARGET) break;
-    }
-
-    return accumulated.slice(0, TARGET);
+    return filtered.slice(0, JOBS_DISPLAY_LIMIT);
 }
 
 // ── Platsbanken API ───────────────────────────────────────────────────────────
 
-async function _fetchFromPlatsbanken(query) {
+async function _fetchFromPlatsbanken(query, municipalityCodes = []) {
     const params = new URLSearchParams({
         q:      query,
         limit:  String(JOBS_FETCH_LIMIT),
         offset: '0',
     });
+    // municipality is a multi-value param (OR between codes)
+    for (const code of municipalityCodes) params.append('municipality', code);
 
     const res = await fetch(`${PLATSBANKEN_URL}?${params}`, {
         headers: { Accept: 'application/json' },
@@ -165,10 +278,8 @@ async function _fetchFromPlatsbanken(query) {
 // ── AI batch-rankning ─────────────────────────────────────────────────────────
 
 async function _batchRankJobs(hits, own) {
-    const portrait = own?.portrait || '';
-    const domains        = (own?.desired_domains  || []).join(', ');
-    const unwanted       = (own?.unwanted_domains || []).join(', ');
-    const unwantedRoles  = own?.unwanted_roles ?? '';
+    const portrait      = own?.portrait || '';
+    const unwantedRoles = own?.unwanted_roles ?? '';
 
     const jobLines = hits.map((h, i) => {
         const ingress = (h.description?.text || '')
@@ -182,7 +293,7 @@ async function _batchRankJobs(hits, own) {
 Svara ENBART med ett JSON-objekt. Inget annat — ingen inledning, inga förklaringar.`;
 
     const userPrompt = `Kandidatprofil:
-${portrait ? `Portätt: ${portrait}\n` : ''}${own?.roles ? `Önskade roller: ${own.roles}\n` : ''}${unwantedRoles ? `Oönskade roller: ${unwantedRoles}\n` : ''}${domains ? `Önskade domäner: ${domains}\n` : ''}${unwanted ? `Oönskade domäner: ${unwanted}\n` : ''}${own?.title ? `Nuvarande/önskad roll: ${own.title}\n` : ''}
+${portrait ? `Porträtt: ${portrait}\n` : ''}${own?.roles ? `Önskade roller: ${own.roles}\n` : ''}${unwantedRoles ? `Oönskade roller: ${unwantedRoles}\n` : ''}${own?.title ? `Nuvarande/önskad roll: ${own.title}\n` : ''}
 
 Jobbannonser att bedöma:
 ${jobLines}
@@ -191,7 +302,7 @@ Ranka varje annons mot profilen. Returnera ett JSON-objekt med nyckeln "rankings
 [{"id": "<annons-id>", "score": <1-10>, "motivation": "<max 20 ord på svenska>"}]
 
 Poängskala: 9-10=utmärkt match, 7-8=bra, 5-6=okej, 3-4=svag, 1-2=irrelevant.
-Sätt score=0 om annonsen tydligt matchar oönskade domäner.`;
+Sätt score=0 om annonsen tydligt matchar oönskade roller.`;
 
     const response = await cvAI.chat(systemPrompt, userPrompt, { temperature: 0.2 });
 
@@ -406,7 +517,15 @@ function _renderSparadeTable(jobs) {
         return;
     }
 
-    container.innerHTML = `<div class="jobb-list">${jobs.map(j => {
+    // Sort by deadline ascending — nearest deadline first, no deadline last
+    const sorted = [...jobs].sort((a, b) => {
+        if (!a.deadline && !b.deadline) return 0;
+        if (!a.deadline) return 1;
+        if (!b.deadline) return -1;
+        return a.deadline.localeCompare(b.deadline);
+    });
+
+    container.innerHTML = `<div class="jobb-list">${sorted.map(j => {
         const score = j.score;
         const scoreClass = score === null || score === undefined ? 'jobb-score--none'
             : score >= 8 ? 'jobb-score--high'
@@ -481,16 +600,30 @@ async function showJobbDetaljer(jobId) {
     // Make the job description available to showSkillContextModal / explainRequiredSkill
     lastJobDesc = job.description || '';
 
-    _renderJobAnalysis(job);
+    // Build match sets for highlighting owned competencies
+    const own = await cvDb.kandidater.getOwn();
+    const ownId = own?.id;
+    const ownSkillNames = new Set(
+        ownId ? (await cvDb.kandSkills.listFor(ownId)).map(s => s.skill_name.trim().toLowerCase()) : []
+    );
+    const ownQualities = new Set(
+        (own?.personal_qualities || []).map(q => q.trim().toLowerCase())
+    );
+
+    _renderJobAnalysis(job, ownSkillNames, ownQualities);
 
     document.getElementById('jobbdet-description').textContent = job.description || t('jobs.no_description');
 
     showView('jobbdetaljer', null);
 }
 
-function _renderJobAnalysis(job) {
+function _renderJobAnalysis(job, ownSkillNames = new Set(), ownQualities = new Set()) {
     const el = document.getElementById('jobbdet-analysis');
     if (!el) return;
+
+    const _hasSkill = name => ownSkillNames.has(name.trim().toLowerCase());
+    const _hasQuality = name => ownQualities.has(name.trim().toLowerCase());
+    const _checkIcon = `<span class="material-icons jobdet-chip-check">check_circle</span>`;
 
     const sections = [];
 
@@ -526,7 +659,7 @@ function _renderJobAnalysis(job) {
         <div class="card">
             <h3 class="jobdet-section-title"><span class="material-icons">task_alt</span> ${t('jobs.required_comp')}</h3>
             <div class="jobdet-chip-list">${job.required_competencies.map(c =>
-                `<span class="bank-skill-chip chip-technical">${_esc(c)}${_infoBtn(c, 'showSkillContextModal')}</span>`
+                `<span class="bank-skill-chip chip-technical${_hasSkill(c) ? ' chip-owned' : ''}">${_hasSkill(c) ? _checkIcon : ''}${_esc(c)}${_infoBtn(c, 'showSkillContextModal')}</span>`
             ).join('')}</div>
         </div>`);
     }
@@ -536,7 +669,7 @@ function _renderJobAnalysis(job) {
         <div class="card">
             <h3 class="jobdet-section-title"><span class="material-icons">star_outline</span> ${t('jobs.merit_comp')}</h3>
             <div class="jobdet-chip-list">${job.merit_competencies.map(c =>
-                `<span class="bank-skill-chip chip-level-1">${_esc(c)}${_infoBtn(c, 'showSkillContextModal')}</span>`
+                `<span class="bank-skill-chip chip-level-1${_hasSkill(c) ? ' chip-owned' : ''}">${_hasSkill(c) ? _checkIcon : ''}${_esc(c)}${_infoBtn(c, 'showSkillContextModal')}</span>`
             ).join('')}</div>
         </div>`);
     }
@@ -546,7 +679,7 @@ function _renderJobAnalysis(job) {
         <div class="card">
             <h3 class="jobdet-section-title"><span class="material-icons">psychology</span> ${t('jobs.personal_qual')}</h3>
             <div class="jobdet-chip-list">${job.personal_qualities.map(c =>
-                `<span class="bank-skill-chip chip-personal">${_esc(c)}${_infoBtn(c, 'showQualityContextModal')}</span>`
+                `<span class="bank-skill-chip chip-personal${_hasQuality(c) ? ' chip-owned' : ''}">${_hasQuality(c) ? _checkIcon : ''}${_esc(c)}${_infoBtn(c, 'showQualityContextModal')}</span>`
             ).join('')}</div>
         </div>`);
     }

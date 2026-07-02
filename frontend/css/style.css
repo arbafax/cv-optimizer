@@ -786,6 +786,14 @@ body {
 .chip-level-2   { background: #4d934d; color: #fff;    border-color: #3a7a3a; }
 .chip-level-3   { background: #296b28; color: #fff;    border-color: #1e5220; }
 
+.chip-owned { outline: 2px solid #22a752; outline-offset: 1px; }
+.jobdet-chip-check {
+    font-size: 13px !important;
+    margin-right: 3px;
+    color: #22a752;
+    flex-shrink: 0;
+}
+
 .bank-experience-list { display: flex; flex-direction: column; gap: 8px; }
 
 .bank-exp-item {

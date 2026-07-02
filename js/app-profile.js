@@ -198,7 +198,7 @@ async function loadProfile() {
             if (el) el.checked = (kand.desired_workplace || []).includes(el.value);
         });
 
-        _profQualities = Array.isArray(kand.personal_qualities) ? [...kand.personal_qualities] : [];
+        _profQualities = Array.isArray(kand.personal_qualities) ? [...kand.personal_qualities].sort((a, b) => a.localeCompare(b, currentLang)) : [];
         renderProfQualities();
 
         const commuteEl = document.getElementById('prof-commute');

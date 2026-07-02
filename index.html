@@ -677,28 +677,12 @@
                 <div id="account-status"></div>
             </div>
 
-            <!-- Roller -->
-            <div class="card">
-                <h2 class="card-title" data-i18n="account.roles_title">Roller</h2>
-                <p class="field-desc" data-i18n="account.roles_desc">Välj vilken eller vilka roller du har i systemet. Roller styr vilken funktionalitet som är tillgänglig.</p>
-                <div class="checkbox-group" style="flex-direction: column; gap: 12px; margin-top: 10px;">
-                    <label class="checkbox-label">
-                        <input type="checkbox" id="role-kandidat" value="Kandidat" onchange="saveAccountRoles()">
-                        <span data-i18n-html="account.role_kandidat"><strong>Kandidat</strong> — letar efter jobb och hanterar sin kompetensbank</span>
-                    </label>
-                    <label class="checkbox-label">
-                        <input type="checkbox" id="role-saljare" value="Säljare" onchange="saveAccountRoles()">
-                        <span data-i18n-html="account.role_saljare"><strong>Säljare</strong> — hanterar en pool med kandidater</span>
-                    </label>
-                    <label class="checkbox-label hidden">
-                        <input type="checkbox" id="role-rekryterare" value="Rekryterare" onchange="saveAccountRoles()">
-                        <span data-i18n-html="account.role_rekryterare"><strong>Rekryterare</strong> — söker kandidater för specifika tjänster</span>
-                    </label>
-                    <label class="checkbox-label hidden">
-                        <input type="checkbox" id="role-admin" value="Admin" onchange="saveAccountRoles()">
-                        <span data-i18n-html="account.role_admin"><strong>Admin</strong> — administrerar systemets frågor och inställningar</span>
-                    </label>
-                </div>
+            <!-- Roller (hidden — role logic kept in code, Kandidat always assigned) -->
+            <div class="hidden">
+                <input type="checkbox" id="role-kandidat" value="Kandidat">
+                <input type="checkbox" id="role-saljare" value="Säljare">
+                <input type="checkbox" id="role-rekryterare" value="Rekryterare">
+                <input type="checkbox" id="role-admin" value="Admin">
                 <div id="account-roles-status"></div>
             </div>
 

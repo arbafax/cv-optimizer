@@ -35,13 +35,21 @@ async function saveAccount() {
 
     if (!name) { showAccountStatus('account-status', t('account.name_required'), 'error'); return; }
 
-    // Generate UUID on first save
+    // Generate UUID on first save and assign Kandidat role
     const profile = await cvDb.profile.get() || {};
     if (!profile.identity_uuid) {
         profile.identity_uuid = crypto.randomUUID();
         await cvDb.profile.save(profile);
         const identityEl = document.getElementById('account-identity');
         if (identityEl) identityEl.value = profile.identity_uuid;
+        // Always start as Kandidat
+        await apiFetch(`${API_BASE_URL}/auth/me`, {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ roles: ['Kandidat'] }),
+        });
+        currentUser = { ...(currentUser || {}), roles: ['Kandidat'] };
+        if (typeof updateRoleBasedNav === 'function') updateRoleBasedNav();
     }
 
     try {

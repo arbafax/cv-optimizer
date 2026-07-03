@@ -794,7 +794,7 @@
                 <div id="match-no-llm-warning" class="warning-banner hidden"></div>
 
                 <button id="optimize-btn" class="btn btn-primary btn-full" disabled>
-                    <span class="btn-text" data-i18n="match.btn_match">AI-matcha kompetenser mot jobb</span>
+                    <span class="btn-text"><span class="material-icons" style="font-size:1rem;vertical-align:middle;margin-right:4px">psychology</span><span data-i18n="match.btn_match">AI-matcha kompetenser mot jobb</span></span>
                     <span class="btn-loading hidden"><span class="spinner-small"></span><span data-i18n="match.analysing"> Analyserar...</span></span>
                 </button>
             </div>
@@ -896,6 +896,7 @@
                 <label for="sp-city" data-i18n="common.label_city">Önskad ort</label>
                 <p class="field-desc" data-i18n="sp.desc_city">Den ort eller region där du i första hand vill arbeta.</p>
                 <input type="text" id="sp-city" class="form-input" placeholder="t.ex. Stockholm, Göteborg" data-i18n-ph="sp.ph_city" onblur="saveSokprofil()">
+                <span class="form-hint" data-i18n="sp.hint_roles">Separera med kommatecken</span>
             </div>
 
             <div class="form-group">
@@ -1034,33 +1035,6 @@
         <!-- ── TAB: Kompetenser ── -->
         <div id="sp-tab-kompetenser" style="display:none">
 
-            <!-- Lägg till skill manuellt -->
-            <div class="card" style="margin-bottom:1.25rem">
-                <h3 style="margin:0 0 0.75rem" data-i18n="bank.add_skill_title">Lägg till kompetens manuellt</h3>
-                <div style="display:flex; gap:0.5rem; flex-wrap:wrap; align-items:flex-end">
-                    <div style="flex:1; min-width:160px">
-                        <label for="sp-skill-name" style="display:block;font-size:0.8125rem;color:var(--text-muted);margin-bottom:2px" data-i18n="bank.label_skill">Kompetens</label>
-                        <input type="text" id="sp-skill-name" class="form-input" placeholder="t.ex. Python, Projektledning" data-i18n-ph="bank.ph_skill">
-                    </div>
-                    <div style="min-width:140px">
-                        <label for="sp-skill-category" style="display:block;font-size:0.8125rem;color:var(--text-muted);margin-bottom:2px" data-i18n="bank.label_category">Kategori</label>
-                        <input type="text" id="sp-skill-category" class="form-input" placeholder="t.ex. Övrigt" data-i18n-ph="bank.ph_category" data-cat-combo>
-                    </div>
-                    <div style="min-width:130px">
-                        <label for="sp-skill-level" style="display:block;font-size:0.8125rem;color:var(--text-muted);margin-bottom:2px" data-i18n="bank.label_level">Nivå</label>
-                        <select id="sp-skill-level" class="form-input">
-                            <option value="" data-i18n="skill.level_ph">— Nivå —</option>
-                            <option value="Känner till" data-i18n="skill.level_1">Känner till</option>
-                            <option value="Grundläggande" data-i18n="skill.level_2">Grundläggande</option>
-                            <option value="Erfaren" data-i18n="skill.level_3">Erfaren</option>
-                            <option value="Mycket erfaren" data-i18n="skill.level_4">Mycket erfaren</option>
-                        </select>
-                    </div>
-                    <button class="btn btn-primary" onclick="addSpSkill()" style="white-space:nowrap" data-i18n="common.add">+ Lägg till</button>
-                </div>
-                <div id="sp-skill-status"></div>
-            </div>
-
             <!-- Kompetenser -->
             <div class="card">
                 <div id="sp-skills-list">
@@ -1082,49 +1056,6 @@
 
         <!-- ── TAB: Erfarenheter ── -->
         <div id="sp-tab-erfarenheter" style="display:none">
-            <div class="card" style="margin-bottom:1.25rem">
-                <h3 style="margin:0 0 0.75rem" data-i18n="bank.add_exp_title">Lägg till erfarenhet</h3>
-                <div style="display:grid; grid-template-columns:1fr 1fr; gap:0.5rem">
-                    <div style="grid-column:1/-1">
-                        <label style="display:block;font-size:0.8125rem;color:var(--text-muted);margin-bottom:2px"><span data-i18n="bank.label_title_text">Titel</span> <span style="color:var(--danger)">*</span></label>
-                        <input type="text" id="sp-exp-title" class="form-input" placeholder="t.ex. Systemutvecklare, Backend-projekt" data-i18n-ph="bank.ph_exp_title">
-                    </div>
-                    <div>
-                        <label style="display:block;font-size:0.8125rem;color:var(--text-muted);margin-bottom:2px" data-i18n="bank.label_org">Organisation</label>
-                        <input type="text" id="sp-exp-org" class="form-input" placeholder="t.ex. Företaget AB" data-i18n-ph="bank.ph_org">
-                    </div>
-                    <div>
-                        <label style="display:block;font-size:0.8125rem;color:var(--text-muted);margin-bottom:2px" data-i18n="bank.label_type">Typ</label>
-                        <select id="sp-exp-type" class="form-input">
-                            <option value="work" data-i18n="kand.type_work">Arbete</option>
-                            <option value="project" data-i18n="kand.type_project">Projekt</option>
-                        </select>
-                    </div>
-                    <div>
-                        <label style="display:block;font-size:0.8125rem;color:var(--text-muted);margin-bottom:2px" data-i18n="bank.label_from_ym">Från (ÅÅÅÅ-MM)</label>
-                        <input type="text" id="sp-exp-start" class="form-input" placeholder="2020-01">
-                    </div>
-                    <div>
-                        <label style="display:block;font-size:0.8125rem;color:var(--text-muted);margin-bottom:2px" data-i18n="bank.label_to_ym">Till (ÅÅÅÅ-MM)</label>
-                        <input type="text" id="sp-exp-end" class="form-input" placeholder="2023-06">
-                    </div>
-                    <div style="grid-column:1/-1">
-                        <label style="font-size:0.8125rem;display:flex;align-items:center;gap:0.4rem">
-                            <input type="checkbox" id="sp-exp-current"> <span data-i18n="kand.ongoing">Pågående</span>
-                        </label>
-                    </div>
-                    <div style="grid-column:1/-1">
-                        <label style="display:block;font-size:0.8125rem;color:var(--text-muted);margin-bottom:2px" data-i18n="bank.label_desc">Beskrivning</label>
-                        <textarea id="sp-exp-desc" class="form-input" rows="3" placeholder="Beskriv rollen eller projektet" data-i18n-ph="bank.ph_role_desc" style="width:100%;box-sizing:border-box"></textarea>
-                    </div>
-                    <div style="grid-column:1/-1">
-                        <label style="display:block;font-size:0.8125rem;color:var(--text-muted);margin-bottom:2px" data-i18n="sp.achievements_label">Prestationer (en per rad)</label>
-                        <textarea id="sp-exp-ach" class="form-input" rows="3" placeholder="En prestation per rad" data-i18n-ph="bank.ph_ach" style="width:100%;box-sizing:border-box"></textarea>
-                    </div>
-                </div>
-                <div id="sp-exp-status" style="margin-top:0.5rem"></div>
-                <button class="btn btn-primary" onclick="addSpExperience()" style="margin-top:0.75rem" data-i18n="bank.add_exp_btn">+ Lägg till erfarenhet</button>
-            </div>
             <div class="card">
                 <div id="sp-experiences-list">
                     <div class="empty-hint">Laddar erfarenheter...</div>
@@ -1132,37 +1063,178 @@
             </div>
         </div>
 
-        <!-- ── TAB: Utbildning ── -->
-        <div id="sp-tab-utbildning" style="display:none">
-            <div class="card" style="margin-bottom:1.25rem">
-                <h3 style="margin:0 0 0.75rem" data-i18n="bank.add_edu_title">Lägg till utbildning</h3>
-                <div style="display:grid; grid-template-columns:1fr 1fr; gap:0.5rem">
-                    <div>
-                        <label style="display:block;font-size:0.8125rem;color:var(--text-muted);margin-bottom:2px"><span data-i18n="bank.label_degree">Examen / Utbildning</span> <span style="color:var(--danger)">*</span></label>
-                        <input type="text" id="sp-edu-degree" class="form-input" placeholder="t.ex. Civilingenjör, Kandidatexamen" data-i18n-ph="bank.ph_degree">
+        <!-- Modal: Lägg till / redigera erfarenhet -->
+        <div id="sp-exp-modal" class="modal hidden">
+            <div class="modal-overlay" onclick="closeSpExpModal()"></div>
+            <div class="modal-content" style="max-width:560px;width:100%">
+                <div class="modal-header">
+                    <h2 id="sp-exp-modal-title" data-i18n="bank.add_exp_title">Lägg till erfarenhet</h2>
+                    <button class="modal-close" onclick="closeSpExpModal()"><span class="material-icons">close</span></button>
+                </div>
+                <div class="modal-body">
+                    <div style="display:grid;grid-template-columns:1fr 1fr;gap:0.5rem">
+                        <div style="grid-column:1/-1">
+                            <label style="display:block;font-size:0.8125rem;color:var(--text-muted);margin-bottom:2px"><span data-i18n="bank.label_title_text">Titel</span> <span style="color:var(--danger)">*</span></label>
+                            <input type="text" id="sp-exp-title" class="form-input" placeholder="t.ex. Systemutvecklare, Backend-projekt" data-i18n-ph="bank.ph_exp_title">
+                        </div>
+                        <div>
+                            <label style="display:block;font-size:0.8125rem;color:var(--text-muted);margin-bottom:2px" data-i18n="bank.label_org">Organisation</label>
+                            <input type="text" id="sp-exp-org" class="form-input" placeholder="t.ex. Företaget AB" data-i18n-ph="bank.ph_org">
+                        </div>
+                        <div>
+                            <label style="display:block;font-size:0.8125rem;color:var(--text-muted);margin-bottom:2px" data-i18n="bank.label_type">Typ</label>
+                            <select id="sp-exp-type" class="form-input">
+                                <option value="work" data-i18n="kand.type_work">Arbete</option>
+                                <option value="project" data-i18n="kand.type_project">Projekt</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label style="display:block;font-size:0.8125rem;color:var(--text-muted);margin-bottom:2px" data-i18n="bank.label_from_ym">Från (ÅÅÅÅ-MM)</label>
+                            <input type="text" id="sp-exp-start" class="form-input" placeholder="2020-01">
+                        </div>
+                        <div>
+                            <label style="display:block;font-size:0.8125rem;color:var(--text-muted);margin-bottom:2px" data-i18n="bank.label_to_ym">Till (ÅÅÅÅ-MM)</label>
+                            <input type="text" id="sp-exp-end" class="form-input" placeholder="2023-06">
+                        </div>
+                        <div style="grid-column:1/-1">
+                            <label style="font-size:0.8125rem;display:flex;align-items:center;gap:0.4rem">
+                                <input type="checkbox" id="sp-exp-current"> <span data-i18n="kand.ongoing">Pågående</span>
+                            </label>
+                        </div>
+                        <div style="grid-column:1/-1">
+                            <label style="display:block;font-size:0.8125rem;color:var(--text-muted);margin-bottom:2px" data-i18n="bank.label_desc">Beskrivning</label>
+                            <textarea id="sp-exp-desc" class="form-input" rows="3" placeholder="Beskriv rollen eller projektet" data-i18n-ph="bank.ph_role_desc" style="width:100%;box-sizing:border-box"></textarea>
+                        </div>
+                        <div style="grid-column:1/-1">
+                            <label style="display:block;font-size:0.8125rem;color:var(--text-muted);margin-bottom:2px" data-i18n="sp.achievements_label">Prestationer (en per rad)</label>
+                            <textarea id="sp-exp-ach" class="form-input" rows="3" placeholder="En prestation per rad" data-i18n-ph="bank.ph_ach" style="width:100%;box-sizing:border-box"></textarea>
+                        </div>
                     </div>
-                    <div>
-                        <label style="display:block;font-size:0.8125rem;color:var(--text-muted);margin-bottom:2px" data-i18n="bank.label_institution">Lärosäte</label>
-                        <input type="text" id="sp-edu-institution" class="form-input" placeholder="t.ex. KTH, Stockholms Universitet" data-i18n-ph="bank.ph_institution">
-                    </div>
-                    <div>
-                        <label style="display:block;font-size:0.8125rem;color:var(--text-muted);margin-bottom:2px" data-i18n="bank.label_field">Inriktning</label>
-                        <input type="text" id="sp-edu-field" class="form-input" placeholder="t.ex. Datavetenskap" data-i18n-ph="bank.ph_field">
-                    </div>
-                    <div style="display:flex; gap:0.5rem">
-                        <div style="flex:1">
+                    <div id="sp-exp-status" style="margin-top:0.5rem"></div>
+                </div>
+                <div class="modal-footer">
+                    <button class="btn btn-secondary" onclick="closeSpExpModal()" data-i18n="common.cancel">Avbryt</button>
+                    <button class="btn btn-primary" id="sp-exp-modal-save-btn" onclick="saveSpExpModal()"><span data-i18n="common.save">Spara</span></button>
+                </div>
+            </div>
+        </div>
+
+        <!-- ── MODAL: Utbildning ── -->
+        <div id="sp-edu-modal" class="modal hidden">
+            <div class="modal-overlay" onclick="closeSpEduModal()"></div>
+            <div class="modal-content" style="max-width:560px;width:100%">
+                <div class="modal-header">
+                    <h2 id="sp-edu-modal-title" data-i18n="bank.add_edu_title">Lägg till utbildning</h2>
+                    <button class="modal-close" onclick="closeSpEduModal()"><span class="material-icons">close</span></button>
+                </div>
+                <div class="modal-body">
+                    <div style="display:grid;grid-template-columns:1fr 1fr;gap:0.5rem">
+                        <div style="grid-column:1/-1">
+                            <label style="display:block;font-size:0.8125rem;color:var(--text-muted);margin-bottom:2px"><span data-i18n="bank.label_degree">Examen / Utbildning</span> <span style="color:var(--danger)">*</span></label>
+                            <input type="text" id="sp-edu-degree" class="form-input" placeholder="t.ex. Civilingenjör, Kandidatexamen" data-i18n-ph="bank.ph_degree">
+                        </div>
+                        <div>
+                            <label style="display:block;font-size:0.8125rem;color:var(--text-muted);margin-bottom:2px" data-i18n="bank.label_institution">Lärosäte</label>
+                            <input type="text" id="sp-edu-institution" class="form-input" placeholder="t.ex. KTH, Stockholms Universitet" data-i18n-ph="bank.ph_institution">
+                        </div>
+                        <div>
+                            <label style="display:block;font-size:0.8125rem;color:var(--text-muted);margin-bottom:2px" data-i18n="bank.label_field">Inriktning</label>
+                            <input type="text" id="sp-edu-field" class="form-input" placeholder="t.ex. Datavetenskap" data-i18n-ph="bank.ph_field">
+                        </div>
+                        <div>
                             <label style="display:block;font-size:0.8125rem;color:var(--text-muted);margin-bottom:2px" data-i18n="bank.label_from">Från</label>
                             <input type="text" id="sp-edu-start" class="form-input" placeholder="2018">
                         </div>
-                        <div style="flex:1">
+                        <div>
                             <label style="display:block;font-size:0.8125rem;color:var(--text-muted);margin-bottom:2px" data-i18n="bank.label_to">Till</label>
                             <input type="text" id="sp-edu-end" class="form-input" placeholder="2022">
                         </div>
                     </div>
+                    <div id="sp-edu-status" style="margin-top:0.5rem"></div>
                 </div>
-                <div id="sp-edu-status" style="margin-top:0.5rem"></div>
-                <button class="btn btn-primary" onclick="addSpEducation()" style="margin-top:0.75rem" data-i18n="bank.add_edu_btn">+ Lägg till utbildning</button>
+                <div class="modal-footer">
+                    <button class="btn btn-secondary" onclick="closeSpEduModal()" data-i18n="common.cancel">Avbryt</button>
+                    <button class="btn btn-primary" onclick="saveSpEduModal()"><span data-i18n="common.save">Spara</span></button>
+                </div>
             </div>
+        </div>
+
+        <!-- ── MODAL: Kurs/Certifikat ── -->
+        <div id="sp-cert-modal" class="modal hidden">
+            <div class="modal-overlay" onclick="closeSpCertModal()"></div>
+            <div class="modal-content" style="max-width:560px;width:100%">
+                <div class="modal-header">
+                    <h2 id="sp-cert-modal-title" data-i18n="bank.add_cert_title">Lägg till kurs eller certifikat</h2>
+                    <button class="modal-close" onclick="closeSpCertModal()"><span class="material-icons">close</span></button>
+                </div>
+                <div class="modal-body">
+                    <div style="display:grid;grid-template-columns:1fr 1fr;gap:0.5rem">
+                        <div style="grid-column:1/-1">
+                            <label style="display:block;font-size:0.8125rem;color:var(--text-muted);margin-bottom:2px"><span data-i18n="common.label_name">Namn</span> <span style="color:var(--danger)">*</span></label>
+                            <input type="text" id="sp-cert-name" class="form-input" placeholder="t.ex. AWS Solutions Architect" data-i18n-ph="bank.ph_cert_name">
+                        </div>
+                        <div>
+                            <label style="display:block;font-size:0.8125rem;color:var(--text-muted);margin-bottom:2px" data-i18n="bank.label_issuer">Utfärdare</label>
+                            <input type="text" id="sp-cert-issuer" class="form-input" placeholder="t.ex. Amazon, Coursera" data-i18n-ph="bank.ph_issuer">
+                        </div>
+                        <div>
+                            <label style="display:block;font-size:0.8125rem;color:var(--text-muted);margin-bottom:2px" data-i18n="bank.label_cert_date">Datum</label>
+                            <input type="text" id="sp-cert-date" class="form-input" placeholder="t.ex. 2023-05" data-i18n-ph="bank.ph_cert_date">
+                        </div>
+                        <div style="grid-column:1/-1">
+                            <label style="display:block;font-size:0.8125rem;color:var(--text-muted);margin-bottom:2px" data-i18n="bank.label_desc">Beskrivning</label>
+                            <textarea id="sp-cert-desc" class="form-input" rows="2" placeholder="Kort beskrivning (valfritt)" data-i18n-ph="bank.ph_cert_desc"></textarea>
+                        </div>
+                    </div>
+                    <div id="sp-cert-status" style="margin-top:0.5rem"></div>
+                </div>
+                <div class="modal-footer">
+                    <button class="btn btn-secondary" onclick="closeSpCertModal()" data-i18n="common.cancel">Avbryt</button>
+                    <button class="btn btn-primary" onclick="saveSpCertModal()"><span data-i18n="common.save">Spara</span></button>
+                </div>
+            </div>
+        </div>
+
+        <!-- ── MODAL: Kompetens ── -->
+        <div id="sp-skill-modal" class="modal hidden">
+            <div class="modal-overlay" onclick="closeSpSkillModal()"></div>
+            <div class="modal-content" style="max-width:480px;width:100%">
+                <div class="modal-header">
+                    <h2 id="sp-skill-modal-title" data-i18n="bank.add_skill_title">Lägg till kompetens</h2>
+                    <button class="modal-close" onclick="closeSpSkillModal()"><span class="material-icons">close</span></button>
+                </div>
+                <div class="modal-body">
+                    <div style="display:flex;flex-direction:column;gap:0.5rem">
+                        <div>
+                            <label style="display:block;font-size:0.8125rem;color:var(--text-muted);margin-bottom:2px"><span data-i18n="bank.label_skill">Kompetens</span> <span style="color:var(--danger)">*</span></label>
+                            <input type="text" id="sp-skill-name" class="form-input" placeholder="t.ex. Python, Projektledning" data-i18n-ph="bank.ph_skill">
+                        </div>
+                        <div>
+                            <label style="display:block;font-size:0.8125rem;color:var(--text-muted);margin-bottom:2px" data-i18n="bank.label_category">Kategori</label>
+                            <input type="text" id="sp-skill-category" class="form-input" placeholder="t.ex. Övrigt" data-i18n-ph="bank.ph_category" data-cat-combo>
+                        </div>
+                        <div>
+                            <label style="display:block;font-size:0.8125rem;color:var(--text-muted);margin-bottom:2px" data-i18n="bank.label_level">Nivå</label>
+                            <select id="sp-skill-level" class="form-input">
+                                <option value="" data-i18n="skill.level_ph">— Nivå —</option>
+                                <option value="Känner till" data-i18n="skill.level_1">Känner till</option>
+                                <option value="Grundläggande" data-i18n="skill.level_2">Grundläggande</option>
+                                <option value="Erfaren" data-i18n="skill.level_3">Erfaren</option>
+                                <option value="Mycket erfaren" data-i18n="skill.level_4">Mycket erfaren</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div id="sp-skill-status" style="margin-top:0.5rem"></div>
+                </div>
+                <div class="modal-footer">
+                    <button class="btn btn-secondary" onclick="closeSpSkillModal()" data-i18n="common.cancel">Avbryt</button>
+                    <button class="btn btn-primary" onclick="saveSpSkillModal()"><span data-i18n="common.save">Spara</span></button>
+                </div>
+            </div>
+        </div>
+
+        <!-- ── TAB: Utbildning ── -->
+        <div id="sp-tab-utbildning" style="display:none">
             <div class="card">
                 <div id="sp-education-list">
                     <div class="empty-hint" data-i18n="kand.no_edu">Inga utbildningar tillagda ännu.</div>
@@ -1172,29 +1244,6 @@
 
         <!-- ── TAB: Kurser & Cert ── -->
         <div id="sp-tab-certifikat" style="display:none">
-            <div class="card" style="margin-bottom:1.25rem">
-                <h3 style="margin:0 0 0.75rem" data-i18n="bank.add_cert_title">Lägg till kurs eller certifikat</h3>
-                <div style="display:grid; grid-template-columns:1fr 1fr; gap:0.5rem">
-                    <div>
-                        <label style="display:block;font-size:0.8125rem;color:var(--text-muted);margin-bottom:2px"><span data-i18n="common.label_name">Namn</span> <span style="color:var(--danger)">*</span></label>
-                        <input type="text" id="sp-cert-name" class="form-input" placeholder="t.ex. AWS Solutions Architect" data-i18n-ph="bank.ph_cert_name">
-                    </div>
-                    <div>
-                        <label style="display:block;font-size:0.8125rem;color:var(--text-muted);margin-bottom:2px" data-i18n="bank.label_issuer">Utfärdare</label>
-                        <input type="text" id="sp-cert-issuer" class="form-input" placeholder="t.ex. Amazon, Coursera" data-i18n-ph="bank.ph_issuer">
-                    </div>
-                    <div>
-                        <label style="display:block;font-size:0.8125rem;color:var(--text-muted);margin-bottom:2px" data-i18n="bank.label_cert_date">Datum</label>
-                        <input type="text" id="sp-cert-date" class="form-input" placeholder="t.ex. 2023-05" data-i18n-ph="bank.ph_cert_date">
-                    </div>
-                    <div style="grid-column:1/-1">
-                        <label style="display:block;font-size:0.8125rem;color:var(--text-muted);margin-bottom:2px" data-i18n="bank.label_desc">Beskrivning</label>
-                        <textarea id="sp-cert-desc" class="form-input" rows="2" placeholder="Kort beskrivning (valfritt)" data-i18n-ph="bank.ph_cert_desc"></textarea>
-                    </div>
-                </div>
-                <div id="sp-cert-status" style="margin-top:0.5rem"></div>
-                <button class="btn btn-primary" onclick="addSpCertification()" style="margin-top:0.75rem" data-i18n="bank.add_cert_btn">+ Lägg till certifikat</button>
-            </div>
             <div class="card">
                 <div id="sp-certifications-list">
                     <div class="empty-hint" data-i18n="kand.no_cert">Inga kurser eller certifikat tillagda ännu.</div>
@@ -1232,7 +1281,7 @@
                           data-i18n-ph="portrait.placeholder"></textarea>
                 <div style="display:flex;gap:0.5rem;margin-top:0.75rem;align-items:center">
                     <button id="sp-portrait-gen-btn" class="btn btn-primary"
-                            onclick="generateSpPortrait()" data-i18n="portrait.generate_btn">Generera portätt</button>
+                            onclick="generateSpPortrait()"><span class="material-icons" style="font-size:1rem;vertical-align:middle;margin-right:4px">psychology</span><span data-i18n="portrait.generate_btn">Generera portätt</span></button>
                     <span id="sp-portrait-status" class="form-hint"></span>
                 </div>
             </div>
@@ -1259,7 +1308,7 @@
             </div>
         </div>
 
-        <div id="jobb-criteria" class="jobb-criteria-row"></div>
+        <div id="jobb-criteria"></div>
         <div id="jobb-status" class="status-message hidden"></div>
 
         <div id="jobb-list" class="jobb-list"></div>
@@ -1271,7 +1320,7 @@
 
         <div id="jobb-no-profile" class="empty-state hidden">
             <span class="material-icons" style="font-size:3rem;color:var(--border)">person_off</span>
-            <p data-i18n="jobs.no_profile">Fyll i din sökprofil (titel och/eller önskade domäner) innan du söker.</p>
+            <p data-i18n-html="jobs.no_profile">Fyll i din <a href="#" class="text-link" onclick="goToSokprofil();return false">sökprofil</a> (åtminstone 'Önskade roller' och 'Önskad ort') innan du söker.</p>
         </div>
     </div>
 
@@ -1298,7 +1347,7 @@
             </div>
             <div class="header-actions">
                 <button class="btn btn-primary" onclick="openSavedJobInMatch()">
-                    <span class="material-icons" style="font-size:1rem;vertical-align:middle;margin-right:4px">manage_search</span>
+                    <span class="material-icons" style="font-size:1rem;vertical-align:middle;margin-right:4px">psychology</span>
                     <span data-i18n="jobs.match_btn">Matcha med AI</span>
                 </button>
             </div>

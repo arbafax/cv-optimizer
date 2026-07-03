@@ -1554,6 +1554,25 @@ async function apiFetch(url, options = {}) {
 }
 
 // ── Navigation ────────────────────────────────────────────────────────────────
+async function isAiConfigured() {
+    const s = await cvDb.settings.getAll();
+    if (!s.ai_provider) return false;
+    if (s.ai_provider === 'ollama') return Boolean(s.ollama_url);
+    return Boolean({ openai: s.openai_key, anthropic: s.anthropic_key, gemini: s.gemini_key }[s.ai_provider]);
+}
+
+function goToSokprofil() {
+    const navEl = document.querySelector('[onclick*="sokprofil"]');
+    showView('sokprofil', navEl);
+    if (typeof loadSokprofil === 'function') loadSokprofil();
+}
+
+function goToAccount() {
+    const navEl = document.getElementById('nav-account');
+    showView('account', navEl);
+    if (typeof loadAccountView === 'function') loadAccountView();
+}
+
 function showView(viewId, navEl) {
     if (!currentUser) { showAuthView(); return; }
     document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
@@ -1948,7 +1967,14 @@ function _loadSidebarVersion() {
     if (!el) return;
     fetch('version.json?_=' + Date.now())
         .then(r => r.ok ? r.json() : null)
-        .then(d => { if (d?.version) { _localVersion = d.version; el.textContent = `v${d.version}`; } })
+        .then(d => {
+            if (d?.version) {
+                _localVersion = d.version;
+                el.textContent = `v${d.version}`;
+                const fb = document.querySelector('a[href^="mailto:seladof"]');
+                if (fb) fb.href = `mailto:seladof@gmail.com?subject=${encodeURIComponent('Angående CVOptimizer v' + d.version)}`;
+            }
+        })
         .catch(() => {});
 }
 

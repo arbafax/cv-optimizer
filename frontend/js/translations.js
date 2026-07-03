@@ -200,15 +200,15 @@ sv: {
     'matchk.hint_no_candidate':     'Bocka för minst en kandidat för att köra detaljerad analys.',
     'matchk.select_all':            'Välj alla',
 
-    // Portätt
-    'tab.portratt':                 'Portätt',
-    'portrait.hint':                'Ett portätt är en löpande text (300–400 ord) som beskriver kandidaten och används för semantisk matchning mot jobbannonser. Genereras automatiskt men kan redigeras fritt.',
-    'portrait.generate_btn':        'Generera portätt',
+    // Porträtt
+    'tab.portratt':                 'Porträtt',
+    'portrait.hint':                'Ett porträtt är en löpande text (300–400 ord) som beskriver kandidaten och används för semantisk matchning mot jobbannonser. Genereras automatiskt men kan redigeras fritt.',
+    'portrait.generate_btn':        'Generera porträtt',
     'portrait.generating':          'Genererar...',
-    'portrait.placeholder':         'Inget portätt ännu. Klicka "Generera portätt" för att skapa ett automatiskt.',
-    'portrait.saved':               'Portättet är sparat.',
-    'portrait.publish_generating':  'Genererar portätt...',
-    'portrait.confirm_update':      'Profilen har ändrats sedan portättet skapades.\n\nKlicka OK för att uppdatera portättet innan publicering, eller Avbryt för att publicera med befintligt portätt.',
+    'portrait.placeholder':         'Inget porträtt ännu. Klicka "Generera porträtt" för att skapa ett automatiskt.',
+    'portrait.saved':               'Porträttet är sparat.',
+    'portrait.publish_generating':  'Genererar porträtt...',
+    'portrait.confirm_update':      'Profilen har ändrats sedan porträttet skapades.\n\nKlicka OK för att uppdatera porträttet innan publicering, eller Avbryt för att publicera med befintligt porträtt.',
 
     // ─── Hitta jobb ──────────────────────────────────────────────────────────
     'jobs.title':                   'Leta jobb',
@@ -235,7 +235,7 @@ sv: {
     'jobs.avoiding_label':          'Undviker:',
     'jobs.deadline':                'Sista dag:',
     'jobs.score_label':             'Matchning',
-    'jobs.no_portrait_warning':     'Tips: generera ett portätt i din sökprofil för bättre rankning.',
+    'jobs.no_portrait_warning':     'Tips: generera ett porträtt i din sökprofil för bättre rankning.',
     'nav.saved_jobs':               'Sparade jobb',
     'jobs.saved_title':             'Sparade jobb',
     'jobs.saved_subtitle':          'Jobbannonser du sparat från sökningen.',

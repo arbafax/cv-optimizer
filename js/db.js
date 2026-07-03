@@ -948,6 +948,8 @@ const jobSeen = {
       domain:                 meta.domain                 ?? null,
       duration_type:          meta.duration_type          ?? null,
       created_at:             new Date().toISOString(),
+      applied:                meta.applied    ?? false,
+      applied_at:             meta.applied_at ?? null,
     };
     return _tx('job_seen', 'readwrite', (tx) =>
       _req(tx.objectStore('job_seen').put(row))
@@ -975,6 +977,14 @@ const jobSeen = {
       const row = await _req(store.get(job_id));
       if (!row) return;
       await _req(store.put({ ...row, match_score }));
+    });
+  },
+  async updateApplied(job_id, applied) {
+    return _tx('job_seen', 'readwrite', async (tx) => {
+      const store = tx.objectStore('job_seen');
+      const row = await _req(store.get(job_id));
+      if (!row) return;
+      await _req(store.put({ ...row, applied, applied_at: applied ? new Date().toISOString() : null }));
     });
   },
   async delete(job_id) {

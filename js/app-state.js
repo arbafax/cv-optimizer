@@ -180,8 +180,9 @@ async function _showContextModal({ name, addLabel, addFnName, showLevel = false 
     const levelSelect = showLevel ? `
         <select id="skill-add-level" class="form-input" style="max-width:160px;font-size:13px">
             <option value="Känner till">${t('skill.level_1')}</option>
-            <option value="Erfaren">${t('skill.level_2')}</option>
-            <option value="Mycket erfaren">${t('skill.level_3')}</option>
+            <option value="Grundläggande">${t('skill.level_2')}</option>
+            <option value="Erfaren">${t('skill.level_3')}</option>
+            <option value="Mycket erfaren">${t('skill.level_4')}</option>
         </select>` : '';
 
     const modal = document.createElement('div');
@@ -322,8 +323,9 @@ const _MIME_MAP = {
 };
 function skillLevelClass(level) {
     if (level === 'Känner till')    return 'chip-level-1';
-    if (level === 'Erfaren')        return 'chip-level-2';
-    if (level === 'Mycket erfaren') return 'chip-level-3';
+    if (level === 'Grundläggande')  return 'chip-level-2';
+    if (level === 'Erfaren')        return 'chip-level-3';
+    if (level === 'Mycket erfaren') return 'chip-level-4';
     return 'chip-technical';
 }
 
@@ -1751,7 +1753,15 @@ function displayMatchResult(result, container) {
 
         ${qualitiesHtml}
 
-        <div class="gen-cv-action">
+        <div class="gen-cv-action" id="match-job-actions">
+            ${lastMatchJobId ? `
+            <button id="match-save-btn" class="btn btn-secondary" onclick="saveJobFromMatch()"
+                ${lastMatchJobMeta?.status === 'saved' ? 'disabled' : ''}>
+                <span class="material-icons" style="font-size:1rem;vertical-align:middle;margin-right:4px">${lastMatchJobMeta?.status === 'saved' ? 'bookmark' : 'bookmark_add'}</span>${lastMatchJobMeta?.status === 'saved' ? t('jobs.already_saved') : t('jobs.save_job')}
+            </button>
+            <button id="match-dismiss-btn" class="btn btn-secondary" onclick="dismissJobFromMatch()">
+                <span class="material-icons" style="font-size:1rem;vertical-align:middle;margin-right:4px">thumb_down</span>${t('jobs.dismiss')}
+            </button>` : ''}
             <button id="tips-btn" class="btn btn-secondary" onclick="handleTips()">
                 <span class="material-icons" style="font-size:1rem;vertical-align:middle;margin-right:4px">lightbulb</span>${t('match.tips_btn')}
             </button>
@@ -1759,17 +1769,6 @@ function displayMatchResult(result, container) {
                 ${t('match.gen_lh_btn')}
             </button>
         </div>
-
-        ${lastMatchJobId ? `
-        <div class="match-job-actions" id="match-job-actions">
-            <button id="match-save-btn" class="btn btn-secondary" onclick="saveJobFromMatch()"
-                ${lastMatchJobMeta?.status === 'saved' ? 'disabled' : ''}>
-                <span class="material-icons" style="font-size:1rem;vertical-align:middle;margin-right:4px">${lastMatchJobMeta?.status === 'saved' ? 'bookmark' : 'bookmark_add'}</span>${lastMatchJobMeta?.status === 'saved' ? t('jobs.already_saved') : t('jobs.save_job')}
-            </button>
-            <button id="match-dismiss-btn" class="btn btn-ghost" onclick="dismissJobFromMatch()">
-                <span class="material-icons" style="font-size:1rem;vertical-align:middle;margin-right:4px">thumb_down</span>${t('jobs.dismiss')}
-            </button>
-        </div>` : ''}
 
         <div style="margin-top:12px;padding-top:12px;border-top:1px solid var(--border)">
             <button class="btn btn-ghost btn-sm" onclick="newMatchSession()">

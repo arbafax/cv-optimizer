@@ -446,8 +446,9 @@
                             <select id="kand-skill-level" class="form-input">
                                 <option value="" data-i18n="skill.level_ph">— Nivå —</option>
                                 <option value="Känner till" data-i18n="skill.level_1">Känner till</option>
-                                <option value="Erfaren" data-i18n="skill.level_2">Erfaren</option>
-                                <option value="Mycket erfaren" data-i18n="skill.level_3">Mycket erfaren</option>
+                                <option value="Grundläggande" data-i18n="skill.level_2">Grundläggande</option>
+                                <option value="Erfaren" data-i18n="skill.level_3">Erfaren</option>
+                                <option value="Mycket erfaren" data-i18n="skill.level_4">Mycket erfaren</option>
                             </select>
                         </div>
                         <button class="btn btn-primary" onclick="addKandidatSkill()" style="white-space:nowrap" data-i18n="common.add">+ Lägg till</button>
@@ -1050,8 +1051,9 @@
                         <select id="sp-skill-level" class="form-input">
                             <option value="" data-i18n="skill.level_ph">— Nivå —</option>
                             <option value="Känner till" data-i18n="skill.level_1">Känner till</option>
-                            <option value="Erfaren" data-i18n="skill.level_2">Erfaren</option>
-                            <option value="Mycket erfaren" data-i18n="skill.level_3">Mycket erfaren</option>
+                            <option value="Grundläggande" data-i18n="skill.level_2">Grundläggande</option>
+                            <option value="Erfaren" data-i18n="skill.level_3">Erfaren</option>
+                            <option value="Mycket erfaren" data-i18n="skill.level_4">Mycket erfaren</option>
                         </select>
                     </div>
                     <button class="btn btn-primary" onclick="addSpSkill()" style="white-space:nowrap" data-i18n="common.add">+ Lägg till</button>
@@ -1069,7 +1071,7 @@
             <!-- Personliga egenskaper -->
             <div class="card" style="margin-top:1.25rem">
                 <h3 style="margin:0 0 0.25rem" data-i18n="qualities.title">Personliga egenskaper</h3>
-                <p class="field-desc" style="margin:0 0 0.75rem" data-i18n="qualities.desc_sp">Mjuka egenskaper som du besitter — t.ex. Analytisk, Självgående, Driven. Används vid matchning mot jobbannonser.</p>
+                <p class="field-desc" style="margin:0 0 0.75rem" data-i18n-html="qualities.desc_sp">Mjuka egenskaper som du besitter — t.ex. Analytisk, Självgående, Driven. Fungerar i fraser som "Du är [...]" eller "Du har förmågan att vara [...]".<br><br>Används vid matchning mot jobbannonser.</p>
                 <div id="sp-qualities-pills" class="qualities-pills"></div>
                 <div class="qualities-add-row">
                     <input type="text" id="sp-quality-input" class="form-input" data-i18n-ph="qualities.placeholder" placeholder="Skriv egenskap och tryck Enter…" onkeydown="handleSpQualityKeydown(event)">
@@ -1314,6 +1316,7 @@
             </div>
             <div class="jobbdet-scores" id="jobbdet-score"></div>
             <div class="jobbdet-scores" id="jobbdet-match"></div>
+            <div id="jobbdet-applied"></div>
         </div>
 
         <div id="jobbdet-analysis" class="hidden"></div>

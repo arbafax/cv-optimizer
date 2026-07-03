@@ -40,6 +40,7 @@ sv: {
     'nav.match_candidates':         'Matcha mot kandidater',
     'nav.my_candidates':            'Mina kandidater',
     'nav.account':                  'Mitt konto',
+    'nav.feedback':                 'Feedback & frågor',
 
     // Dashboard
     'dash.welcome':                 'Välkommen',
@@ -736,6 +737,7 @@ en: {
     'nav.match_candidates':         'Match candidates',
     'nav.my_candidates':            'My candidates',
     'nav.account':                  'My account',
+    'nav.feedback':                 'Feedback & questions',
 
     'dash.welcome':                 'Welcome',
     'dash.subtitle':                'Here is an overview of your CVs and matches.',

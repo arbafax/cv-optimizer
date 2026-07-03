@@ -38,7 +38,7 @@ async function _generateKandidatPortrait(kandidatId) {
         `${c.name}${c.issuer ? ', ' + c.issuer : ''}${c.date ? ' (' + c.date + ')' : ''}`
     ).join('\n') : '';
 
-    const userPrompt = `Skriv ett professionellt kandidatportätt på svenska, 300–400 ord.
+    const userPrompt = `Skriv ett professionellt kandidatporträtt på svenska, 300–400 ord.
 
 Regler:
 - Skriv i tredje person — använd konsekvent "kandidaten" som substantiv och "hen"/"hens" som pronomen
@@ -72,7 +72,7 @@ ${eduText}
 ${certsText ? '\nCERTIFIERINGAR:\n' + certsText : ''}`;
 
     const portrait = await cvAI.chat(
-        'Du är en erfaren rekryteringskonsult som skriver professionella kandidatportätt.',
+        'Du är en erfaren rekryteringskonsult som skriver professionella kandidatporträtt.',
         userPrompt,
         { temperature: 0.6 }
     );
@@ -369,10 +369,11 @@ function stripContactInfo(text) {
 
 let _cvReviewCallback = null;
 
-function showCVReviewModal(text, filename, onConfirm) {
+async function showCVReviewModal(text, filename, onConfirm) {
     _cvReviewCallback = onConfirm;
     const existing = document.getElementById('cv-review-modal');
     if (existing) existing.remove();
+    const hasAi = await isAiConfigured();
     const modal = document.createElement('div');
     modal.id = 'cv-review-modal';
     modal.className = 'modal';
@@ -394,7 +395,7 @@ function showCVReviewModal(text, filename, onConfirm) {
                 <textarea id="cv-review-text" class="form-input cv-review-textarea"></textarea>
                 <div style="display:flex;gap:0.75rem;justify-content:flex-end">
                     <button class="btn btn-secondary" onclick="closeCVReviewModal()">${t('common.cancel')}</button>
-                    <button class="btn btn-primary" onclick="confirmCVReview()"><span class="material-icons" style="font-size:1rem;vertical-align:middle;margin-right:4px">manage_search</span>${t('cv.review_confirm')}</button>
+                    <button class="btn btn-primary" onclick="confirmCVReview()" ${hasAi ? '' : 'disabled title="' + t('match.no_llm_short') + '"'}><span class="material-icons" style="font-size:1rem;vertical-align:middle;margin-right:4px">psychology</span>${t('cv.review_confirm')}</button>
                 </div>
             </div>
         </div>`;

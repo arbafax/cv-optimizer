@@ -113,11 +113,19 @@ const MUNICIPALITY_CODES = {
 
 async function loadJobbView() {
     _renderJobCriteria();
+    _updateFetchBtnLabel();
     // Rendera tidigare resultat om de finns i sessionStorage
     const cached = sessionStorage.getItem('jobb_last_results');
     if (cached) {
         try { _renderJobList(JSON.parse(cached)); } catch { /* ignorera */ }
     }
+}
+
+async function _updateFetchBtnLabel() {
+    const btn = document.getElementById('jobb-fetch-btn');
+    if (!btn) return;
+    const hasAi = await isAiConfigured();
+    btn.querySelector('[data-i18n]').textContent = t(hasAi ? 'jobs.fetch_btn_ai' : 'jobs.fetch_btn_no_ai');
 }
 
 // ── Kriterievisning ───────────────────────────────────────────────────────────
@@ -130,14 +138,18 @@ async function _renderJobCriteria() {
         if (!own) { el.innerHTML = ''; return; }
         const chips = [];
         if (own.roles) own.roles.split(',').map(s => s.trim()).filter(Boolean).forEach(r => chips.push(`<span class="jobb-chip">${r}</span>`));
-        for (const d of (own.desired_domains || [])) {
-            chips.push(`<span class="jobb-chip">${d}</span>`);
-        }
         (own.desired_city || '').split(',').map(s => s.trim()).filter(Boolean)
             .forEach(c => chips.push(`<span class="jobb-chip jobb-chip--loc"><span class="material-icons" style="font-size:.9rem;vertical-align:middle">place</span> ${c}</span>`));
-        el.innerHTML = chips.length
-            ? `<span class="jobb-criteria-label">${t('jobs.criteria_label')}</span> ${chips.join('')}`
+        const avoidChips = (own.unwanted_roles || '').split(',').map(s => s.trim()).filter(Boolean)
+            .map(r => `<span class="jobb-chip jobb-chip--avoid">${r}</span>`);
+
+        const searchRow = chips.length
+            ? `<div class="jobb-criteria-row"><span class="jobb-criteria-label">${t('jobs.criteria_label')}</span> ${chips.join('')}</div>`
             : '';
+        const avoidRow = avoidChips.length
+            ? `<div class="jobb-criteria-row"><span class="jobb-criteria-label">${t('jobs.avoiding_label')}</span> ${avoidChips.join('')}</div>`
+            : '';
+        el.innerHTML = searchRow + avoidRow;
     } catch { el.innerHTML = ''; }
 }
 
@@ -162,7 +174,7 @@ async function fetchAndRankJobs() {
         // 1. Hämta profil
         const own = await cvDb.kandidater.getOwn();
         const baseQuery = _buildBaseQuery(own);
-        if (!baseQuery) { _show(noProfileEl); return; }
+        if (!baseQuery) { _show(noProfileEl); if (btn) btn.disabled = false; return; }
 
         _renderJobCriteria();
 
@@ -342,6 +354,9 @@ async function _renderJobList(jobs) {
     const savedIds = new Set(seenJobs.filter(j => j.status === 'saved').map(j => j.job_id));
     const visible  = jobs.filter(j => !seenIds.has(j.id));
 
+    // Check AI config for AI-analys button
+    const hasAi = await isAiConfigured();
+
     if (visible.length === 0) {
         listEl.innerHTML = '';
         emptyEl?.classList.remove('hidden');
@@ -367,11 +382,11 @@ async function _renderJobList(jobs) {
 
         const alreadySaved = savedIds.has(job.id);
         const saveBtn = alreadySaved
-            ? `<button class="btn btn-sm btn-secondary" disabled>
+            ? `<button id="jobb-save-${job.id}" class="btn btn-sm btn-secondary" disabled>
                 <span class="material-icons" style="font-size:1rem">bookmark</span>
                 ${t('jobs.already_saved')}
                </button>`
-            : `<button class="btn btn-sm btn-secondary" onclick="saveJob('${job.id}')">
+            : `<button id="jobb-save-${job.id}" class="btn btn-sm btn-secondary" onclick="saveJob('${job.id}')">
                 <span class="material-icons" style="font-size:1rem">bookmark_add</span>
                 ${t('jobs.save')}
                </button>`;
@@ -389,8 +404,8 @@ async function _renderJobList(jobs) {
                     ${t('jobs.dismiss')}
                 </button>
                 ${saveBtn}
-                <button class="btn btn-sm btn-primary" onclick="openJobInMatch('${job.id}')">
-                    <span class="material-icons" style="font-size:1rem">arrow_forward</span>
+                <button class="btn btn-sm btn-primary" ${hasAi ? `onclick="openJobAndAnalyze('${job.id}')"` : 'disabled title="' + t('match.no_llm_short') + '"'}>
+                    <span class="material-icons" style="font-size:1rem">psychology</span>
                     ${t('jobs.open_match')}
                 </button>
             </div>
@@ -424,8 +439,7 @@ async function dismissJob(jobId, headline, employer, url) {
 }
 
 async function saveJob(jobId) {
-    const card    = document.getElementById(`jobb-card-${jobId}`);
-    const saveBtn = card?.querySelector('.btn-secondary');
+    const saveBtn = document.getElementById(`jobb-save-${jobId}`);
 
     if (saveBtn) {
         saveBtn.disabled = true;
@@ -821,6 +835,11 @@ async function openJobInMatch(jobId) {
     } catch (err) {
         console.error('openJobInMatch:', err);
     }
+}
+
+async function openJobAndAnalyze(jobId) {
+    await openJobInMatch(jobId);
+    if (typeof handleOptimize === 'function') await handleOptimize();
 }
 
 // ── Tillbaka till jobb från matchresultatet ───────────────────────────────────

@@ -38,7 +38,7 @@ async function _chat(systemPrompt, userPrompt, { temperature = 0.3, jsonMode = f
 }
 
 async function _chatOpenAI(apiKey, systemPrompt, userPrompt, temperature, jsonMode) {
-  if (!apiKey) throw new Error('OpenAI API-nyckel saknas. Ange den under Inställningar.');
+  if (!apiKey) throw new Error('API-nyckel och AI-leverantör saknas. Ange den under <a href="#" class="text-link" onclick="goToAccount();return false">Inställningar</a>.');
 
   const body = {
     model: 'gpt-4o',
@@ -69,7 +69,7 @@ async function _chatOpenAI(apiKey, systemPrompt, userPrompt, temperature, jsonMo
 }
 
 async function _chatAnthropic(apiKey, systemPrompt, userPrompt, temperature) {
-  if (!apiKey) throw new Error('Anthropic API-nyckel saknas. Ange den under Inställningar.');
+  if (!apiKey) throw new Error('API-nyckel och AI-leverantör saknas. Ange den under <a href="#" class="text-link" onclick="goToAccount();return false">Inställningar</a>.');
 
   const res = await fetch('https://api.anthropic.com/v1/messages', {
     method: 'POST',
@@ -98,7 +98,7 @@ async function _chatAnthropic(apiKey, systemPrompt, userPrompt, temperature) {
 }
 
 async function _chatGemini(apiKey, systemPrompt, userPrompt, temperature) {
-  if (!apiKey) throw new Error('Gemini API-nyckel saknas. Ange den under Inställningar.');
+  if (!apiKey) throw new Error('API-nyckel och AI-leverantör saknas. Ange den under <a href="#" class="text-link" onclick="goToAccount();return false">Inställningar</a>.');
 
   const model = 'gemini-2.0-flash';
   const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`;

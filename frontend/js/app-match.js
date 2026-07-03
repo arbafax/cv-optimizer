@@ -59,7 +59,7 @@ async function updateMatchWarning() {
     bankEl.textContent = bankEmpty ? t('match.empty_bank') : '';
     bankEl.classList.toggle('hidden', !bankEmpty);
 
-    llmEl.textContent = !_matchLlmReady ? t('match.no_llm') : '';
+    llmEl.innerHTML = !_matchLlmReady ? t('match.no_llm') : '';
     llmEl.classList.toggle('hidden', _matchLlmReady);
 
     updateOptimizeButton();

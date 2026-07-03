@@ -383,6 +383,8 @@ async function loadProfilePortrait() {
     const kand = await cvDb.kandidater.get(currentProfileId).catch(() => null);
     const ta = document.getElementById('prof-portrait-text');
     if (ta) ta.value = kand?.portrait || '';
+    const btn = document.getElementById('prof-portrait-gen-btn');
+    if (btn) btn.disabled = !(await isAiConfigured());
 }
 
 async function generateProfilePortrait() {

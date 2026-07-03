@@ -2703,6 +2703,9 @@ body {
     max-width: 560px;
 }
 
+.text-link { color: var(--blue); text-decoration: underline; cursor: pointer; }
+.text-link:hover { opacity: 0.8; }
+
 .field-desc {
     font-size: 13px;
     font-style: italic;
@@ -3838,7 +3841,8 @@ body {
     font-size: 0.8rem;
     font-weight: 500;
 }
-.jobb-chip--loc { background: #f0fdf4; color: #166534; }
+.jobb-chip--loc   { background: #f0fdf4; color: #166534; }
+.jobb-chip--avoid { background: #fff1f2; color: #9f1239; }
 
 .jobb-list {
     display: flex;

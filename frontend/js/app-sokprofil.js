@@ -2,8 +2,10 @@
 // SÖKPROFIL / MIN PROFIL (sp-* prefix)
 // ════════════════════════════════════════════════════
 
-let spSelectedExpIds = new Set();
-let _spQualities     = [];
+let spSelectedExpIds  = new Set();
+let _spQualities      = [];
+let _spEduEditingId   = null;
+let _spCertEditingId  = null;
 
 // ── Timestamps (own profile) ──────────────────────────────────────────────────
 
@@ -70,6 +72,8 @@ async function loadSokprofil() {
         document.getElementById('sp-available-from').value = own.available_from     || '';
         document.getElementById('sp-profile-uuid').value   = own.profile_uuid       || '';
         _showSpTimestamps(own);
+        const portraitBtn = document.getElementById('sp-portrait-gen-btn');
+        if (portraitBtn) portraitBtn.disabled = !(await isAiConfigured());
     } catch (err) {
         if (err.message !== 'Inte inloggad') console.error(err);
     }
@@ -182,7 +186,6 @@ async function loadSpKompetenser() {
         if (!res.ok) return;
         const data = await res.json();
         cachedSpSkills = data.skills || [];
-        spEditingSkillId = null;
         renderSpSkills(cachedSpSkills);
     } catch (err) {
         if (err.message !== 'Inte inloggad') console.error(err);
@@ -247,32 +250,44 @@ async function addSpQualityFromInput() {
     }
 }
 
-async function addSpSkill() {
-    const nameEl = document.getElementById('sp-skill-name');
-    const catEl  = document.getElementById('sp-skill-category');
-    const name   = nameEl.value.trim();
-    if (!name) { showSpSkillStatus(t('sp.skill_name_required'), 'error'); return; }
+function openSpSkillModal(skillId) {
+    spEditingSkillId = skillId ?? null;
+    const titleEl = document.getElementById('sp-skill-modal-title');
+    if (titleEl) titleEl.textContent = t(spEditingSkillId != null ? 'bank.edit_skill_title' : 'bank.add_skill_title');
+    const item = spEditingSkillId != null ? cachedSpSkills.find(s => s.id === spEditingSkillId) : null;
+    document.getElementById('sp-skill-name').value     = item?.skill_name  || '';
+    document.getElementById('sp-skill-category').value = item?.category    || '';
+    document.getElementById('sp-skill-level').value    = item?.skill_level || '';
+    const statusEl = document.getElementById('sp-skill-status');
+    if (statusEl) { statusEl.textContent = ''; statusEl.className = ''; }
+    document.getElementById('sp-skill-modal').classList.remove('hidden');
+}
 
+function closeSpSkillModal() {
+    document.getElementById('sp-skill-modal').classList.add('hidden');
+    spEditingSkillId = null;
+}
+
+async function saveSpSkillModal() {
+    const body = {
+        skill_name:  document.getElementById('sp-skill-name').value.trim(),
+        category:    document.getElementById('sp-skill-category').value.trim() || 'Övrigt',
+        skill_level: document.getElementById('sp-skill-level').value || null,
+    };
+    if (!body.skill_name) { showSpSkillStatus(t('sp.skill_name_required'), 'error'); return; }
     try {
-        const res = await apiFetch(`${API_BASE_URL}/competence/skills`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-                skill_name:  name,
-                category:    catEl.value.trim() || 'Övrigt',
-                skill_level: document.getElementById('sp-skill-level').value || null,
-            }),
+        const url = spEditingSkillId != null
+            ? `${API_BASE_URL}/competence/skills/${spEditingSkillId}`
+            : `${API_BASE_URL}/competence/skills`;
+        const res = await apiFetch(url, {
+            method: spEditingSkillId != null ? 'PUT' : 'POST',
+            headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body),
         });
         if (!res.ok) { const e = await res.json(); throw new Error(e.detail || 'Fel'); }
-        nameEl.value = '';
-        catEl.value  = '';
-        document.getElementById('sp-skill-level').value = '';
-        showSpSkillStatus(t('sp.skill_added'), 'success');
+        closeSpSkillModal();
         await loadSpKompetenser();
         touchOwnKandidat();
-    } catch (err) {
-        showSpSkillStatus(err.message, 'error');
-    }
+    } catch (err) { showSpSkillStatus(err.message, 'error'); }
 }
 
 function showSpSkillStatus(msg, type) {
@@ -286,8 +301,9 @@ function showSpSkillStatus(msg, type) {
 function renderSpSkills(skills) {
     const container = document.getElementById('sp-skills-list');
     if (!container) return;
+    const addBtn = `<button class="btn btn-primary btn-sm" onclick="openSpSkillModal(null)">${t('bank.add_skill_btn')}</button>`;
     if (!skills || !skills.length) {
-        container.innerHTML = `<div class="empty-hint">${t('sp.no_skills')}</div>`;
+        container.innerHTML = `<div class="list-clear-bar"><span></span>${addBtn}</div><div class="empty-hint">${t('sp.no_skills')}</div>`;
         return;
     }
     const byCategory = {};
@@ -296,38 +312,21 @@ function renderSpSkills(skills) {
         if (!byCategory[cat]) byCategory[cat] = [];
         byCategory[cat].push(s);
     });
-    const clearBarSkills = `<div class="list-clear-bar"><span>${skills.length} ${skills.length !== 1 ? t('sp.skill_plural') : t('sp.skill_singular')}</span><button class="btn btn-danger btn-sm" onclick="clearSpSkills()">${t('sp.clear_all')}</button></div>`;
+    const clearBar = `<div class="list-clear-bar"><span>${skills.length} ${skills.length !== 1 ? t('sp.skill_plural') : t('sp.skill_singular')}</span><div style="display:flex;gap:0.5rem">${addBtn}<button class="btn btn-danger btn-sm" onclick="clearSpSkills()">${t('sp.clear_all')}</button></div></div>`;
     const sortedEntries = Object.entries(byCategory).sort(([a], [b]) => a.localeCompare(b, currentLang));
-    container.innerHTML = clearBarSkills + sortedEntries.map(([cat, items]) => { items = items.slice().sort((a, b) => a.skill_name.localeCompare(b.skill_name, currentLang)); return `
-        <div style="margin-bottom:1rem">
-            <div style="font-size:0.8125rem;font-weight:600;color:var(--text-muted);text-transform:uppercase;
-                        letter-spacing:0.05em;margin-bottom:0.5rem">${cat}</div>
+    container.innerHTML = clearBar + sortedEntries.map(([cat, items]) => {
+        items = items.slice().sort((a, b) => a.skill_name.localeCompare(b.skill_name, currentLang));
+        return `<div style="margin-bottom:1rem">
+            <div style="font-size:0.8125rem;font-weight:600;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.05em;margin-bottom:0.5rem">${cat}</div>
             <div class="bank-skills-wrap skill-drop-zone" data-cat-drop-zone="${esc(cat)}">
-                ${items.map(s => {
-                    if (s.id === spEditingSkillId) {
-                        return `<div class="skill-edit-row">
-                            <input class="form-input" id="sp-edit-skill-name" value="${esc(s.skill_name)}" placeholder="${t('bank.label_skill')}" style="flex:1;min-width:120px">
-                            <input class="form-input" id="sp-edit-skill-cat"  value="${esc(s.category)}"   placeholder="${t('bank.label_category')}" style="flex:1;min-width:100px" data-cat-combo>
-                            <select class="form-input" id="sp-edit-skill-level" style="min-width:130px">
-                                <option value=""               ${!s.skill_level                    ?'selected':''}>${t('skill.level_ph')}</option>
-                                <option value="Känner till"    ${s.skill_level==='Känner till'    ?'selected':''}>${t('skill.level_1')}</option>
-                                <option value="Grundläggande"  ${s.skill_level==='Grundläggande'  ?'selected':''}>${t('skill.level_2')}</option>
-                                <option value="Erfaren"        ${s.skill_level==='Erfaren'        ?'selected':''}>${t('skill.level_3')}</option>
-                                <option value="Mycket erfaren" ${s.skill_level==='Mycket erfaren' ?'selected':''}>${t('skill.level_4')}</option>
-                            </select>
-                            <button class="btn btn-primary btn-small" onclick="saveSpSkill(${s.id})">${t('common.save')}</button>
-                            <button class="btn btn-secondary btn-small" onclick="spEditingSkillId=null;renderSpSkills(cachedSpSkills)">${t('common.cancel')}</button>
-                        </div>`;
-                    }
-                    return `<span class="bank-skill-chip ${skillLevelClass(s.skill_level)}" draggable="true" data-skill-id="${s.id}" data-skill-cat="${esc(cat)}">
-                        ${esc(s.skill_name)}
-                        <button class="chip-delete" style="font-size:0.85em;padding:0 1px 0 3px" onclick="spEditingSkillId=${s.id};renderSpSkills(cachedSpSkills)" title="${t('action.edit')}"><span class="material-icons">edit</span></button>
-                        <button class="chip-delete" onclick="deleteSpSkill(${s.id})" title="${t('action.delete')}"><span class="material-icons">close</span></button>
-                    </span>`;
-                }).join('')}
+                ${items.map(s => `<span class="bank-skill-chip ${skillLevelClass(s.skill_level)}" draggable="true" data-skill-id="${s.id}" data-skill-cat="${esc(cat)}">
+                    ${esc(s.skill_name)}
+                    <button class="chip-delete" style="font-size:0.85em;padding:0 1px 0 3px" onclick="openSpSkillModal(${s.id})" title="${t('action.edit')}"><span class="material-icons">edit</span></button>
+                    <button class="chip-delete" onclick="deleteSpSkill(${s.id})" title="${t('action.delete')}"><span class="material-icons">close</span></button>
+                </span>`).join('')}
             </div>
-        </div>
-    `; }).join('');
+        </div>`;
+    }).join('');
     setupSkillDragDrop(container, async (skillId, newCat) => {
         const skill = cachedSpSkills.find(s => s.id === skillId);
         if (!skill) return;
@@ -337,24 +336,6 @@ function renderSpSkills(skills) {
         });
         await loadSpKompetenser();
     });
-}
-
-async function saveSpSkill(id) {
-    const body = {
-        skill_name: document.getElementById('sp-edit-skill-name').value.trim(),
-        category:   document.getElementById('sp-edit-skill-cat').value.trim()  || 'Övrigt',
-        skill_level: document.getElementById('sp-edit-skill-level').value || null,
-    };
-    if (!body.skill_name) { alert(t('sp.skill_name_required2')); return; }
-    try {
-        const res = await apiFetch(`${API_BASE_URL}/competence/skills/${id}`, {
-            method: 'PUT', headers: {'Content-Type':'application/json'}, body: JSON.stringify(body),
-        });
-        if (!res.ok) { const e = await res.json(); throw new Error(e.detail || 'Fel'); }
-        spEditingSkillId = null;
-        await loadSpKompetenser();
-        touchOwnKandidat();
-    } catch (err) { alert(err.message); }
 }
 
 async function deleteSpSkill(id) {
@@ -396,7 +377,7 @@ function renderSpExperiences(experiences) {
     const container = document.getElementById('sp-experiences-list');
     if (!container) return;
     if (!experiences || !experiences.length) {
-        container.innerHTML = `<div class="empty-hint">${t('sp.no_exps')}</div>`;
+        container.innerHTML = `<div class="list-clear-bar"><span></span><button class="btn btn-primary btn-sm" onclick="openSpExpModal()">${t('bank.add_exp_btn')}</button></div><div class="empty-hint">${t('sp.no_exps')}</div>`;
         return;
     }
     experiences = experiences.slice().sort((a, b) => {
@@ -415,33 +396,8 @@ function renderSpExperiences(experiences) {
                     ${spSelectedExpIds.size < 2 ? 'disabled' : ''}>${t('bank.merge_selected')}</button>
             <button class="btn btn-ghost btn-small" onclick="spSelectedExpIds.clear();renderSpExperiences(cachedSpExps)">${t('bank.deselect')}</button>
         </div>`;
-    const clearBarExp = `<div class="list-clear-bar"><span>${experiences.length} ${experiences.length !== 1 ? t('sp.exp_plural') : t('sp.exp_singular')}</span><button class="btn btn-danger btn-sm" onclick="clearSpExperiences()">${t('sp.clear_all')}</button></div>`;
+    const clearBarExp = `<div class="list-clear-bar"><span>${experiences.length} ${experiences.length !== 1 ? t('sp.exp_plural') : t('sp.exp_singular')}</span><div style="display:flex;gap:0.5rem"><button class="btn btn-primary btn-sm" onclick="openSpExpModal()">${t('bank.add_exp_btn')}</button><button class="btn btn-danger btn-sm" onclick="clearSpExperiences()">${t('sp.clear_all')}</button></div></div>`;
     container.innerHTML = mergeBar + clearBarExp + experiences.map(e => {
-        if (e.id === spEditingExpId) {
-            const achText = (e.achievements || []).join('\n');
-            return `<div style="border:1px solid var(--blue);border-radius:var(--radius);padding:0.875rem 1rem;margin-bottom:0.75rem">
-                <div style="display:grid;grid-template-columns:1fr 1fr;gap:0.5rem;margin-bottom:0.5rem">
-                    <input class="form-input" id="sp-edit-exp-title" value="${esc(e.title)}" placeholder="Titel" style="grid-column:span 2">
-                    <input class="form-input" id="sp-edit-exp-org"   value="${esc(e.organization)}" placeholder="Organisation">
-                    <select class="form-input" id="sp-edit-exp-type">
-                        <option value="work"    ${sel(e.experience_type,'work')}   >${t('sp.type_work')}</option>
-                        <option value="project" ${sel(e.experience_type,'project')}>${t('sp.type_project')}</option>
-                    </select>
-                    <input class="form-input" id="sp-edit-exp-start" value="${esc(e.start_date)}" placeholder="Från (ÅÅÅÅ-MM)">
-                    <input class="form-input" id="sp-edit-exp-end"   value="${esc(e.end_date)}"   placeholder="Till (ÅÅÅÅ-MM)">
-                </div>
-                <label style="font-size:0.8125rem;display:flex;align-items:center;gap:0.4rem;margin-bottom:0.5rem">
-                    <input type="checkbox" id="sp-edit-exp-current" ${e.is_current?'checked':''}> ${t('sp.ongoing')}
-                </label>
-                <textarea class="form-input" id="sp-edit-exp-desc" placeholder="${t('bank.label_desc')}" rows="3" style="margin-bottom:0.5rem;width:100%;box-sizing:border-box">${esc(e.description)}</textarea>
-                <label style="font-size:0.8125rem;color:var(--text-muted);margin-bottom:0.25rem;display:block">${t('sp.achievements_label')}</label>
-                <textarea class="form-input" id="sp-edit-exp-ach" placeholder="${t('bank.new_ach_ph')}" rows="3" style="margin-bottom:0.5rem;width:100%;box-sizing:border-box">${esc(achText)}</textarea>
-                <div style="display:flex;gap:0.5rem">
-                    <button class="btn btn-primary btn-small" onclick="saveSpExperience(${e.id})">${t('common.save')}</button>
-                    <button class="btn btn-secondary btn-small" onclick="spEditingExpId=null;renderSpExperiences(cachedSpExps)">${t('common.cancel')}</button>
-                </div>
-            </div>`;
-        }
         const period = [normDate(e.start_date), e.is_current ? 'nu' : normDate(e.end_date)].filter(Boolean).join(' – ');
         const achHtml = (e.achievements || []).length
             ? `<ul class="exp-card-ach">${(e.achievements).map(a=>`<li>${esc(a)}</li>`).join('')}</ul>` : '';
@@ -462,7 +418,7 @@ function renderSpExperiences(experiences) {
                     </div>
                 </div>
                 <div class="exp-card-actions">
-                    <button class="btn-icon" onclick="spEditingExpId=${e.id};renderSpExperiences(cachedSpExps)" title="${t('action.edit')}"><span class="material-icons">edit</span></button>
+                    <button class="btn-icon" onclick="openSpExpModal(${e.id})" title="${t('action.edit')}"><span class="material-icons">edit</span></button>
                     <button class="btn-icon btn-icon-danger" onclick="deleteSpExperience(${e.id})" title="${t('action.delete')}"><span class="material-icons">delete</span></button>
                 </div>
             </div>
@@ -508,27 +464,72 @@ async function mergeSpExperiences() {
     }
 }
 
-async function saveSpExperience(id) {
+let _spExpEditingId = null;
+
+function openSpExpModal(expId) {
+    _spExpEditingId = expId ?? null;
+    const modal = document.getElementById('sp-exp-modal');
+    const titleEl = document.getElementById('sp-exp-modal-title');
+    if (!modal) return;
+
+    if (expId != null) {
+        const exp = (cachedSpExps || []).find(e => e.id === expId);
+        if (!exp) return;
+        if (titleEl) titleEl.textContent = t('bank.edit_exp_title');
+        document.getElementById('sp-exp-title').value   = exp.title || '';
+        document.getElementById('sp-exp-org').value     = exp.organization || '';
+        document.getElementById('sp-exp-type').value    = exp.experience_type || 'work';
+        document.getElementById('sp-exp-start').value   = exp.start_date || '';
+        document.getElementById('sp-exp-end').value     = exp.end_date || '';
+        document.getElementById('sp-exp-current').checked = !!exp.is_current;
+        document.getElementById('sp-exp-desc').value    = exp.description || '';
+        document.getElementById('sp-exp-ach').value     = (exp.achievements || []).join('\n');
+    } else {
+        if (titleEl) titleEl.textContent = t('bank.add_exp_title');
+        ['sp-exp-title','sp-exp-org','sp-exp-start','sp-exp-end','sp-exp-desc','sp-exp-ach'].forEach(id => { const el = document.getElementById(id); if (el) el.value = ''; });
+        document.getElementById('sp-exp-type').value    = 'work';
+        document.getElementById('sp-exp-current').checked = false;
+    }
+    document.getElementById('sp-exp-status').textContent = '';
+    modal.classList.remove('hidden');
+    document.getElementById('sp-exp-title').focus();
+}
+
+function closeSpExpModal() {
+    document.getElementById('sp-exp-modal')?.classList.add('hidden');
+    _spExpEditingId = null;
+}
+
+async function saveSpExpModal() {
+    const title = document.getElementById('sp-exp-title').value.trim();
+    if (!title) { showSpExpStatus(t('sp.title_required'), 'error'); return; }
     const body = {
-        title:           document.getElementById('sp-edit-exp-title').value.trim(),
-        organization:    document.getElementById('sp-edit-exp-org').value.trim()   || null,
-        experience_type: document.getElementById('sp-edit-exp-type').value,
-        start_date:      normDate(document.getElementById('sp-edit-exp-start').value.trim()),
-        end_date:        normDate(document.getElementById('sp-edit-exp-end').value.trim()),
-        is_current:      document.getElementById('sp-edit-exp-current').checked,
-        description:     document.getElementById('sp-edit-exp-desc').value.trim() || null,
-        achievements:    document.getElementById('sp-edit-exp-ach').value.split('\n').map(s=>s.trim()).filter(Boolean),
+        title,
+        organization:    document.getElementById('sp-exp-org').value.trim()   || null,
+        experience_type: document.getElementById('sp-exp-type').value,
+        start_date:      normDate(document.getElementById('sp-exp-start').value.trim()),
+        end_date:        normDate(document.getElementById('sp-exp-end').value.trim()),
+        is_current:      document.getElementById('sp-exp-current').checked,
+        description:     document.getElementById('sp-exp-desc').value.trim() || null,
+        achievements:    document.getElementById('sp-exp-ach').value.split('\n').map(s => s.trim()).filter(Boolean),
     };
-    if (!body.title) { alert(t('sp.title_required')); return; }
+    const btn = document.getElementById('sp-exp-modal-save-btn');
+    if (btn) btn.disabled = true;
     try {
-        const res = await apiFetch(`${API_BASE_URL}/competence/experiences/${id}`, {
-            method: 'PUT', headers: {'Content-Type':'application/json'}, body: JSON.stringify(body),
-        });
+        const url    = _spExpEditingId != null
+            ? `${API_BASE_URL}/competence/experiences/${_spExpEditingId}`
+            : `${API_BASE_URL}/competence/experiences`;
+        const method = _spExpEditingId != null ? 'PUT' : 'POST';
+        const res = await apiFetch(url, { method, headers: {'Content-Type':'application/json'}, body: JSON.stringify(body) });
         if (!res.ok) { const e = await res.json(); throw new Error(e.detail || 'Fel'); }
-        spEditingExpId = null;
+        closeSpExpModal();
         await loadSpErfarenheter();
         touchOwnKandidat();
-    } catch (err) { alert(err.message); }
+    } catch (err) {
+        showSpExpStatus(err.message, 'error');
+    } finally {
+        if (btn) btn.disabled = false;
+    }
 }
 
 async function deleteSpExperience(id) {
@@ -551,32 +552,6 @@ async function clearSpExperiences() {
     } catch (err) { alert(err.message); }
 }
 
-async function addSpExperience() {
-    const title = document.getElementById('sp-exp-title').value.trim();
-    if (!title) { showSpExpStatus(t('sp.title_required'), 'error'); return; }
-    const body = {
-        title,
-        organization:    document.getElementById('sp-exp-org').value.trim()   || null,
-        experience_type: document.getElementById('sp-exp-type').value,
-        start_date:      normDate(document.getElementById('sp-exp-start').value.trim()),
-        end_date:        normDate(document.getElementById('sp-exp-end').value.trim()),
-        is_current:      document.getElementById('sp-exp-current').checked,
-        description:     document.getElementById('sp-exp-desc').value.trim() || null,
-        achievements:    document.getElementById('sp-exp-ach').value.split('\n').map(s => s.trim()).filter(Boolean),
-    };
-    try {
-        const res = await apiFetch(`${API_BASE_URL}/competence/experiences`, {
-            method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify(body),
-        });
-        if (!res.ok) { const e = await res.json(); throw new Error(e.detail || 'Fel'); }
-        ['sp-exp-title','sp-exp-org','sp-exp-start','sp-exp-end','sp-exp-desc','sp-exp-ach'].forEach(id => document.getElementById(id).value = '');
-        document.getElementById('sp-exp-current').checked = false;
-        showSpExpStatus(t('sp.exp_added'), 'success');
-        await loadSpErfarenheter();
-        touchOwnKandidat();
-    } catch (err) { showSpExpStatus(err.message, 'error'); }
-}
-
 function showSpExpStatus(msg, type) {
     const el = document.getElementById('sp-exp-status');
     if (!el) return;
@@ -593,7 +568,6 @@ async function loadSpEducation() {
         if (!res.ok) return;
         const data = await res.json();
         cachedSpEdu = data.education || [];
-        spEditingEduId = null;
         renderSpEducation(cachedSpEdu);
     } catch (err) {
         if (err.message !== 'Inte inloggad') console.error(err);
@@ -603,30 +577,13 @@ async function loadSpEducation() {
 function renderSpEducation(items) {
     const container = document.getElementById('sp-education-list');
     if (!container) return;
+    const addBtn = `<button class="btn btn-primary btn-sm" onclick="openSpEduModal(null)">${t('bank.add_edu_btn')}</button>`;
     if (!items.length) {
-        container.innerHTML = `<div class="empty-hint">${t('sp.no_edu')}</div>`;
+        container.innerHTML = `<div class="list-clear-bar"><span></span>${addBtn}</div><div class="empty-hint">${t('sp.no_edu')}</div>`;
         return;
     }
-    const clearBarEdu = `<div class="list-clear-bar"><span>${items.length} ${items.length !== 1 ? t('sp.edu_plural') : t('sp.edu_singular')}</span><button class="btn btn-danger btn-sm" onclick="clearSpEducation()">${t('sp.clear_all')}</button></div>`;
-    container.innerHTML = clearBarEdu + items.map(e => {
-        if (e.id === spEditingEduId) {
-            return `<div style="border:1px solid var(--blue);border-radius:var(--radius);padding:0.875rem 1rem;margin-bottom:0.75rem">
-                <div style="display:flex;flex-direction:column;gap:0.5rem;margin-bottom:0.5rem">
-                    <input class="form-input" id="sp-edit-edu-degree"      value="${esc(e.degree)}"         placeholder="Examen / Utbildning" required>
-                    <input class="form-input" id="sp-edit-edu-institution"  value="${esc(e.institution)}"    placeholder="Lärosäte">
-                    <input class="form-input" id="sp-edit-edu-field"        value="${esc(e.field_of_study)}" placeholder="Ämne / Inriktning">
-                    <div style="display:flex;gap:0.5rem">
-                        <input class="form-input" id="sp-edit-edu-start" value="${esc(e.start_date)}" placeholder="Från (ÅÅÅÅ-MM)" style="flex:1">
-                        <input class="form-input" id="sp-edit-edu-end"   value="${esc(e.end_date)}"   placeholder="Till (ÅÅÅÅ-MM)" style="flex:1">
-                    </div>
-                    <textarea class="form-input" id="sp-edit-edu-desc" placeholder="Beskrivning" rows="2">${esc(e.description)}</textarea>
-                </div>
-                <div style="display:flex;gap:0.5rem">
-                    <button class="btn btn-primary btn-small" onclick="saveSpEducation(${e.id})">${t('common.save')}</button>
-                    <button class="btn btn-secondary btn-small" onclick="spEditingEduId=null;renderSpEducation(cachedSpEdu)">${t('common.cancel')}</button>
-                </div>
-            </div>`;
-        }
+    const clearBar = `<div class="list-clear-bar"><span>${items.length} ${items.length !== 1 ? t('sp.edu_plural') : t('sp.edu_singular')}</span><div style="display:flex;gap:0.5rem">${addBtn}<button class="btn btn-danger btn-sm" onclick="clearSpEducation()">${t('sp.clear_all')}</button></div></div>`;
+    container.innerHTML = clearBar + items.map(e => {
         const period = [e.start_date, e.end_date].filter(Boolean).join(' – ');
         return `<div class="edu-card">
             <div>
@@ -636,53 +593,52 @@ function renderSpEducation(items) {
                 ${period           ? `<div class="edu-card-period">${period}</div>` : ''}
             </div>
             <div class="exp-card-actions">
-                <button class="btn-icon" onclick="spEditingEduId=${e.id};renderSpEducation(cachedSpEdu)" title="${t('action.edit')}"><span class="material-icons">edit</span></button>
+                <button class="btn-icon" onclick="openSpEduModal(${e.id})" title="${t('action.edit')}"><span class="material-icons">edit</span></button>
                 <button class="btn-icon btn-icon-danger" onclick="deleteSpEducation(${e.id})" title="${t('action.delete')}"><span class="material-icons">delete</span></button>
             </div>
         </div>`;
     }).join('');
 }
 
-async function saveSpEducation(id) {
-    const body = {
-        degree:         document.getElementById('sp-edit-edu-degree').value.trim(),
-        institution:    document.getElementById('sp-edit-edu-institution').value.trim() || null,
-        field_of_study: document.getElementById('sp-edit-edu-field').value.trim()       || null,
-        start_date:     document.getElementById('sp-edit-edu-start').value.trim()       || null,
-        end_date:       document.getElementById('sp-edit-edu-end').value.trim()         || null,
-        description:    document.getElementById('sp-edit-edu-desc').value.trim()        || null,
-    };
-    if (!body.degree) { showSpEduStatus(t('sp.degree_required'), 'error'); return; }
-    try {
-        const res = await apiFetch(`${API_BASE_URL}/competence/education/${id}`, {
-            method: 'PUT', headers: {'Content-Type':'application/json'}, body: JSON.stringify(body),
-        });
-        if (!res.ok) { const e = await res.json(); throw new Error(e.detail || 'Fel'); }
-        spEditingEduId = null;
-        showSpEduStatus(t('sp.edu_saved'), 'success');
-        await loadSpEducation();
-        touchOwnKandidat();
-    } catch (err) { showSpEduStatus(err.message, 'error'); }
+function openSpEduModal(eduId) {
+    _spEduEditingId = eduId ?? null;
+    const titleEl = document.getElementById('sp-edu-modal-title');
+    if (titleEl) titleEl.textContent = t(_spEduEditingId != null ? 'bank.edit_edu_title' : 'bank.add_edu_title');
+    const item = _spEduEditingId != null ? cachedSpEdu.find(e => e.id === _spEduEditingId) : null;
+    document.getElementById('sp-edu-degree').value      = item?.degree         || '';
+    document.getElementById('sp-edu-institution').value = item?.institution    || '';
+    document.getElementById('sp-edu-field').value       = item?.field_of_study || '';
+    document.getElementById('sp-edu-start').value       = item?.start_date     || '';
+    document.getElementById('sp-edu-end').value         = item?.end_date       || '';
+    const statusEl = document.getElementById('sp-edu-status');
+    if (statusEl) { statusEl.textContent = ''; statusEl.className = ''; }
+    document.getElementById('sp-edu-modal').classList.remove('hidden');
 }
 
-async function addSpEducation() {
-    const degree = document.getElementById('sp-edu-degree').value.trim();
-    if (!degree) { showSpEduStatus(t('sp.degree_required'), 'error'); return; }
+function closeSpEduModal() {
+    document.getElementById('sp-edu-modal').classList.add('hidden');
+    _spEduEditingId = null;
+}
+
+async function saveSpEduModal() {
     const body = {
-        degree,
+        degree:         document.getElementById('sp-edu-degree').value.trim(),
         institution:    document.getElementById('sp-edu-institution').value.trim() || null,
         field_of_study: document.getElementById('sp-edu-field').value.trim()       || null,
         start_date:     document.getElementById('sp-edu-start').value.trim()       || null,
         end_date:       document.getElementById('sp-edu-end').value.trim()         || null,
     };
+    if (!body.degree) { showSpEduStatus(t('sp.degree_required'), 'error'); return; }
     try {
-        const res = await apiFetch(`${API_BASE_URL}/competence/education`, {
-            method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify(body),
+        const url = _spEduEditingId != null
+            ? `${API_BASE_URL}/competence/education/${_spEduEditingId}`
+            : `${API_BASE_URL}/competence/education`;
+        const res = await apiFetch(url, {
+            method: _spEduEditingId != null ? 'PUT' : 'POST',
+            headers: {'Content-Type':'application/json'}, body: JSON.stringify(body),
         });
         if (!res.ok) { const e = await res.json(); throw new Error(e.detail || 'Fel'); }
-        ['sp-edu-degree','sp-edu-institution','sp-edu-field','sp-edu-start','sp-edu-end']
-            .forEach(id => document.getElementById(id).value = '');
-        showSpEduStatus(t('sp.edu_added'), 'success');
+        closeSpEduModal();
         await loadSpEducation();
         touchOwnKandidat();
     } catch (err) { showSpEduStatus(err.message, 'error'); }
@@ -724,7 +680,6 @@ async function loadSpCertifications() {
         if (!res.ok) return;
         const data = await res.json();
         cachedSpCerts = data.certifications || [];
-        spEditingCertId = null;
         renderSpCertifications(cachedSpCerts);
     } catch (err) {
         if (err.message !== 'Inte inloggad') console.error(err);
@@ -734,26 +689,13 @@ async function loadSpCertifications() {
 function renderSpCertifications(items) {
     const container = document.getElementById('sp-certifications-list');
     if (!container) return;
+    const addBtn = `<button class="btn btn-primary btn-sm" onclick="openSpCertModal(null)">${t('bank.add_cert_btn')}</button>`;
     if (!items.length) {
-        container.innerHTML = `<div class="empty-hint">${t('sp.no_cert')}</div>`;
+        container.innerHTML = `<div class="list-clear-bar"><span></span>${addBtn}</div><div class="empty-hint">${t('sp.no_cert')}</div>`;
         return;
     }
-    const clearBarCert = `<div class="list-clear-bar"><span>${items.length} ${t('sp.cert_word')}</span><button class="btn btn-danger btn-sm" onclick="clearSpCertifications()">${t('sp.clear_all')}</button></div>`;
-    container.innerHTML = clearBarCert + items.map(c => {
-        if (c.id === spEditingCertId) {
-            return `<div style="border:1px solid var(--blue);border-radius:var(--radius);padding:0.875rem 1rem;margin-bottom:0.75rem">
-                <div style="display:flex;flex-direction:column;gap:0.5rem;margin-bottom:0.5rem">
-                    <input class="form-input" id="sp-edit-cert-name"   value="${esc(c.name)}"        placeholder="Kurs / Certifikat" required>
-                    <input class="form-input" id="sp-edit-cert-issuer" value="${esc(c.issuer)}"       placeholder="Utfärdare">
-                    <input class="form-input" id="sp-edit-cert-date"   value="${esc(c.date)}"         placeholder="Datum (ÅÅÅÅ-MM)">
-                    <textarea class="form-input" id="sp-edit-cert-desc" placeholder="Beskrivning" rows="2">${esc(c.description)}</textarea>
-                </div>
-                <div style="display:flex;gap:0.5rem">
-                    <button class="btn btn-primary btn-small" onclick="saveSpCertification(${c.id})">${t('common.save')}</button>
-                    <button class="btn btn-secondary btn-small" onclick="spEditingCertId=null;renderSpCertifications(cachedSpCerts)">${t('common.cancel')}</button>
-                </div>
-            </div>`;
-        }
+    const clearBar = `<div class="list-clear-bar"><span>${items.length} ${t('sp.cert_word')}</span><div style="display:flex;gap:0.5rem">${addBtn}<button class="btn btn-danger btn-sm" onclick="clearSpCertifications()">${t('sp.clear_all')}</button></div></div>`;
+    container.innerHTML = clearBar + items.map(c => {
         return `<div class="edu-card">
             <div>
                 <div class="edu-card-title">${esc(c.name)}</div>
@@ -761,49 +703,50 @@ function renderSpCertifications(items) {
                 ${c.date   ? `<div class="edu-card-period">${c.date}</div>` : ''}
             </div>
             <div class="exp-card-actions">
-                <button class="btn-icon" onclick="spEditingCertId=${c.id};renderSpCertifications(cachedSpCerts)" title="${t('action.edit')}"><span class="material-icons">edit</span></button>
+                <button class="btn-icon" onclick="openSpCertModal(${c.id})" title="${t('action.edit')}"><span class="material-icons">edit</span></button>
                 <button class="btn-icon btn-icon-danger" onclick="deleteSpCertification(${c.id})" title="${t('action.delete')}"><span class="material-icons">delete</span></button>
             </div>
         </div>`;
     }).join('');
 }
 
-async function saveSpCertification(id) {
-    const body = {
-        name:        document.getElementById('sp-edit-cert-name').value.trim(),
-        issuer:      document.getElementById('sp-edit-cert-issuer').value.trim() || null,
-        date:        document.getElementById('sp-edit-cert-date').value.trim()   || null,
-        description: document.getElementById('sp-edit-cert-desc').value.trim()  || null,
-    };
-    if (!body.name) { showSpCertStatus(t('sp.cert_name_required'), 'error'); return; }
-    try {
-        const res = await apiFetch(`${API_BASE_URL}/competence/certifications/${id}`, {
-            method: 'PUT', headers: {'Content-Type':'application/json'}, body: JSON.stringify(body),
-        });
-        if (!res.ok) { const e = await res.json(); throw new Error(e.detail || 'Fel'); }
-        spEditingCertId = null;
-        showSpCertStatus(t('sp.cert_saved'), 'success');
-        await loadSpCertifications();
-        touchOwnKandidat();
-    } catch (err) { showSpCertStatus(err.message, 'error'); }
+function openSpCertModal(certId) {
+    _spCertEditingId = certId ?? null;
+    const titleEl = document.getElementById('sp-cert-modal-title');
+    if (titleEl) titleEl.textContent = t(_spCertEditingId != null ? 'bank.edit_cert_title' : 'bank.add_cert_title');
+    const item = _spCertEditingId != null ? cachedSpCerts.find(c => c.id === _spCertEditingId) : null;
+    document.getElementById('sp-cert-name').value   = item?.name        || '';
+    document.getElementById('sp-cert-issuer').value = item?.issuer      || '';
+    document.getElementById('sp-cert-date').value   = item?.date        || '';
+    document.getElementById('sp-cert-desc').value   = item?.description || '';
+    const statusEl = document.getElementById('sp-cert-status');
+    if (statusEl) { statusEl.textContent = ''; statusEl.className = ''; }
+    document.getElementById('sp-cert-modal').classList.remove('hidden');
 }
 
-async function addSpCertification() {
-    const name = document.getElementById('sp-cert-name').value.trim();
-    if (!name) { showSpCertStatus(t('sp.cert_name_required'), 'error'); return; }
+function closeSpCertModal() {
+    document.getElementById('sp-cert-modal').classList.add('hidden');
+    _spCertEditingId = null;
+}
+
+async function saveSpCertModal() {
     const body = {
-        name,
+        name:        document.getElementById('sp-cert-name').value.trim(),
         issuer:      document.getElementById('sp-cert-issuer').value.trim() || null,
         date:        document.getElementById('sp-cert-date').value.trim()   || null,
         description: document.getElementById('sp-cert-desc').value.trim()  || null,
     };
+    if (!body.name) { showSpCertStatus(t('sp.cert_name_required'), 'error'); return; }
     try {
-        const res = await apiFetch(`${API_BASE_URL}/competence/certifications`, {
-            method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify(body),
+        const url = _spCertEditingId != null
+            ? `${API_BASE_URL}/competence/certifications/${_spCertEditingId}`
+            : `${API_BASE_URL}/competence/certifications`;
+        const res = await apiFetch(url, {
+            method: _spCertEditingId != null ? 'PUT' : 'POST',
+            headers: {'Content-Type':'application/json'}, body: JSON.stringify(body),
         });
         if (!res.ok) { const e = await res.json(); throw new Error(e.detail || 'Fel'); }
-        ['sp-cert-name','sp-cert-issuer','sp-cert-date','sp-cert-desc'].forEach(id => document.getElementById(id).value = '');
-        showSpCertStatus(t('sp.cert_added'), 'success');
+        closeSpCertModal();
         await loadSpCertifications();
         touchOwnKandidat();
     } catch (err) { showSpCertStatus(err.message, 'error'); }

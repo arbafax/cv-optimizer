@@ -534,6 +534,8 @@ async function loadKandidatPortrait(kandidatId) {
     const kand = await cvDb.kandidater.get(kandidatId).catch(() => null);
     const ta = document.getElementById('kand-portrait-text');
     if (ta) ta.value = kand?.portrait || '';
+    const btn = document.getElementById('kand-portrait-gen-btn');
+    if (btn) btn.disabled = !(await isAiConfigured());
 }
 
 async function generateKandPortrait() {

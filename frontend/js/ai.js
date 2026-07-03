@@ -68,7 +68,7 @@ async function _chatOpenAI(apiKey, systemPrompt, userPrompt, temperature, jsonMo
   return data.choices[0].message.content;
 }
 
-async function _chatAnthropic(apiKey, systemPrompt, userPrompt, temperature) {
+async function _chatAnthropic(apiKey, systemPrompt, userPrompt, _temperature) {
   if (!apiKey) throw new Error('API-nyckel och AI-leverantör saknas. Ange den under <a href="#" class="text-link" onclick="goToAccount();return false">Inställningar</a>.');
 
   const res = await fetch('https://api.anthropic.com/v1/messages', {
@@ -84,7 +84,6 @@ async function _chatAnthropic(apiKey, systemPrompt, userPrompt, temperature) {
       max_tokens: 4096,
       system: systemPrompt,
       messages: [{ role: 'user', content: userPrompt }],
-      temperature,
     }),
   });
 

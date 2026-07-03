@@ -212,7 +212,7 @@ sv: {
 
     // ─── Hitta jobb ──────────────────────────────────────────────────────────
     'jobs.title':                   'Leta jobb',
-    'jobs.subtitle':                'Hämtar annonser från Platsbanken och rankar dem mot din profil.',
+    'jobs.subtitle':                'Hämtar annonser från Platsbanken och rankar dem mot din profil. Viktigt att notera är att i detta steget är endast en ytlig rankning gjord. Du behöver göra en \'AI-analys\' för varje intressant jobb individuellt för en mer korrekt analys.',
     'jobs.fetch_btn':               'Hämta & ranka',
     'jobs.fetch_btn_no_ai':         'Leta jobb',
     'jobs.fetch_btn_ai':            'Leta och ranka',
@@ -905,7 +905,7 @@ en: {
 
     // ─── Find jobs ───────────────────────────────────────────────────────────
     'jobs.title':                   'Find jobs',
-    'jobs.subtitle':                'Fetches listings from Platsbanken and ranks them against your profile.',
+    'jobs.subtitle':                'Fetches listings from Platsbanken and ranks them against your profile. Note that this step only provides a surface-level ranking. For a more accurate analysis, you need to run \'AI analysis\' on each interesting job individually.',
     'jobs.fetch_btn':               'Fetch & rank',
     'jobs.fetch_btn_no_ai':         'Find jobs',
     'jobs.fetch_btn_ai':            'Find and rank',

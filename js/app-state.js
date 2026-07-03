@@ -264,6 +264,13 @@ async function addSkillFromContextModal(skillName) {
         document.getElementById('skill-add-level')?.remove();
         feedback.innerHTML = `<span class="material-icons" style="font-size:1rem;vertical-align:middle;margin-right:2px">check</span>${t('modal.added_to_profile')}`;
         feedback.style.color = 'var(--green)';
+        if (typeof refreshJobDetAnalysis === 'function') refreshJobDetAnalysis();
+        if (lastMatchResult) {
+            const lc = skillName.trim().toLowerCase();
+            lastMatchResult.missing_required_skills    = (lastMatchResult.missing_required_skills    ?? []).filter(s => s.trim().toLowerCase() !== lc);
+            lastMatchResult.missing_nice_to_have_skills = (lastMatchResult.missing_nice_to_have_skills ?? []).filter(s => s.trim().toLowerCase() !== lc);
+            displayMatchResult(lastMatchResult);
+        }
     } catch (err) {
         btn.disabled = false;
         btn.textContent = t('modal.add_skill');
@@ -299,6 +306,12 @@ async function addQualityFromContextModal(qualityName) {
         btn.remove();
         feedback.innerHTML = `<span class="material-icons" style="font-size:1rem;vertical-align:middle;margin-right:2px">check</span>${t('modal.added_to_profile')}`;
         feedback.style.color = 'var(--green)';
+        if (typeof refreshJobDetAnalysis === 'function') refreshJobDetAnalysis();
+        if (lastMatchResult) {
+            const lc = qualityName.trim().toLowerCase();
+            lastMatchResult.missing_personal_qualities  = (lastMatchResult.missing_personal_qualities  ?? []).filter(q => q.trim().toLowerCase() !== lc);
+            displayMatchResult(lastMatchResult);
+        }
     } catch (err) {
         btn.disabled = false;
         btn.textContent = t('modal.add_quality');
@@ -1738,11 +1751,15 @@ function displayMatchResult(result, container) {
 
     const jobTitleParts = [lastMatchJobMeta?.headline, lastMatchJobMeta?.employer].filter(Boolean);
     const jobTitleSuffix = jobTitleParts.length ? ': ' + jobTitleParts.join(', ') : '';
+    const jobUrl = lastMatchJobMeta?.url;
+    const jobTitleHtml = jobUrl
+        ? `${matchLabel}<a href="${jobUrl}" target="_blank" rel="noopener noreferrer" class="match-result-ext-link">${esc(jobTitleSuffix)}<span class="material-icons match-result-ext-icon">open_in_new</span></a>`
+        : `${matchLabel}${esc(jobTitleSuffix)}`;
 
     optimizeResult.innerHTML = `
         <div class="match-result-header ${scoreColor(overall)}">
             <div>
-                <h2 class="match-result-label">${matchLabel}${esc(jobTitleSuffix)}</h2>
+                <h2 class="match-result-label">${jobTitleHtml}</h2>
                 ${jobInfoHtml}
                 <p class="match-summary">${result.summary || ''}</p>
             </div>

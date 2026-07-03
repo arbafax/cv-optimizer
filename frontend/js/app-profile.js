@@ -462,8 +462,9 @@ function renderProfileSkills(skills) {
                             <select class="form-input" id="prof-edit-skill-level" style="min-width:130px">
                                 <option value=""               ${!s.skill_level                    ?'selected':''}>${t('skill.level_ph')}</option>
                                 <option value="Känner till"    ${s.skill_level==='Känner till'    ?'selected':''}>${t('skill.level_1')}</option>
-                                <option value="Erfaren"        ${s.skill_level==='Erfaren'        ?'selected':''}>${t('skill.level_2')}</option>
-                                <option value="Mycket erfaren" ${s.skill_level==='Mycket erfaren' ?'selected':''}>${t('skill.level_3')}</option>
+                                <option value="Grundläggande"  ${s.skill_level==='Grundläggande'  ?'selected':''}>${t('skill.level_2')}</option>
+                                <option value="Erfaren"        ${s.skill_level==='Erfaren'        ?'selected':''}>${t('skill.level_3')}</option>
+                                <option value="Mycket erfaren" ${s.skill_level==='Mycket erfaren' ?'selected':''}>${t('skill.level_4')}</option>
                             </select>
                             <button class="btn btn-primary btn-small" onclick="saveProfileSkill(${s.id})">${t('common.save')}</button>
                             <button class="btn btn-secondary btn-small" onclick="profEditingSkillId=null;renderProfileSkills(cachedProfSkills)">${t('common.cancel')}</button>

@@ -379,12 +379,12 @@ async function _renderJobList(jobs) {
         return `<div class="jobb-card" id="jobb-card-${job.id}">
             <div class="jobb-score-badge ${scoreClass}">${scoreLabel}</div>
             <div class="jobb-info">
-                <h3 class="jobb-headline"><a href="${job.webpage_url ?? '#'}" target="_blank" rel="noopener">${job.headline}</a></h3>
+                <h3 class="jobb-headline"><a href="${job.webpage_url ?? '#'}" target="_blank" rel="noopener">${job.headline}<span class="material-icons" style="font-size:.85rem;vertical-align:middle;margin-left:3px;opacity:0.6">open_in_new</span></a></h3>
                 <p class="jobb-meta">${[employer, location].filter(Boolean).join(' · ')} ${deadline}</p>
                 ${motivation}
             </div>
             <div class="jobb-actions">
-                <button class="btn btn-sm btn-ghost" onclick="dismissJob('${job.id}', '${_esc(job.headline)}', '${_esc(employer)}', '${_esc(job.webpage_url ?? '')}')">
+                <button class="btn btn-sm btn-secondary" onclick="dismissJob('${job.id}', '${_esc(job.headline)}', '${_esc(employer)}', '${_esc(job.webpage_url ?? '')}')">
                     <span class="material-icons" style="font-size:1rem">thumb_down</span>
                     ${t('jobs.dismiss')}
                 </button>
@@ -546,6 +546,17 @@ function _renderSparadeTable(jobs) {
             ? `<span class="jobb-deadline"><span class="material-icons" style="font-size:.85rem;vertical-align:middle">event</span> ${j.deadline}</span>`
             : '';
 
+        const savedAt = j.created_at
+            ? new Date(j.created_at).toLocaleString('sv-SE', { dateStyle: 'short', timeStyle: 'short' })
+            : '';
+        const savedAtHtml = savedAt
+            ? `<span class="jobb-saved-at"><span class="material-icons" style="font-size:.85rem;vertical-align:middle">bookmark_added</span> ${savedAt}</span>`
+            : '';
+
+        const appliedBadge = j.applied
+            ? `<span class="jobb-applied-badge">${t('jobs.applied_badge')}<button class="chip-delete" onclick="event.stopPropagation(); toggleJobApplied('${j.job_id}')" title="${t('jobs.unmark_applied')}"><span class="material-icons" style="font-size:14px">close</span></button></span>`
+            : '';
+
         const matchHtml = j.match_score !== null && j.match_score !== undefined
             ? `<p class="jobb-motivation"><span class="material-icons" style="font-size:.85rem;vertical-align:middle">analytics</span> ${t('jobs.col_match')}: ${j.match_score}%</p>`
             : '';
@@ -555,9 +566,11 @@ function _renderSparadeTable(jobs) {
             <div class="jobb-info">
                 <h3 class="jobb-headline">${_esc(j.headline)}</h3>
                 <p class="jobb-meta">${[_esc(j.employer), _esc(j.location)].filter(Boolean).join(' · ')} ${deadline}</p>
+                <p class="jobb-meta">${savedAtHtml} ${appliedBadge}</p>
                 ${matchHtml}
             </div>
             <div class="jobb-actions" onclick="event.stopPropagation()">
+                ${!j.applied ? `<button class="btn btn-sm btn-ghost" style="padding:6px" title="${t('jobs.mark_applied')}" onclick="toggleJobApplied('${j.job_id}')"><span class="material-icons" style="font-size:1.1rem">check_circle_outline</span></button>` : ''}
                 <button class="btn btn-sm btn-ghost" style="padding:6px" title="${t('common.delete')}" onclick="deleteFromSaved('${j.job_id}')">
                     <span class="material-icons" style="font-size:1.1rem">delete</span>
                 </button>
@@ -578,6 +591,31 @@ async function deleteFromSaved(jobId) {
     }
     const saved = await cvDb.jobSeen.getByStatus('saved');
     _renderSparadeTable(saved);
+}
+
+async function toggleJobApplied(jobId) {
+    const job = await cvDb.jobSeen.get(jobId);
+    if (!job) return;
+    await cvDb.jobSeen.updateApplied(jobId, !job.applied);
+    const saved = await cvDb.jobSeen.getByStatus('saved');
+    _renderSparadeTable(saved);
+}
+
+function _renderJobApplied(job) {
+    const el = document.getElementById('jobbdet-applied');
+    if (!el) return;
+    if (job.applied) {
+        el.innerHTML = `<span class="jobb-applied-badge">${t('jobs.applied_badge')}<button class="chip-delete" onclick="toggleJobAppliedFromDetail('${job.job_id}')" title="${t('jobs.unmark_applied')}"><span class="material-icons" style="font-size:14px">close</span></button></span>`;
+    } else {
+        el.innerHTML = `<button class="btn btn-sm btn-ghost" onclick="toggleJobAppliedFromDetail('${job.job_id}')"><span class="material-icons" style="font-size:1rem;vertical-align:middle">check_circle_outline</span> ${t('jobs.mark_applied')}</button>`;
+    }
+}
+
+async function toggleJobAppliedFromDetail(jobId) {
+    const job = await cvDb.jobSeen.get(jobId);
+    if (!job) return;
+    await cvDb.jobSeen.updateApplied(jobId, !job.applied);
+    _renderJobApplied({ ...job, applied: !job.applied });
 }
 
 async function showJobbDetaljer(jobId) {
@@ -605,6 +643,8 @@ async function showJobbDetaljer(jobId) {
         const cls = job.match_score >= 70 ? 'score-high' : job.match_score >= 40 ? 'score-mid' : 'score-low';
         matchEl.innerHTML = `<span class="score-pill ${cls}">${t('jobs.col_match')}: ${job.match_score}%</span>`;
     } else { matchEl.innerHTML = ''; }
+
+    _renderJobApplied(job);
 
     // Make the job description available to showSkillContextModal / explainRequiredSkill
     lastJobDesc = job.description || '';

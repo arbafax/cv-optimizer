@@ -159,7 +159,7 @@ sv: {
     'match.paste_alert':            'Klistra in en jobbannons',
     'match.failed':                 'Matchning misslyckades',
     'match.label_high':             'God matchning',
-    'match.label_mid':              'Måtlig matchning',
+    'match.label_mid':              'Måttlig matchning',
     'match.label_low':              'Dålig matchning',
     'match.generating':             'Genererar...',
     'match.gen_btn':                '✨ Generera anpassat CV-utkast',
@@ -219,6 +219,9 @@ sv: {
     'jobs.dismiss':                 'Dissa',
     'jobs.save':                    'Spara',
     'jobs.already_saved':           'Sparat',
+    'jobs.applied_badge':           'Sökt',
+    'jobs.mark_applied':            'Markera som sökt',
+    'jobs.unmark_applied':          'Ta bort sökt-markering',
     'jobs.open_match':              'Gå vidare',
     'jobs.saved_ok':                'Annons sparad.',
     'jobs.dismissed_ok':            'Annons dold.',
@@ -411,7 +414,7 @@ sv: {
 
     'qualities.title':              'Personliga egenskaper',
     'qualities.desc_kand':          'Mjuka egenskaper som kandidaten besitter — t.ex. Analytisk, Självgående, Driven. Används vid matchning mot jobbannonser.',
-    'qualities.desc_sp':            'Mjuka egenskaper som du besitter — t.ex. Analytisk, Självgående, Driven. Används vid matchning mot jobbannonser.',
+    'qualities.desc_sp':            'Mjuka egenskaper som du besitter — t.ex. Analytisk, Självgående, Driven. Fungerar i fraser som "Du är [...]" eller "Du har förmågan att vara [...]".<br><br>Används vid matchning mot jobbannonser.',
     'qualities.placeholder':        'Skriv egenskap och tryck Enter…',
     'qualities.add_btn':            '+ Lägg till',
     'qualities.empty':              'Inga egenskaper tillagda ännu.',
@@ -537,8 +540,9 @@ sv: {
 
     // Skill levels
     'skill.level_1':                'Känner till',
-    'skill.level_2':                'Erfaren',
-    'skill.level_3':                'Mycket erfaren',
+    'skill.level_2':                'Grundläggande',
+    'skill.level_3':                'Erfaren',
+    'skill.level_4':                'Mycket erfaren',
     'skill.level_ph':               '— Nivå —',
 
     // Match result
@@ -899,6 +903,9 @@ en: {
     'jobs.dismiss':                 'Dismiss',
     'jobs.save':                    'Save',
     'jobs.already_saved':           'Saved',
+    'jobs.applied_badge':           'Applied',
+    'jobs.mark_applied':            'Mark as applied',
+    'jobs.unmark_applied':          'Remove applied status',
     'jobs.open_match':              'Analyse',
     'jobs.saved_ok':                'Listing saved.',
     'jobs.dismissed_ok':            'Listing hidden.',
@@ -1082,7 +1089,7 @@ en: {
 
     'qualities.title':              'Personal qualities',
     'qualities.desc_kand':          'Soft skills the candidate possesses — e.g. Analytical, Self-driven, Motivated. Used when matching against job postings.',
-    'qualities.desc_sp':            'Soft skills you possess — e.g. Analytical, Self-driven, Motivated. Used when matching against job postings.',
+    'qualities.desc_sp':            'Soft skills you possess — e.g. Analytical, Self-driven, Motivated. Works in phrases like "You are [...]" or "You have the ability to be [...]".<br><br>Used when matching against job postings.',
     'qualities.placeholder':        'Type a quality and press Enter…',
     'qualities.add_btn':            '+ Add',
     'qualities.empty':              'No qualities added yet.',
@@ -1208,8 +1215,9 @@ en: {
 
     // Skill levels
     'skill.level_1':                'Aware',
-    'skill.level_2':                'Experienced',
-    'skill.level_3':                'Very experienced',
+    'skill.level_2':                'Basic',
+    'skill.level_3':                'Experienced',
+    'skill.level_4':                'Very experienced',
     'skill.level_ph':               '— Level —',
 
     // Match result

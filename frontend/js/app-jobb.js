@@ -524,7 +524,8 @@ async function saveJob(jobId) {
 
 // ── Sparade jobb ──────────────────────────────────────────────────────────────
 
-let _currentSavedJob = null;
+let _currentSavedJob   = null;
+let _currentDetailJobId = null;
 
 async function loadSparadeJobbView() {
     const saved = await cvDb.jobSeen.getByStatus('saved');
@@ -632,10 +633,26 @@ async function toggleJobAppliedFromDetail(jobId) {
     _renderJobApplied({ ...job, applied: !job.applied });
 }
 
+async function refreshJobDetAnalysis() {
+    if (!_currentDetailJobId) return;
+    const job = await cvDb.jobSeen.get(_currentDetailJobId);
+    if (!job) return;
+    const own = await cvDb.kandidater.getOwn();
+    const ownId = own?.id;
+    const ownSkillNames = new Set(
+        ownId ? (await cvDb.kandSkills.listFor(ownId)).map(s => s.skill_name.trim().toLowerCase()) : []
+    );
+    const ownQualities = new Set(
+        (own?.personal_qualities || []).map(q => q.trim().toLowerCase())
+    );
+    _renderJobAnalysis(job, ownSkillNames, ownQualities);
+}
+
 async function showJobbDetaljer(jobId) {
     const job = await cvDb.jobSeen.get(jobId);
     if (!job) return;
-    _currentSavedJob = job;
+    _currentSavedJob    = job;
+    _currentDetailJobId = jobId;
 
     document.getElementById('jobbdet-title').textContent    = job.headline;
     document.getElementById('jobbdet-company').textContent  = job.employer  || '–';

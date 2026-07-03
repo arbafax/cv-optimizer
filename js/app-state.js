@@ -1984,7 +1984,15 @@ async function checkForUpdates() {
         if (!res.ok) throw new Error('no response');
         const remote = await res.json();
         if (!remote?.version) throw new Error('no version');
-        if (remote.version === _localVersion) {
+        const _semverGt = (a, b) => {
+            const pa = a.split('.').map(Number), pb = b.split('.').map(Number);
+            for (let i = 0; i < Math.max(pa.length, pb.length); i++) {
+                const diff = (pa[i] || 0) - (pb[i] || 0);
+                if (diff !== 0) return diff > 0;
+            }
+            return false;
+        };
+        if (!_semverGt(remote.version, _localVersion)) {
             alert(`Du kör redan den senaste versionen (v${_localVersion}).`);
             return;
         }

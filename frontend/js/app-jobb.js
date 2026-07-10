@@ -305,7 +305,7 @@ async function _batchRankJobs(hits, own) {
 Svara ENBART med ett JSON-objekt. Inget annat — ingen inledning, inga förklaringar.`;
 
     const userPrompt = `Kandidatprofil:
-${portrait ? `Porträtt: ${portrait}\n` : ''}${own?.roles ? `Önskade roller: ${own.roles}\n` : ''}${unwantedRoles ? `Oönskade roller: ${unwantedRoles}\n` : ''}${own?.title ? `Nuvarande/önskad roll: ${own.title}\n` : ''}
+${portrait ? `Porträtt: ${portrait}\n` : ''}${own?.roles ? `Önskade roller: ${own.roles}\n` : ''}${unwantedRoles ? `Oönskade roller: ${unwantedRoles}\n` : ''}${own?.title ? `Nuvarande/önskad roll: ${own.title}\n` : ''}${own?.desired_city ? `Önskade orter: ${own.desired_city}\n` : ''}
 
 Jobbannonser att bedöma:
 ${jobLines}
